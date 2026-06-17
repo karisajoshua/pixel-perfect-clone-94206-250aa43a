@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedVehiclesRouteImport } from './routes/_authenticated/vehicles'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
+import { Route as AuthenticatedQuotationsRouteImport } from './routes/_authenticated/quotations'
 import { Route as AuthenticatedPoliciesRouteImport } from './routes/_authenticated/policies'
 import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -54,6 +55,11 @@ const AuthenticatedVehiclesRoute = AuthenticatedVehiclesRouteImport.update({
 const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedQuotationsRoute = AuthenticatedQuotationsRouteImport.update({
+  id: '/quotations',
+  path: '/quotations',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPoliciesRoute = AuthenticatedPoliciesRouteImport.update({
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/policies': typeof AuthenticatedPoliciesRouteWithChildren
+  '/quotations': typeof AuthenticatedQuotationsRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/policies': typeof AuthenticatedPoliciesRouteWithChildren
+  '/quotations': typeof AuthenticatedQuotationsRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
   '/_authenticated/policies': typeof AuthenticatedPoliciesRouteWithChildren
+  '/_authenticated/quotations': typeof AuthenticatedQuotationsRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/vehicles': typeof AuthenticatedVehiclesRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/invoices'
     | '/policies'
+    | '/quotations'
     | '/reports'
     | '/vehicles'
     | '/admin/audit'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/invoices'
     | '/policies'
+    | '/quotations'
     | '/reports'
     | '/vehicles'
     | '/admin/audit'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/invoices'
     | '/_authenticated/policies'
+    | '/_authenticated/quotations'
     | '/_authenticated/reports'
     | '/_authenticated/vehicles'
     | '/_authenticated/admin/audit'
@@ -277,6 +289,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof AuthenticatedReportsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/quotations': {
+      id: '/_authenticated/quotations'
+      path: '/quotations'
+      fullPath: '/quotations'
+      preLoaderRoute: typeof AuthenticatedQuotationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/policies': {
@@ -389,6 +408,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
   AuthenticatedPoliciesRoute: typeof AuthenticatedPoliciesRouteWithChildren
+  AuthenticatedQuotationsRoute: typeof AuthenticatedQuotationsRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedVehiclesRoute: typeof AuthenticatedVehiclesRoute
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
@@ -403,6 +423,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
   AuthenticatedPoliciesRoute: AuthenticatedPoliciesRouteWithChildren,
+  AuthenticatedQuotationsRoute: AuthenticatedQuotationsRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedVehiclesRoute: AuthenticatedVehiclesRoute,
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
