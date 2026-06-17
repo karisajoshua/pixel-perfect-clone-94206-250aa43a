@@ -180,8 +180,6 @@ export async function downloadInvoicePdf({ invoice, client, branch, policyNo, it
   const filename = `Invoice-${invoice.invoice_no ?? invoice.id}.pdf`;
   const blob = doc.output("blob");
   const url = URL.createObjectURL(blob);
-
-  // Try a normal download first (works in standalone tabs).
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
@@ -189,14 +187,5 @@ export async function downloadInvoicePdf({ invoice, client, branch, policyNo, it
   document.body.appendChild(a);
   a.click();
   a.remove();
-
-  // Fallback for sandboxed iframes (Lovable preview) where the download
-  // attribute is silently blocked: open the PDF in a new tab so the user
-  // can save it from the browser's PDF viewer.
-  const inIframe = typeof window !== "undefined" && window.self !== window.top;
-  if (inIframe) {
-    window.open(url, "_blank", "noopener");
-  }
-
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
