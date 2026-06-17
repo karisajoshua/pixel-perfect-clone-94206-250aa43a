@@ -49,7 +49,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex bg-background text-foreground">
-      <aside className="w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col">
+      <aside className="w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col sticky top-0 h-screen max-h-screen">
         <div className="p-5 flex items-center gap-2 border-b border-sidebar-border">
           <img src={logoWhite.url} alt="Zest Insurance Agency" className="h-12 w-auto object-contain" />
           <div className="ml-1">
