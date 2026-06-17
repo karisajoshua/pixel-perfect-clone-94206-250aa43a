@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { sendTransactionalEmail, clientDisplayName, formatKES } from "@/lib/email/send";
 
 type Item = { description: string; quantity: number; unit_price: number };
 
@@ -56,7 +57,27 @@ export function InvoiceFormDialog({ open, onOpenChange, onSaved, initial }: any)
     }));
     if (itemRows.length) await supabase.from("invoice_items").insert(itemRows);
     setSaving(false);
-    toast.success("Invoice saved"); onSaved?.(); onOpenChange(false);
+    toast.success("Invoice saved");
+    if (!initial?.id && invoiceId && form.client_id) {
+      supabase.from("clients").select("email, full_name, company_name, client_type").eq("id", form.client_id).maybeSingle().then(({ data: c }) => {
+        if (!c?.email) return;
+        const policy = policies.find((p) => p.id === form.policy_id);
+        sendTransactionalEmail({
+          templateName: "invoice-issued",
+          recipientEmail: c.email,
+          idempotencyKey: `invoice-issued-${invoiceId}`,
+          templateData: {
+            clientName: clientDisplayName(c),
+            invoiceNo: form.invoice_no,
+            amount: formatKES(total),
+            issueDate: form.issue_date,
+            dueDate: form.due_date,
+            policyNo: policy?.policy_no ?? '',
+          },
+        });
+      });
+    }
+    onSaved?.(); onOpenChange(false);
   };
 
   const pForClient = form.client_id ? policies.filter((p) => p.client_id === form.client_id) : policies;
