@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Pencil, Plus } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Download } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { InvoiceFormDialog } from "@/components/invoices/invoice-form-dialog";
 import { toast } from "sonner";
+import { downloadInvoicePdf } from "@/lib/invoice-pdf";
 
 export const Route = createFileRoute("/_authenticated/invoices/$id")({ component: InvoiceDetail });
 
@@ -25,7 +26,7 @@ function InvoiceDetail() {
     queryKey: ["invoice", id],
     queryFn: async () => {
       const { data, error } = await supabase.from("invoices")
-        .select("*, clients(id, full_name, company_name, client_type), policies(policy_no), invoice_items(*), payments(*)")
+        .select("*, clients(id, full_name, company_name, client_type, email, phone), policies(policy_no), invoice_items(*), payments(*), branches(name, address, phone, email)")
         .eq("id", id).single();
       if (error) throw error;
       return data as any;
@@ -44,6 +45,7 @@ function InvoiceDetail() {
       <PageHeader title={inv.invoice_no} subtitle={`${name} • Due ${inv.due_date}`}
         actions={
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => downloadInvoicePdf({ invoice: inv, client: inv.clients, branch: inv.branches, policyNo: inv.policies?.policy_no, items: inv.invoice_items, payments: inv.payments })}><Download className="h-4 w-4 mr-1" /> Download PDF</Button>
             <Button variant="outline" onClick={() => setPay(true)}><Plus className="h-4 w-4 mr-1" /> Record payment</Button>
             <Button onClick={() => setEdit(true)}><Pencil className="h-4 w-4 mr-1" /> Edit</Button>
           </div>

@@ -4,7 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { getMyInvoice } from "@/lib/portal.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { downloadInvoicePdf } from "@/lib/invoice-pdf";
 
 export const Route = createFileRoute("/_authenticated/portal/invoices/$id")({ component: Page });
 
@@ -25,7 +27,10 @@ function Page() {
           <h1 className="text-2xl font-semibold">{inv.invoice_no}</h1>
           <div className="text-sm text-muted-foreground">Issued {inv.issue_date} · Due {inv.due_date}{inv.policies?.policy_no ? ` · Policy ${inv.policies.policy_no}` : ""}</div>
         </div>
-        <Badge variant={inv.status === "paid" ? "default" : "secondary"}>{inv.status}</Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={inv.status === "paid" ? "default" : "secondary"}>{inv.status}</Badge>
+          <Button size="sm" variant="outline" onClick={() => downloadInvoicePdf({ invoice: inv, client: inv.clients, branch: inv.branches, policyNo: inv.policies?.policy_no, items: inv.invoice_items, payments: inv.payments })}><Download className="h-4 w-4 mr-1" /> Download PDF</Button>
+        </div>
       </div>
       <Card><CardHeader><CardTitle className="text-base">Line items</CardTitle></CardHeader><CardContent>
         <table className="w-full text-sm">
