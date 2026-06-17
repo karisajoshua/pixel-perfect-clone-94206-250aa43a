@@ -134,7 +134,9 @@ function AuthPage() {
             ))}
           </div>
         </div>
-        <p className="relative text-xs text-sidebar-foreground/60">© {new Date().getFullYear()} Zest Insurance Agency</p>
+        <p className="relative text-xs text-sidebar-foreground/60">
+          © {new Date().getFullYear()} Zest Insurance Agency · Powered by Texcortech Systems
+        </p>
       </div>
 
       <div className="flex items-center justify-center p-6">
@@ -188,6 +190,9 @@ function AuthPage() {
             <Button variant="outline" className="w-full" onClick={google}>Continue with Google</Button>
           </CardContent>
         </Card>
+        <p className="absolute bottom-4 text-xs text-muted-foreground lg:hidden">
+          Powered by Texcortech Systems
+        </p>
       </div>
     </div>
   );

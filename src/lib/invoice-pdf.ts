@@ -176,6 +176,8 @@ export async function downloadInvoicePdf({ invoice, client, branch, policyNo, it
   doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(MUTED);
   doc.text("Thank you for choosing Zest Insurance Agency.", margin, pageH - 32);
   doc.text(`Generated ${new Date().toLocaleDateString()}`, pageW - margin, pageH - 32, { align: "right" });
+  doc.setFontSize(8);
+  doc.text("Powered by Texcortech Systems", pageW / 2, pageH - 18, { align: "center" });
 
   const filename = `Invoice-${invoice.invoice_no ?? invoice.id}.pdf`;
   const blob = doc.output("blob");

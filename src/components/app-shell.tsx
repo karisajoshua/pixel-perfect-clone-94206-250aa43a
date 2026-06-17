@@ -80,7 +80,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Button>
         </div>
       </aside>
-      <main className="flex-1 min-w-0 overflow-auto">{children}</main>
+      <main className="flex-1 min-w-0 overflow-auto flex flex-col">
+        <div className="flex-1 min-w-0">{children}</div>
+        <footer className="border-t px-6 py-3 text-xs text-muted-foreground text-center">
+          Powered by Texcortech Systems
+        </footer>
+      </main>
     </div>
   );
 }
