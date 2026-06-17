@@ -178,7 +178,6 @@ function AuthPage() {
                     <Input id="password2" type="password" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} required />
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>Create account</Button>
-                  <p className="text-xs text-muted-foreground">The first account becomes the admin.</p>
                 </form>
               </TabsContent>
             </Tabs>
