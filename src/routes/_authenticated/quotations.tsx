@@ -11,8 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/page-header";
-import { Plus, Pencil, ArrowRight } from "lucide-react";
+import { Plus, Pencil, ArrowRight, Download } from "lucide-react";
 import { toast } from "sonner";
+import { downloadQuotationPdf } from "@/lib/quotation-pdf";
 
 export const Route = createFileRoute("/_authenticated/quotations")({ component: QuotationsPage });
 
@@ -52,6 +53,22 @@ function QuotationsPage() {
     qc.invalidateQueries({ queryKey: ["policies"] });
   };
 
+  const handleDownload = async (quoteId: string) => {
+    const t = toast.loading("Preparing PDF…");
+    try {
+      const { data, error } = await supabase.from("quotations")
+        .select("*, clients(id, full_name, company_name, client_type, email, phone), insurers(name), vehicles(registration_no, make, model, year), branches(name, address, phone, email)")
+        .eq("id", quoteId).single();
+      if (error || !data) throw new Error(error?.message ?? "Failed to load quotation");
+      const q: any = data;
+      await downloadQuotationPdf({ quotation: q, client: q.clients, branch: q.branches, insurer: q.insurers, vehicle: q.vehicles });
+      toast.success("Quotation downloaded", { id: t });
+    } catch (e: any) {
+      console.error("Quotation download failed", e);
+      toast.error(e?.message ?? "Download failed", { id: t });
+    }
+  };
+
   return (
     <div className="p-8 space-y-6">
       <PageHeader title="Quotations" subtitle="Quote drafts that can be converted into policies."
@@ -83,6 +100,7 @@ function QuotationsPage() {
                     <td className="px-4 py-3">{q.valid_until ?? "—"}</td>
                     <td className="px-4 py-3"><Badge variant={q.status === "converted" ? "default" : "secondary"}>{q.status}</Badge></td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <Button size="sm" variant="ghost" onClick={() => handleDownload(q.id)}><Download className="h-4 w-4 mr-1" /> PDF</Button>
                       <Button size="sm" variant="ghost" onClick={() => { setEdit(q); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                       {q.status !== "converted" && (
                         <Button size="sm" variant="outline" onClick={() => convert(q)}>Convert <ArrowRight className="h-3 w-3 ml-1" /></Button>
