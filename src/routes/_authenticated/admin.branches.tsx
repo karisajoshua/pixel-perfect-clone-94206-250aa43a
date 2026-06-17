@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -70,8 +70,9 @@ function BranchDialog({ open, onOpenChange, initial, onSaved }: any) {
   const [saving, setSaving] = useState(false);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
-  if (open && !form.name && initial) setForm(initial);
-  if (!open && Object.keys(form).length) setTimeout(() => setForm({}), 0);
+  useEffect(() => {
+    if (open) setForm(initial ?? {});
+  }, [open, initial]);
 
   const submit = async () => {
     setSaving(true);
