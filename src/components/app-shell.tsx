@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Car, FileText, FileSignature, Receipt, ScrollText,
-  BarChart3, ShieldCheck, LogOut, Building2, BellRing, Settings, Mail,
+  BarChart3, ShieldCheck, LogOut, Building2, BellRing, Settings, Mail, Upload,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyProfile, useMyRoles } from "@/hooks/use-auth";
@@ -27,6 +27,7 @@ const adminNav = [
   { to: "/admin/users", label: "Users & Roles", icon: ShieldCheck },
   { to: "/admin/branches", label: "Branches", icon: Building2 },
   { to: "/admin/insurers", label: "Insurers", icon: ShieldCheck },
+  { to: "/admin/import", label: "Data import", icon: Upload },
   { to: "/admin/notifications", label: "Notifications", icon: BellRing },
   { to: "/admin/emails", label: "Email log", icon: Mail },
   { to: "/admin/audit", label: "Audit log", icon: Settings },
