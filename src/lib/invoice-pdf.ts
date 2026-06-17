@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import logoAsset from "@/assets/zia-logo-red.png.asset.json";
+import logoAsset from "@/assets/zia-logo-white.png.asset.json";
 
 type Branch = { name?: string | null; address?: string | null; phone?: string | null; email?: string | null } | null | undefined;
 type Client = { full_name?: string | null; company_name?: string | null; client_type?: string | null; email?: string | null; phone?: string | null } | null | undefined;
@@ -14,8 +14,8 @@ export type InvoicePdfInput = {
   payments?: any[];
 };
 
-const BRAND = "#b91c1c"; // zest red
-const BRAND_DARK = "#7f1d1d";
+const BRAND = "#2563eb"; // zest blue
+const BRAND_DARK = "#1e3a8a";
 const MUTED = "#6b7280";
 
 let cachedLogo: string | null = null;
