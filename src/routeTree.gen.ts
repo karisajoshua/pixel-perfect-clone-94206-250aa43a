@@ -24,6 +24,7 @@ import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedClaimsRouteImport } from './routes/_authenticated/claims'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
+import { Route as AuthenticatedAdminInsurersRouteImport } from './routes/_authenticated/admin.insurers'
 import { Route as AuthenticatedAdminBranchesRouteImport } from './routes/_authenticated/admin.branches'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
 
@@ -101,6 +102,12 @@ const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminInsurersRoute =
+  AuthenticatedAdminInsurersRouteImport.update({
+    id: '/admin/insurers',
+    path: '/admin/insurers',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminBranchesRoute =
   AuthenticatedAdminBranchesRouteImport.update({
     id: '/admin/branches',
@@ -128,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/vehicles': typeof AuthenticatedVehiclesRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/branches': typeof AuthenticatedAdminBranchesRoute
+  '/admin/insurers': typeof AuthenticatedAdminInsurersRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
 }
@@ -146,6 +154,7 @@ export interface FileRoutesByTo {
   '/vehicles': typeof AuthenticatedVehiclesRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/branches': typeof AuthenticatedAdminBranchesRoute
+  '/admin/insurers': typeof AuthenticatedAdminInsurersRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
 }
@@ -166,6 +175,7 @@ export interface FileRoutesById {
   '/_authenticated/vehicles': typeof AuthenticatedVehiclesRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/branches': typeof AuthenticatedAdminBranchesRoute
+  '/_authenticated/admin/insurers': typeof AuthenticatedAdminInsurersRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
 }
@@ -186,6 +196,7 @@ export interface FileRouteTypes {
     | '/vehicles'
     | '/admin/audit'
     | '/admin/branches'
+    | '/admin/insurers'
     | '/admin/users'
     | '/clients/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/vehicles'
     | '/admin/audit'
     | '/admin/branches'
+    | '/admin/insurers'
     | '/admin/users'
     | '/clients/$id'
   id:
@@ -223,6 +235,7 @@ export interface FileRouteTypes {
     | '/_authenticated/vehicles'
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/branches'
+    | '/_authenticated/admin/insurers'
     | '/_authenticated/admin/users'
     | '/_authenticated/clients/$id'
   fileRoutesById: FileRoutesById
@@ -341,6 +354,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/insurers': {
+      id: '/_authenticated/admin/insurers'
+      path: '/admin/insurers'
+      fullPath: '/admin/insurers'
+      preLoaderRoute: typeof AuthenticatedAdminInsurersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/branches': {
       id: '/_authenticated/admin/branches'
       path: '/admin/branches'
@@ -381,6 +401,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedVehiclesRoute: typeof AuthenticatedVehiclesRoute
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
   AuthenticatedAdminBranchesRoute: typeof AuthenticatedAdminBranchesRoute
+  AuthenticatedAdminInsurersRoute: typeof AuthenticatedAdminInsurersRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
 }
 
@@ -396,6 +417,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVehiclesRoute: AuthenticatedVehiclesRoute,
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
   AuthenticatedAdminBranchesRoute: AuthenticatedAdminBranchesRoute,
+  AuthenticatedAdminInsurersRoute: AuthenticatedAdminInsurersRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
 }
 
@@ -411,3 +433,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
