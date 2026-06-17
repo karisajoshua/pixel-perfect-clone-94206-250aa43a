@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { sendTransactionalEmail, clientDisplayName, formatKES } from "@/lib/email/send";
 
 type Props = {
   open: boolean;
@@ -79,6 +80,27 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success(initial?.id ? "Policy updated" : "Policy created");
+    if (!initial?.id && data?.id && form.client_id) {
+      const client = clients.find((c) => c.id === form.client_id);
+      const insurer = insurers.find((i) => i.id === form.insurer_id);
+      // fetch client email (not in cached list)
+      supabase.from("clients").select("email, full_name, company_name, client_type").eq("id", form.client_id).maybeSingle().then(({ data: c }) => {
+        if (!c?.email) return;
+        sendTransactionalEmail({
+          templateName: "policy-issued",
+          recipientEmail: c.email,
+          idempotencyKey: `policy-issued-${data.id}`,
+          templateData: {
+            clientName: clientDisplayName(c),
+            policyNo: form.policy_no,
+            insurerName: insurer?.name ?? 'your insurer',
+            startDate: form.start_date,
+            endDate: form.end_date,
+            premium: form.premium_gross ? formatKES(form.premium_gross) : '',
+          },
+        });
+      });
+    }
     onSaved?.(data?.id ?? initial?.id);
     onOpenChange(false);
   };
