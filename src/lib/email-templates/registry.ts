@@ -18,7 +18,13 @@ export interface TemplateEntry {
  *   // then add to TEMPLATES: 'welcome': welcomeTemplate
  */
 import { template as renewalReminderTemplate } from './renewal-reminder'
+import { template as policyIssuedTemplate } from './policy-issued'
+import { template as paymentReceiptTemplate } from './payment-receipt'
+import { template as claimUpdateTemplate } from './claim-update'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'renewal-reminder': renewalReminderTemplate,
+  'policy-issued': policyIssuedTemplate,
+  'payment-receipt': paymentReceiptTemplate,
+  'claim-update': claimUpdateTemplate,
 }
