@@ -218,6 +218,7 @@ export type Database = {
           address: string | null
           alt_phone: string | null
           assigned_agent: string | null
+          auth_user_id: string | null
           branch_id: string | null
           city: string | null
           client_type: Database["public"]["Enums"]["client_type"]
@@ -240,6 +241,7 @@ export type Database = {
           address?: string | null
           alt_phone?: string | null
           assigned_agent?: string | null
+          auth_user_id?: string | null
           branch_id?: string | null
           city?: string | null
           client_type?: Database["public"]["Enums"]["client_type"]
@@ -262,6 +264,7 @@ export type Database = {
           address?: string | null
           alt_phone?: string | null
           assigned_agent?: string | null
+          auth_user_id?: string | null
           branch_id?: string | null
           city?: string | null
           client_type?: Database["public"]["Enums"]["client_type"]
@@ -1042,6 +1045,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_client_id: { Args: never; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
