@@ -37,12 +37,19 @@ function InvoicesList() {
   });
 
   const handleDownload = async (invoiceId: string) => {
-    const { data, error } = await supabase.from("invoices")
-      .select("*, clients(id, full_name, company_name, client_type, email, phone), policies(policy_no), invoice_items(*), payments(*), branches(name, address, phone, email)")
-      .eq("id", invoiceId).single();
-    if (error || !data) return toast.error(error?.message ?? "Failed to load invoice");
-    const inv: any = data;
-    downloadInvoicePdf({ invoice: inv, client: inv.clients, branch: inv.branches, policyNo: inv.policies?.policy_no, items: inv.invoice_items, payments: inv.payments });
+    const t = toast.loading("Preparing PDF…");
+    try {
+      const { data, error } = await supabase.from("invoices")
+        .select("*, clients(id, full_name, company_name, client_type, email, phone), policies(policy_no), invoice_items(*), payments(*), branches(name, address, phone, email)")
+        .eq("id", invoiceId).single();
+      if (error || !data) throw new Error(error?.message ?? "Failed to load invoice");
+      const inv: any = data;
+      await downloadInvoicePdf({ invoice: inv, client: inv.clients, branch: inv.branches, policyNo: inv.policies?.policy_no, items: inv.invoice_items, payments: inv.payments });
+      toast.success("Invoice downloaded", { id: t });
+    } catch (e: any) {
+      console.error("Invoice download failed", e);
+      toast.error(e?.message ?? "Download failed", { id: t });
+    }
   };
 
   return (
