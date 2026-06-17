@@ -50,6 +50,19 @@ function RenewalsPage() {
       <Bucket title="Due in 7 days" tone="warning" rows={buckets.in7} />
       <Bucket title="Due in 30 days" tone="default" rows={buckets.in30} />
       <Bucket title="31–60 days" tone="muted" rows={buckets.later} />
+      {!isLoading && (data?.length ?? 0) === 0 && (
+        <Card>
+          <CardContent className="py-16 text-center space-y-2">
+            <div className="text-lg font-semibold">No upcoming renewals</div>
+            <p className="text-sm text-muted-foreground">
+              Nothing is due in the next 60 days. New policies will appear here automatically as their end date approaches.
+            </p>
+            <div className="pt-2">
+              <Button asChild size="sm" variant="outline"><Link to="/policies">Go to policies</Link></Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
