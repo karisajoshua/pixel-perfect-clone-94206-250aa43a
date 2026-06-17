@@ -8,21 +8,20 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { loadEnv } from "vite";
 import path from "node:path";
 
-export default defineConfig(({ mode }) => {
-  Object.assign(process.env, loadEnv(mode ?? "development", process.cwd(), ""));
-  const entitiesDir = path.resolve(process.cwd(), "node_modules/entities");
-  return {
-    tanstackStart: {
-      server: { entry: "server" },
+Object.assign(process.env, loadEnv(process.env.NODE_ENV ?? "development", process.cwd(), ""));
+const entitiesDir = path.resolve(process.cwd(), "node_modules/entities");
+
+export default defineConfig({
+  tanstackStart: {
+    server: { entry: "server" },
+  },
+  vite: {
+    resolve: {
+      alias: [
+        { find: /^entities\/lib\/decode\.js$/, replacement: path.join(entitiesDir, "lib/decode.js") },
+        { find: /^entities\/lib\/encode\.js$/, replacement: path.join(entitiesDir, "lib/encode.js") },
+        { find: /^entities$/, replacement: entitiesDir },
+      ],
     },
-    vite: {
-      resolve: {
-        alias: [
-          { find: /^entities\/lib\/decode\.js$/, replacement: path.join(entitiesDir, "lib/decode.js") },
-          { find: /^entities\/lib\/encode\.js$/, replacement: path.join(entitiesDir, "lib/encode.js") },
-          { find: /^entities$/, replacement: entitiesDir },
-        ],
-      },
-    },
-  };
+  },
 });
