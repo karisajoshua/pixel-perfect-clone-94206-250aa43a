@@ -160,6 +160,8 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(MUTED);
   doc.text("This quotation is indicative and subject to underwriter approval.", margin, pageH - 32);
   doc.text(`Generated ${new Date().toLocaleDateString()}`, pageW - margin, pageH - 32, { align: "right" });
+  doc.setFontSize(8);
+  doc.text("Powered by Texcortech Systems", pageW / 2, pageH - 18, { align: "center" });
 
   const filename = `Quotation-${quotation.quote_no ?? quotation.id}.pdf`;
   const blob = doc.output("blob");
