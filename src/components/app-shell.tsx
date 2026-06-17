@@ -25,6 +25,7 @@ const nav = [
 const adminNav = [
   { to: "/admin/users", label: "Users & Roles", icon: ShieldCheck },
   { to: "/admin/branches", label: "Branches", icon: Building2 },
+  { to: "/admin/insurers", label: "Insurers", icon: ShieldCheck },
   { to: "/admin/audit", label: "Audit log", icon: Settings },
 ] as const;
 
