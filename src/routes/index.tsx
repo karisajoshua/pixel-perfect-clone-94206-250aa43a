@@ -1,77 +1,187 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
-import { Shield, Users, FileText, BellRing, BarChart3, ScrollText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import bg1 from "@/assets/auth-bg-1.jpg";
+import bg2 from "@/assets/auth-bg-2.jpg";
+import bg3 from "@/assets/auth-bg-3.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Zest Insurance Agency — In-House Management System" },
-      { name: "description", content: "Centralised client, policy, claims, and billing platform for Zest Insurance Agency." },
-      { property: "og:title", content: "Zest Insurance Agency" },
-      { property: "og:description", content: "Centralised client, policy, claims, and billing platform." },
+      { title: "Sign in — Zest Insurance Agency" },
+      { name: "description", content: "Sign in to the Zest Insurance Agency workspace — clients, policies, claims, billing and renewals in one platform." },
     ],
   }),
-  component: Index,
+  component: AuthPage,
 });
 
-function Index() {
-  const features = [
-    { icon: Users, title: "Clients & Vehicles", body: "Single source of truth for every policyholder, KYC document and vehicle." },
-    { icon: FileText, title: "Policies & Quotes", body: "Full lifecycle tracking — quote, bind, renew, archive." },
-    { icon: BellRing, title: "Automated Renewals", body: "Email, SMS and WhatsApp reminders that never miss a date." },
-    { icon: ScrollText, title: "Claims Management", body: "Structured intake with abstracts, sketches and statement uploads." },
-    { icon: BarChart3, title: "Live Analytics", body: "Branch, staff and insurer performance at a glance." },
-    { icon: Shield, title: "Secure & Audited", body: "Role-based access, encrypted storage and a full audit trail." },
-  ];
+const SLIDES = [
+  { src: bg1, alt: "Nairobi cityscape at dusk" },
+  { src: bg2, alt: "Family receiving keys to a new car" },
+  { src: bg3, alt: "Motorbike rider on a coastal highway at sunset" },
+];
+
+function AuthPage() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [slide, setSlide] = useState(0);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) navigate({ to: "/dashboard" });
+    });
+  }, [navigate]);
+
+  useEffect(() => {
+    const id = setInterval(() => setSlide((s) => (s + 1) % SLIDES.length), 6000);
+    return () => clearInterval(id);
+  }, []);
+
+  const signIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Welcome back");
+    navigate({ to: "/dashboard" });
+  };
+
+  const signUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: { full_name: fullName },
+      },
+    });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Account created. Check your email if confirmation is required.");
+  };
+
+  const google = async () => {
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    if (result.error) return toast.error("Google sign-in failed");
+    if (result.redirected) return;
+    navigate({ to: "/dashboard" });
+  };
+
+  const reset = async () => {
+    if (!email) return toast.error("Enter your email first");
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Password reset email sent");
+  };
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border/60">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2">
-            <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground font-bold">Z</div>
-            <span className="text-lg font-semibold tracking-tight">Zest Insurance</span>
-          </div>
-          <nav className="flex items-center gap-2">
-            <Button asChild variant="ghost"><Link to="/auth">Sign in</Link></Button>
-            <Button asChild><Link to="/auth">Get started</Link></Button>
-          </nav>
-        </div>
-      </header>
-
-      <main>
-        <section className="mx-auto max-w-6xl px-6 py-20">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">In-House Management System</span>
-            <h1 className="mt-4 text-5xl font-bold tracking-tight">Run the entire agency from one platform.</h1>
-            <p className="mt-5 text-lg text-muted-foreground">
-              Clients, vehicles, policies, claims, billing and renewals — orchestrated end to end with role-based access across every branch.
-            </p>
-            <div className="mt-8 flex gap-3">
-              <Button asChild size="lg"><Link to="/auth">Open the workspace</Link></Button>
-              <Button asChild size="lg" variant="outline"><Link to="/auth">Client portal</Link></Button>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-t border-border/60 bg-card">
-          <div className="mx-auto grid max-w-6xl gap-6 px-6 py-16 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((f) => (
-              <div key={f.title} className="rounded-xl border border-border bg-background p-6">
-                <div className="grid h-10 w-10 place-items-center rounded-lg bg-accent text-accent-foreground">
-                  <f.icon className="h-5 w-5" />
-                </div>
-                <h3 className="mt-4 text-base font-semibold">{f.title}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{f.body}</p>
-              </div>
+    <div className="min-h-screen grid lg:grid-cols-2 bg-background">
+      <div className="relative hidden lg:flex flex-col justify-between p-12 text-sidebar-foreground overflow-hidden">
+        {SLIDES.map((s, i) => (
+          <img
+            key={i}
+            src={s.src}
+            alt={s.alt}
+            width={1024}
+            height={1536}
+            loading={i === 0 ? "eager" : "lazy"}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-in-out ${
+              slide === i ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        ))}
+        <div className="absolute inset-0 bg-gradient-to-br from-sidebar/90 via-sidebar/70 to-sidebar/95" />
+        <Link to="/" className="relative flex items-center gap-2">
+          <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground font-bold">Z</div>
+          <span className="text-lg font-semibold">Zest Insurance</span>
+        </Link>
+        <div className="relative">
+          <h2 className="text-3xl font-bold">Built for the way agencies actually run.</h2>
+          <p className="mt-4 text-sidebar-foreground/80 max-w-md">
+            Multi-branch, role-based, and ready for clients, policies, claims and renewals from day one.
+          </p>
+          <div className="mt-6 flex gap-2">
+            {SLIDES.map((_, i) => (
+              <button
+                key={i}
+                aria-label={`Show slide ${i + 1}`}
+                onClick={() => setSlide(i)}
+                className={`h-1.5 rounded-full transition-all ${slide === i ? "w-8 bg-primary" : "w-4 bg-sidebar-foreground/40"}`}
+              />
             ))}
           </div>
-        </section>
-      </main>
+        </div>
+        <p className="relative text-xs text-sidebar-foreground/60">© {new Date().getFullYear()} Zest Insurance Agency</p>
+      </div>
 
-      <footer className="border-t border-border/60 py-8 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Zest Insurance Agency
-      </footer>
+      <div className="flex items-center justify-center p-6">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Welcome to Zest</CardTitle>
+            <CardDescription>Sign in to the management workspace.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="signin">
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="signin">Sign in</TabsTrigger>
+                <TabsTrigger value="signup">Create account</TabsTrigger>
+              </TabsList>
+              <TabsContent value="signin">
+                <form onSubmit={signIn} className="space-y-3 pt-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="password">Password</Label>
+                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading}>Sign in</Button>
+                  <button type="button" className="text-xs text-muted-foreground underline" onClick={reset}>Forgot password?</button>
+                </form>
+              </TabsContent>
+              <TabsContent value="signup">
+                <form onSubmit={signUp} className="space-y-3 pt-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="name">Full name</Label>
+                    <Input id="name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email2">Email</Label>
+                    <Input id="email2" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="password2">Password</Label>
+                    <Input id="password2" type="password" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading}>Create account</Button>
+                  <p className="text-xs text-muted-foreground">The first account becomes the admin.</p>
+                </form>
+              </TabsContent>
+            </Tabs>
+
+            <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="h-px flex-1 bg-border" /> or <div className="h-px flex-1 bg-border" />
+            </div>
+            <Button variant="outline" className="w-full" onClick={google}>Continue with Google</Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
