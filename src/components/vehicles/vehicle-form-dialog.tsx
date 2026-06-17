@@ -38,11 +38,11 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
       "color","chassis_no","engine_no","fuel_type","seating_capacity","cubic_capacity",
       "usage_type","estimated_value","inspection_due","notes","active",
     ] as const;
-    const clean: Record<string, any> = {};
+    const clean: any = {};
     for (const k of COLS) if (form[k] !== undefined) clean[k] = form[k];
     const op = initial?.id
       ? supabase.from("vehicles").update(clean).eq("id", initial.id)
-      : supabase.from("vehicles").insert({ ...clean, created_by: u.user?.id });
+      : supabase.from("vehicles").insert({ ...clean, created_by: u.user?.id } as any);
     const { error } = await op;
     setSaving(false);
     if (error) return toast.error(error.message);
