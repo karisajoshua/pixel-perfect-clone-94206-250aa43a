@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
-import { Plus } from "lucide-react";
+import { Plus, Download } from "lucide-react";
 import { InvoiceFormDialog } from "@/components/invoices/invoice-form-dialog";
+import { downloadInvoicePdf } from "@/lib/invoice-pdf";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/invoices")({ component: InvoicesLayout });
 
@@ -33,6 +35,15 @@ function InvoicesList() {
       if (error) throw error; return data;
     },
   });
+
+  const handleDownload = async (invoiceId: string) => {
+    const { data, error } = await supabase.from("invoices")
+      .select("*, clients(id, full_name, company_name, client_type, email, phone), policies(policy_no), invoice_items(*), payments(*), branches(name, address, phone, email)")
+      .eq("id", invoiceId).single();
+    if (error || !data) return toast.error(error?.message ?? "Failed to load invoice");
+    const inv: any = data;
+    downloadInvoicePdf({ invoice: inv, client: inv.clients, branch: inv.branches, policyNo: inv.policies?.policy_no, items: inv.invoice_items, payments: inv.payments });
+  };
 
   return (
     <div className="p-8 space-y-6">
@@ -73,6 +84,7 @@ function InvoicesList() {
                     <td className={`px-4 py-3 ${balance > 0 ? "text-destructive font-medium" : ""}`}>KES {balance.toLocaleString()}</td>
                     <td className="px-4 py-3"><Badge variant={i.status === "paid" ? "default" : "secondary"}>{i.status}</Badge></td>
                     <td className="px-4 py-3 text-right">
+                      <Button size="sm" variant="ghost" onClick={() => handleDownload(i.id)}><Download className="h-4 w-4 mr-1" /> PDF</Button>
                       <Button asChild size="sm" variant="ghost"><Link to="/invoices/$id" params={{ id: i.id }}>Open</Link></Button>
                     </td>
                   </tr>
