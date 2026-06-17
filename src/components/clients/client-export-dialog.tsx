@@ -35,9 +35,9 @@ export function ClientExportDialog({ open, onOpenChange }: Props) {
       .select("full_name, company_name, client_type, email, phone, alt_phone, id_number, kra_pin, city, kyc_status, created_at, branches(name)")
       .order("created_at", { ascending: false });
     if (company.trim()) q = q.ilike("company_name", `%${company.trim()}%`);
-    if (clientType !== "any") q = q.eq("client_type", clientType);
+    if (clientType !== "any") q = q.eq("client_type", clientType as "individual" | "corporate");
     if (branchId !== "any") q = q.eq("branch_id", branchId);
-    if (kyc !== "any") q = q.eq("kyc_status", kyc);
+    if (kyc !== "any") q = q.eq("kyc_status", kyc as "pending" | "verified" | "rejected" | "expired");
     if (dateFrom) q = q.gte("created_at", `${dateFrom}T00:00:00Z`);
     if (dateTo) q = q.lte("created_at", `${dateTo}T23:59:59Z`);
     const { data, error } = await q;
