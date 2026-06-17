@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,15 @@ import { Users, FileText, ScrollText, BellRing } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  beforeLoad: async () => {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", u.user.id);
+    const list = (roles ?? []).map((r) => r.role);
+    if (list.length > 0 && list.every((r) => r === "client")) {
+      throw redirect({ to: "/portal" });
+    }
+  },
   component: Dashboard,
 });
 
