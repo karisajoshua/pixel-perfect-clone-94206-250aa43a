@@ -417,7 +417,7 @@ function ImportPage() {
         <div className="space-y-1.5">
           <Label>Excel or CSV file</Label>
           <Input type="file" accept=".xlsx,.xls,.csv" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
-          <p className="text-xs text-muted-foreground">Expected columns: NAME, ID, KRA PIN, REG, MAKE, MODEL, BODY, CC, COLOUR, YEAR, CHASSIS NO, ENGINE NO, COMPANY, INSTALLMENT, MONTH, S/INS.</p>
+          <p className="text-xs text-muted-foreground">Expected columns: NAME, ID, KRA PIN, PHONE, EMAIL, REG, MAKE, MODEL, BODY, CC, COLOUR, YEAR, CHASSIS NO, ENGINE NO, COMPANY, INSTALLMENT, MONTH, S/INS. Existing clients are updated with phone/email if missing.</p>
         </div>
 
         {sheets.length > 0 && (
