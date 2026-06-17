@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { ClientFormDialog } from "@/components/clients/client-form-dialog";
+import { ClientExportDialog } from "@/components/clients/client-export-dialog";
+import { useMyRoles } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/clients")({
   component: ClientsLayout,
@@ -25,28 +27,52 @@ function ClientsList() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
+  const { data: roles } = useMyRoles();
+  const canExport = (roles ?? []).some((r) => r === "admin" || r === "manager");
+
+  useEffect(() => { setPage(1); }, [search]);
 
   const { data: clients, isLoading } = useQuery({
-    queryKey: ["clients", search],
+    queryKey: ["clients", search, page],
     queryFn: async () => {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
       let q = supabase
         .from("clients")
-        .select("id, full_name, company_name, client_type, email, phone, kyc_status, created_at")
+        .select("id, full_name, company_name, client_type, email, phone, kyc_status, created_at", { count: "exact" })
         .order("created_at", { ascending: false })
-        .limit(200);
+        .range(from, to);
       if (search) q = q.or(`full_name.ilike.%${search}%,company_name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
-      const { data, error } = await q;
+      const { data, error, count } = await q;
       if (error) throw error;
-      return data;
+      return { rows: data ?? [], count: count ?? 0 };
     },
   });
+
+  const rows = clients?.rows ?? [];
+  const total = clients?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const showingTo = Math.min(page * pageSize, total);
 
   return (
     <div className="p-8 space-y-6">
       <PageHeader
         title="Clients"
         subtitle="All policyholders managed by the agency."
-        actions={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" /> New client</Button>}
+        actions={
+          <div className="flex gap-2">
+            {canExport && (
+              <Button variant="outline" onClick={() => setExportOpen(true)}>
+                <Download className="h-4 w-4 mr-1" /> Export
+              </Button>
+            )}
+            <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" /> New client</Button>
+          </div>
+        }
       />
 
       <div className="relative max-w-md">
@@ -68,8 +94,8 @@ function ClientsList() {
             </thead>
             <tbody>
               {isLoading && <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Loading…</td></tr>}
-              {!isLoading && clients?.length === 0 && <tr><td colSpan={5} className="p-12 text-center text-muted-foreground">No clients yet. Add the first one.</td></tr>}
-              {clients?.map((c) => (
+              {!isLoading && rows.length === 0 && <tr><td colSpan={5} className="p-12 text-center text-muted-foreground">No clients yet. Add the first one.</td></tr>}
+              {rows.map((c) => (
                 <tr key={c.id} className="border-b last:border-0 hover:bg-muted/30">
                   <td className="px-4 py-3">
                     <div className="font-medium">{c.client_type === "corporate" ? c.company_name ?? c.full_name : c.full_name}</div>
@@ -89,9 +115,24 @@ function ClientsList() {
             </tbody>
           </table>
         </div>
+        {total > 0 && (
+          <div className="flex items-center justify-between border-t px-4 py-3 text-sm">
+            <div className="text-muted-foreground">Showing {showingFrom}–{showingTo} of {total}</div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                <ChevronLeft className="h-4 w-4" /> Prev
+              </Button>
+              <span className="text-muted-foreground">Page {page} of {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
+                Next <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       <ClientFormDialog open={open} onOpenChange={setOpen} onSaved={() => qc.invalidateQueries({ queryKey: ["clients"] })} />
+      <ClientExportDialog open={exportOpen} onOpenChange={setExportOpen} />
     </div>
   );
 }
