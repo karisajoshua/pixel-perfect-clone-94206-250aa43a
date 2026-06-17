@@ -1,64 +1,52 @@
-## 1. Brand the platform with the ZIA logo
+## Client Portal (`/portal`)
 
-**Two logo assets** (both via Lovable Assets / CDN, imported as JSON pointers):
+Read-only-ish portal for end clients to view their policies, vehicles, invoices, claims, and download documents. Reuses the existing `client` app_role and integrates with the current `_authenticated` gate.
 
-- `zia-logo-white.png` — the uploaded white-on-transparent file. Used on dark surfaces: sidebar, auth page header band, email header (over a slate panel).
-- `zia-logo-red.png` — generated from the upload via `imagegen--edit_image`, recolored to brand red + slate (no white outlines), for light surfaces: PDFs, reports, browser favicon, public landing.
+### 1. Data link: auth user ↔ client record
 
-**Placements**
-- `src/components/app-shell.tsx` — replace the "Z" tile with the white logo (h-9) next to the wordmark.
-- `src/routes/index.tsx` (auth page) — center the white logo over the existing slate hero band; remove the placeholder mark.
-- `src/routes/__root.tsx` — set favicon to the red variant (32x32 pulled from CDN URL).
-- Email templates (`src/lib/email-templates/*.tsx`) — header `<Img>` uses the white logo on the existing dark band.
-- Reports PDF + any future server-rendered PDF — use the red variant via the asset's CDN URL.
-- `<title>` and OG metadata stay as "Zest Insurance Agency".
+Migration `add_client_auth_link`:
+- `ALTER TABLE clients ADD COLUMN auth_user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL UNIQUE`.
+- Backfill: `UPDATE clients c SET auth_user_id = u.id FROM auth.users u WHERE c.email = u.email AND c.auth_user_id IS NULL`.
+- Update `handle_new_user()` trigger: when a new auth user signs up, if a `clients` row matches by email, set `auth_user_id` and grant `client` role (skip the default `agent` grant for that path). First-user `admin` rule unchanged.
+- RLS: add policies allowing a user with `has_role(uid,'client')` to `SELECT` their own `clients` row, plus related `policies / vehicles / invoices / invoice_items / payments / claims / client_communications` rows scoped by `client_id IN (SELECT id FROM clients WHERE auth_user_id = auth.uid())`. INSERT policy on `claims` for self (status forced to `reported`).
+- Storage: policy on `client-documents` bucket allowing the matching client to `SELECT` (download) objects whose path begins with their `client_id/`.
 
-## 2. Reports & Analytics module (replaces the stub at `/reports`)
+### 2. Routing & shell
 
-Real route at `src/routes/_authenticated/reports.tsx`, role-gated to admin + manager (agents redirected to dashboard). Built with **Recharts** (already a transitive dep; install if missing).
+- New layout `src/routes/_authenticated/portal/route.tsx` — pathless gate: fetch caller's role; if not `client`, `redirect({ to: '/dashboard' })`. Renders a portal-specific shell (separate from `AppShell`) with the ZIA red logo, top nav, sign-out, and the signed-in client's name.
+- Update staff `AppShell` / dashboard route: if signed-in user has only `client` role, redirect to `/portal`.
+- Update `src/routes/index.tsx` post-login redirect: clients → `/portal`, staff → `/dashboard`.
 
-### Layout
+### 3. Portal pages
 
 ```text
-[ PageHeader: Reports & analytics ]
-[ Date range picker | Branch filter | Export PDF | Export CSV ]
-
-[ KPI row: Revenue (period) | Active policies | New clients | Open claims | Renewal hit rate ]
-
-[ Row 1 ]
-  - Revenue over time         (area chart, monthly buckets)
-  - Policies by status        (donut)
-
-[ Row 2 ]
-  - Insurer portfolio share   (horizontal bar — premium written per insurer)
-  - Claims funnel             (bar: reported → assessed → approved → paid)
-
-[ Row 3 ]
-  - Branch performance table  (branch | policies | premium | claims | renewal %)
-  - Top agents                (table: agent | policies sold | premium written)
+/portal                  Overview: active policies count, next renewal, outstanding balance, recent activity
+/portal/policies         List of own policies (insurer, vehicle, period, status, premium)
+/portal/policies/$id     Detail + download policy PDF + linked invoices
+/portal/vehicles         Own vehicles (reg, make/model, year, current policy)
+/portal/invoices         Invoices with status, amount due, download PDF
+/portal/invoices/$id     Line items + payments history
+/portal/claims           Own claims with status timeline + "Report a claim" form (creates row, status=reported, notifies branch via existing notification system)
+/portal/documents        Files from client-documents bucket under their client_id prefix
+/portal/profile          Read-only personal details + contact-support CTA
 ```
 
-### Data
+All data via `createServerFn` with `requireSupabaseAuth`; RLS does the scoping. TanStack Query for caching (60s stale). Empty/loading/error states on every page.
 
-One server function `getReportsSummary({ from, to, branchId? })` in `src/lib/reports.functions.ts` using `requireSupabaseAuth`. It runs parallel `supabase` aggregations against `policies`, `invoices`, `payments`, `claims`, `clients`, `profiles`, `branches`, `insurers`, returns a single typed payload. Cached with TanStack Query (`staleTime: 60_000`).
+### 4. Files
 
-### Export
+Create:
+- `supabase/migrations/<ts>_client_portal.sql`
+- `src/routes/_authenticated/portal/route.tsx` + 9 page files above
+- `src/components/portal/portal-shell.tsx`, `portal-sidebar.tsx`
+- `src/lib/portal.functions.ts` (overview, policies, vehicles, invoices, claims, documents, create-claim)
 
-- **CSV** — client-side: flatten the summary to rows, trigger download via Blob.
-- **PDF** — branded server-rendered PDF using `@react-pdf/renderer` (works in Workers) at `src/routes/api/public/reports/export.ts` (signed-token guarded: pass a one-shot token created via a `createSignedReportToken` server fn). Header band uses the red logo + report title + date range + generated-at timestamp. Body mirrors the on-screen sections as simple tables/bars.
+Edit:
+- `src/integrations/supabase/` — types regen post-migration
+- `src/routes/index.tsx` (post-login role-based redirect)
+- `src/routes/_authenticated/dashboard.tsx` (redirect clients to `/portal`)
+- `src/components/app-shell.tsx` (hide staff nav for client role as defense-in-depth)
 
-### Empty / loading states
+### Out of scope
 
-Skeleton on initial fetch; empty-state card per chart when the period has no data ("No revenue recorded between X and Y"). Also adds an empty-state to the existing Renewals page ("No upcoming renewals in the next 60 days") so the answer to last turn's question lands here.
-
-## 3. Out of scope this turn (Phase 4/5 remainder)
-
-Not building now: branded PDFs for quotation/policy/invoice/receipt, client portal (`/portal`), 2FA, HIBP, signed storage URLs, mobile pass, in-app help drawer, seed demo data. Each can be its own follow-up.
-
-## Technical notes
-
-- Asset pointers live at `src/assets/zia-logo-white.png.asset.json` and `src/assets/zia-logo-red.png.asset.json`; imports use `heroAsset.url`.
-- Red variant prompt for `imagegen--edit_image`: "Recolor the 'Zia / Zest Insurance Agency' wordmark from white to brand red (#dc2626) with dark slate (#0f172a) outlines, keep the red flag accent, on a solid white background, preserve typography exactly." `transparent_background: true`.
-- Recharts container heights fixed at 280px to avoid CLS; use `ResponsiveContainer`.
-- Reports server fn does all aggregation in SQL via `supabase.rpc` if perf becomes an issue; first pass is plain `select` + JS rollups, fine for the data scale here.
-- No schema migration required.
+Online payments, document upload by client, 2FA, in-app messaging — deferred to later hardening phase.
