@@ -38,8 +38,12 @@ function AuthPage() {
   const [slide, setSlide] = useState(0);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session) return;
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", data.session.user.id);
+      const list = (roles ?? []).map((r) => r.role);
+      const clientOnly = list.length > 0 && list.every((r) => r === "client");
+      navigate({ to: clientOnly ? "/portal" : "/dashboard" });
     });
   }, [navigate]);
 
@@ -55,7 +59,11 @@ function AuthPage() {
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Welcome back");
-    navigate({ to: "/dashboard" });
+    const { data: u } = await supabase.auth.getUser();
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", u.user!.id);
+    const list = (roles ?? []).map((r) => r.role);
+    const clientOnly = list.length > 0 && list.every((r) => r === "client");
+    navigate({ to: clientOnly ? "/portal" : "/dashboard" });
   };
 
   const signUp = async (e: React.FormEvent) => {
