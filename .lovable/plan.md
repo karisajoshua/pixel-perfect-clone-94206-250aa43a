@@ -1,33 +1,34 @@
 ## Goal
-Show the agency's earnings on the main dashboard — a total revenue figure plus a breakdown per branch.
+On the invoice detail page, add a **Download PDF** button that produces a branded Zest Insurance Agency invoice. Available to anyone with read access to the invoice (admins, branch staff, and the client via the portal) — RLS already gates this, so we don't need a separate role check.
 
 ## What you'll see
-- A new **Total revenue** KPI tile alongside the existing Clients / Policies / Claims / Renewals tiles, with a small "this month" sub-figure.
-- A new **Revenue by branch** card listing every branch with its revenue total, share of the company total, and policy count, sorted by revenue desc. Includes an "All branches" total row.
-- Numbers respect role-based access: admins/managers see all branches; branch-scoped staff see only their branch (RLS already enforces this — no extra gating needed).
-- Client-portal users keep being redirected away from `/dashboard` to `/portal` (existing behavior preserved).
+- A **Download PDF** button next to "Record payment" / "Edit" on `/_authenticated/invoices/$id`.
+- The same button on the client-portal view `/_authenticated/portal/invoices/$id`.
+- Clicking it generates a PDF in the browser and triggers a save as `Invoice-<invoice_no>.pdf`.
 
-## Data source
-Revenue = sum of `payments.amount` (money actually received), matching the convention already used in `src/lib/reports.functions.ts`. Per-branch attribution comes via `payments → invoices.branch_id`.
+## PDF layout (single page, A4)
+- **Header band** with the Zest red brand color, the Zia logo (from the existing asset), and the agency name "Zest Insurance Agency".
+- **Branch block** (left): branch name, address, phone, email — pulled from the invoice's branch.
+- **Invoice meta block** (right): "INVOICE", invoice number, issue date, due date, status badge (Paid / Partial / Pending / Overdue).
+- **Bill-to block**: client name (company name for corporate clients) and policy number if linked.
+- **Line items table**: Description · Qty · Unit price · Total. Zebra rows, branded header row.
+- **Totals**: Subtotal, Tax, Total, Amount paid, Balance due (balance highlighted).
+- **Payments mini-table** (only if payments exist): date, method, reference, amount.
+- **Footer**: thank-you line + "Generated on <date>" — kept compact.
 
 ## Implementation
-
-1. **New server function** `getDashboardRevenue` in `src/lib/dashboard.functions.ts`:
-   - Uses `requireSupabaseAuth` (RLS scopes results automatically).
-   - Queries `payments` joined to `invoices(branch_id)` for all-time and current-month windows, plus `branches(id, name)` for labels.
-   - Returns `{ total, totalThisMonth, byBranch: [{ branchId, branchName, revenue, share, policies }] }`.
-   - Also returns counts for active policies / open claims / due renewals so the existing tiles can show real numbers instead of `—`.
-
-2. **Dashboard route** `src/routes/_authenticated/dashboard.tsx`:
-   - Add `useQuery` calling the new server fn (keep existing client count query, or fold it into the same fn).
-   - Replace the "—" placeholders on the Policies / Claims / Renewals tiles with real values from the fn.
-   - Add a **Total revenue** tile (currency-formatted, with "this month" subtext).
-   - Add a **Revenue by branch** card below the tiles: simple table (Branch · Policies · Revenue · Share %) using existing `Card` + `Table` primitives. Empty state when there are no payments yet.
-   - Keep "Getting started" card.
-
-3. No schema changes, no new migrations, no RLS edits — all tables and helper functions already grant the needed access.
+1. Add `jspdf` + `jspdf-autotable` via `bun add` (small, browser-only, no native deps).
+2. New helper `src/lib/invoice-pdf.ts` exporting `downloadInvoicePdf(invoice, branch, client, policy, payments, items)`:
+   - Builds the layout above with jsPDF + autoTable.
+   - Inlines the Zia logo by fetching the asset URL and embedding it as a data URL.
+   - Uses the brand red (`#dc2626` family — matches the existing logo file name) for the header band and accent rules.
+3. Update `src/routes/_authenticated/invoices.$id.tsx`:
+   - Extend the existing `useQuery` select to also pull `branches(name, address, phone, email)`.
+   - Add a `Download PDF` button (with `Download` icon) that calls the helper using current query data.
+4. Update `src/routes/_authenticated/portal/invoices.$id.tsx` similarly so portal users can download their own invoice PDF.
+5. No DB / RLS / migration changes needed — `invoices` and `branches` are already readable through existing policies for both staff and the linked client.
 
 ## Out of scope
-- Date-range picker (Reports page already has full filtering).
-- Charts (kept as a plain table for density; Reports has the chart view).
-- Currency selection — uses the existing formatting convention in the app.
+- Server-rendered PDFs (kept client-side for simplicity and zero infra cost).
+- Email-the-invoice flow (separate request).
+- Per-branch logo overrides (uses the single agency logo).
