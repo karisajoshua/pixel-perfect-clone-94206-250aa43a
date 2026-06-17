@@ -130,7 +130,7 @@ export const Route = createFileRoute("/api/public/hooks/renewal-reminders")({
                 typeof tpl.subject === "function" ? tpl.subject(data) : tpl.subject;
 
               // Suppression check
-              const { data: suppressed } = await supabaseAdmin
+              const { data: suppressed } = await (supabaseAdmin as any)
                 .from("suppressed_emails")
                 .select("id")
                 .eq("email", cl.email.toLowerCase())
@@ -153,14 +153,14 @@ export const Route = createFileRoute("/api/public/hooks/renewal-reminders")({
               }
 
               const messageId = crypto.randomUUID();
-              await supabaseAdmin.from("email_send_log").insert({
+              await (supabaseAdmin as any).from("email_send_log").insert({
                 message_id: messageId,
                 template_name: "renewal-reminder",
                 recipient_email: cl.email,
                 status: "pending",
               });
 
-              const { error: enqErr } = await supabaseAdmin.rpc("enqueue_email", {
+              const { error: enqErr } = await (supabaseAdmin as any).rpc("enqueue_email", {
                 queue_name: "transactional_emails",
                 payload: {
                   message_id: messageId,
