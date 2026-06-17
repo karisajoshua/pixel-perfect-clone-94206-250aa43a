@@ -45,7 +45,16 @@ function InvoiceDetail() {
       <PageHeader title={inv.invoice_no} subtitle={`${name} • Due ${inv.due_date}`}
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => downloadInvoicePdf({ invoice: inv, client: inv.clients, branch: inv.branches, policyNo: inv.policies?.policy_no, items: inv.invoice_items, payments: inv.payments })}><Download className="h-4 w-4 mr-1" /> Download PDF</Button>
+            <Button variant="outline" onClick={async () => {
+              const t = toast.loading("Preparing PDF…");
+              try {
+                await downloadInvoicePdf({ invoice: inv, client: inv.clients, branch: inv.branches, policyNo: inv.policies?.policy_no, items: inv.invoice_items, payments: inv.payments });
+                toast.success("Invoice downloaded", { id: t });
+              } catch (e: any) {
+                console.error("Invoice download failed", e);
+                toast.error(e?.message ?? "Download failed", { id: t });
+              }
+            }}><Download className="h-4 w-4 mr-1" /> Download PDF</Button>
             <Button variant="outline" onClick={() => setPay(true)}><Plus className="h-4 w-4 mr-1" /> Record payment</Button>
             <Button onClick={() => setEdit(true)}><Pencil className="h-4 w-4 mr-1" /> Edit</Button>
           </div>
