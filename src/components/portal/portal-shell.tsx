@@ -8,7 +8,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import logoRed from "@/assets/zia-logo-red.png.asset.json";
 
-const nav = [
+type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
+const nav: NavItem[] = [
   { to: "/portal", label: "Overview", icon: LayoutDashboard, exact: true },
   { to: "/portal/policies", label: "My Policies", icon: FileText },
   { to: "/portal/vehicles", label: "Vehicles", icon: Car },
@@ -16,7 +17,7 @@ const nav = [
   { to: "/portal/claims", label: "Claims", icon: ScrollText },
   { to: "/portal/documents", label: "Documents", icon: FolderOpen },
   { to: "/portal/profile", label: "Profile", icon: UserCircle },
-] as const;
+];
 
 export function PortalShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
