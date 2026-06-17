@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyRoles } from "@/hooks/use-auth";
 import { getReportsSummary, type ReportsSummary } from "@/lib/reports.functions";
+import logoRed from "@/assets/zia-logo-red.png.asset.json";
 
 export const Route = createFileRoute("/_authenticated/reports")({ component: ReportsPage });
 
@@ -76,6 +77,14 @@ function ReportsPage() {
 
   return (
     <div className="p-8 space-y-6 print:p-0">
+      <div className="hidden print:flex items-center justify-between border-b pb-4 mb-4">
+        <img src={logoRed.url} alt="Zest Insurance Agency" className="h-16 w-auto" />
+        <div className="text-right text-xs text-muted-foreground">
+          <div className="font-semibold text-foreground">Reports & Analytics</div>
+          <div>{from} — {to}</div>
+          <div>Generated {new Date().toLocaleString()}</div>
+        </div>
+      </div>
       <PageHeader
         title="Reports & analytics"
         subtitle="Revenue, portfolio, claims and team performance for the selected period."
