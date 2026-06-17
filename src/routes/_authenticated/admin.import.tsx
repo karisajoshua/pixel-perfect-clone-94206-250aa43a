@@ -316,16 +316,17 @@ function ImportPage() {
     for (let i = 0; i < invoiceDrafts.length; i += 200) {
       const batch = invoiceDrafts.slice(i, i + 200).map((p) => {
         invSeq += 1;
+        const amt = p.installment as number;
         return {
           invoice_no: `INV-${stamp}-${invSeq}`,
           client_id: p.client_id,
           policy_id: p.id,
           issue_date: today,
           due_date: dueDate,
-          subtotal: p.installment,
+          subtotal: amt,
           tax: 0,
-          total: p.installment,
-          amount_paid: p.installment,
+          total: amt,
+          amount_paid: amt,
           status: "paid",
           created_by: createdBy,
         };
