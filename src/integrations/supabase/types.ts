@@ -198,6 +198,156 @@ export type Database = {
           },
         ]
       }
+      insurers: {
+        Row: {
+          active: boolean
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          short_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          short_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          short_code?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      policies: {
+        Row: {
+          branch_id: string | null
+          client_id: string
+          commission: number | null
+          cover_type: string
+          created_at: string
+          created_by: string | null
+          document_url: string | null
+          end_date: string
+          id: string
+          insurer_id: string | null
+          notes: string | null
+          payment_status: string
+          policy_no: string
+          premium_gross: number | null
+          premium_net: number | null
+          previous_policy_id: string | null
+          product_class: string
+          start_date: string
+          status: string
+          sum_insured: number | null
+          taxes: number | null
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          client_id: string
+          commission?: number | null
+          cover_type?: string
+          created_at?: string
+          created_by?: string | null
+          document_url?: string | null
+          end_date: string
+          id?: string
+          insurer_id?: string | null
+          notes?: string | null
+          payment_status?: string
+          policy_no: string
+          premium_gross?: number | null
+          premium_net?: number | null
+          previous_policy_id?: string | null
+          product_class?: string
+          start_date: string
+          status?: string
+          sum_insured?: number | null
+          taxes?: number | null
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          client_id?: string
+          commission?: number | null
+          cover_type?: string
+          created_at?: string
+          created_by?: string | null
+          document_url?: string | null
+          end_date?: string
+          id?: string
+          insurer_id?: string | null
+          notes?: string | null
+          payment_status?: string
+          policy_no?: string
+          premium_gross?: number | null
+          premium_net?: number | null
+          previous_policy_id?: string | null
+          product_class?: string
+          start_date?: string
+          status?: string
+          sum_insured?: number | null
+          taxes?: number | null
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policies_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_insurer_id_fkey"
+            columns: ["insurer_id"]
+            isOneToOne: false
+            referencedRelation: "insurers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_previous_policy_id_fkey"
+            columns: ["previous_policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -242,6 +392,108 @@ export type Database = {
           },
         ]
       }
+      quotations: {
+        Row: {
+          branch_id: string | null
+          client_id: string
+          converted_policy_id: string | null
+          cover_type: string
+          created_at: string
+          created_by: string | null
+          id: string
+          insurer_id: string | null
+          line_items: Json
+          notes: string | null
+          premium_gross: number | null
+          premium_net: number | null
+          product_class: string
+          quote_no: string
+          status: string
+          sum_insured: number | null
+          updated_at: string
+          valid_until: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          client_id: string
+          converted_policy_id?: string | null
+          cover_type?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          insurer_id?: string | null
+          line_items?: Json
+          notes?: string | null
+          premium_gross?: number | null
+          premium_net?: number | null
+          product_class?: string
+          quote_no: string
+          status?: string
+          sum_insured?: number | null
+          updated_at?: string
+          valid_until?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          client_id?: string
+          converted_policy_id?: string | null
+          cover_type?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          insurer_id?: string | null
+          line_items?: Json
+          notes?: string | null
+          premium_gross?: number | null
+          premium_net?: number | null
+          product_class?: string
+          quote_no?: string
+          status?: string
+          sum_insured?: number | null
+          updated_at?: string
+          valid_until?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_converted_policy_id_fkey"
+            columns: ["converted_policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_insurer_id_fkey"
+            columns: ["insurer_id"]
+            isOneToOne: false
+            referencedRelation: "insurers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -262,6 +514,99 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vehicles: {
+        Row: {
+          active: boolean
+          body_type: string | null
+          branch_id: string | null
+          chassis_no: string | null
+          client_id: string
+          color: string | null
+          created_at: string
+          created_by: string | null
+          cubic_capacity: number | null
+          engine_no: string | null
+          estimated_value: number | null
+          fuel_type: string | null
+          id: string
+          inspection_due: string | null
+          logbook_url: string | null
+          make: string | null
+          model: string | null
+          notes: string | null
+          registration_no: string
+          seating_capacity: number | null
+          updated_at: string
+          usage_type: string | null
+          year: number | null
+        }
+        Insert: {
+          active?: boolean
+          body_type?: string | null
+          branch_id?: string | null
+          chassis_no?: string | null
+          client_id: string
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          cubic_capacity?: number | null
+          engine_no?: string | null
+          estimated_value?: number | null
+          fuel_type?: string | null
+          id?: string
+          inspection_due?: string | null
+          logbook_url?: string | null
+          make?: string | null
+          model?: string | null
+          notes?: string | null
+          registration_no: string
+          seating_capacity?: number | null
+          updated_at?: string
+          usage_type?: string | null
+          year?: number | null
+        }
+        Update: {
+          active?: boolean
+          body_type?: string | null
+          branch_id?: string | null
+          chassis_no?: string | null
+          client_id?: string
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          cubic_capacity?: number | null
+          engine_no?: string | null
+          estimated_value?: number | null
+          fuel_type?: string | null
+          id?: string
+          inspection_due?: string | null
+          logbook_url?: string | null
+          make?: string | null
+          model?: string | null
+          notes?: string | null
+          registration_no?: string
+          seating_capacity?: number | null
+          updated_at?: string
+          usage_type?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
