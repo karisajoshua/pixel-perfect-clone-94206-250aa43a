@@ -23,11 +23,14 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
 import { Route as AuthenticatedClaimsRouteImport } from './routes/_authenticated/claims'
 import { Route as AuthenticatedPoliciesIdRouteImport } from './routes/_authenticated/policies.$id'
+import { Route as AuthenticatedInvoicesIdRouteImport } from './routes/_authenticated/invoices.$id'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
+import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin.notifications'
 import { Route as AuthenticatedAdminInsurersRouteImport } from './routes/_authenticated/admin.insurers'
 import { Route as AuthenticatedAdminBranchesRouteImport } from './routes/_authenticated/admin.branches'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
+import { Route as ApiPublicHooksRenewalRemindersRouteImport } from './routes/api/public/hooks/renewal-reminders'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -98,6 +101,11 @@ const AuthenticatedPoliciesIdRoute = AuthenticatedPoliciesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedPoliciesRoute,
 } as any)
+const AuthenticatedInvoicesIdRoute = AuthenticatedInvoicesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedInvoicesRoute,
+} as any)
 const AuthenticatedClientsIdRoute = AuthenticatedClientsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -108,6 +116,12 @@ const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminNotificationsRoute =
+  AuthenticatedAdminNotificationsRouteImport.update({
+    id: '/admin/notifications',
+    path: '/admin/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminInsurersRoute =
   AuthenticatedAdminInsurersRouteImport.update({
     id: '/admin/insurers',
@@ -125,6 +139,12 @@ const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
   path: '/admin/audit',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicHooksRenewalRemindersRoute =
+  ApiPublicHooksRenewalRemindersRouteImport.update({
+    id: '/api/public/hooks/renewal-reminders',
+    path: '/api/public/hooks/renewal-reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -133,7 +153,7 @@ export interface FileRoutesByFullPath {
   '/claims': typeof AuthenticatedClaimsRoute
   '/clients': typeof AuthenticatedClientsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/invoices': typeof AuthenticatedInvoicesRoute
+  '/invoices': typeof AuthenticatedInvoicesRouteWithChildren
   '/policies': typeof AuthenticatedPoliciesRouteWithChildren
   '/quotations': typeof AuthenticatedQuotationsRoute
   '/renewals': typeof AuthenticatedRenewalsRoute
@@ -142,9 +162,12 @@ export interface FileRoutesByFullPath {
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/branches': typeof AuthenticatedAdminBranchesRoute
   '/admin/insurers': typeof AuthenticatedAdminInsurersRoute
+  '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
+  '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/policies/$id': typeof AuthenticatedPoliciesIdRoute
+  '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -153,7 +176,7 @@ export interface FileRoutesByTo {
   '/claims': typeof AuthenticatedClaimsRoute
   '/clients': typeof AuthenticatedClientsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/invoices': typeof AuthenticatedInvoicesRoute
+  '/invoices': typeof AuthenticatedInvoicesRouteWithChildren
   '/policies': typeof AuthenticatedPoliciesRouteWithChildren
   '/quotations': typeof AuthenticatedQuotationsRoute
   '/renewals': typeof AuthenticatedRenewalsRoute
@@ -162,9 +185,12 @@ export interface FileRoutesByTo {
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/branches': typeof AuthenticatedAdminBranchesRoute
   '/admin/insurers': typeof AuthenticatedAdminInsurersRoute
+  '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
+  '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/policies/$id': typeof AuthenticatedPoliciesIdRoute
+  '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -175,7 +201,7 @@ export interface FileRoutesById {
   '/_authenticated/claims': typeof AuthenticatedClaimsRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
+  '/_authenticated/invoices': typeof AuthenticatedInvoicesRouteWithChildren
   '/_authenticated/policies': typeof AuthenticatedPoliciesRouteWithChildren
   '/_authenticated/quotations': typeof AuthenticatedQuotationsRoute
   '/_authenticated/renewals': typeof AuthenticatedRenewalsRoute
@@ -184,9 +210,12 @@ export interface FileRoutesById {
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/branches': typeof AuthenticatedAdminBranchesRoute
   '/_authenticated/admin/insurers': typeof AuthenticatedAdminInsurersRoute
+  '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
+  '/_authenticated/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/_authenticated/policies/$id': typeof AuthenticatedPoliciesIdRoute
+  '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -206,9 +235,12 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/branches'
     | '/admin/insurers'
+    | '/admin/notifications'
     | '/admin/users'
     | '/clients/$id'
+    | '/invoices/$id'
     | '/policies/$id'
+    | '/api/public/hooks/renewal-reminders'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -226,9 +258,12 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/branches'
     | '/admin/insurers'
+    | '/admin/notifications'
     | '/admin/users'
     | '/clients/$id'
+    | '/invoices/$id'
     | '/policies/$id'
+    | '/api/public/hooks/renewal-reminders'
   id:
     | '__root__'
     | '/'
@@ -247,9 +282,12 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/branches'
     | '/_authenticated/admin/insurers'
+    | '/_authenticated/admin/notifications'
     | '/_authenticated/admin/users'
     | '/_authenticated/clients/$id'
+    | '/_authenticated/invoices/$id'
     | '/_authenticated/policies/$id'
+    | '/api/public/hooks/renewal-reminders'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -257,6 +295,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicHooksRenewalRemindersRoute: typeof ApiPublicHooksRenewalRemindersRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -359,6 +398,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPoliciesIdRouteImport
       parentRoute: typeof AuthenticatedPoliciesRoute
     }
+    '/_authenticated/invoices/$id': {
+      id: '/_authenticated/invoices/$id'
+      path: '/$id'
+      fullPath: '/invoices/$id'
+      preLoaderRoute: typeof AuthenticatedInvoicesIdRouteImport
+      parentRoute: typeof AuthenticatedInvoicesRoute
+    }
     '/_authenticated/clients/$id': {
       id: '/_authenticated/clients/$id'
       path: '/$id'
@@ -371,6 +417,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/users'
       fullPath: '/admin/users'
       preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/notifications': {
+      id: '/_authenticated/admin/notifications'
+      path: '/admin/notifications'
+      fullPath: '/admin/notifications'
+      preLoaderRoute: typeof AuthenticatedAdminNotificationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/insurers': {
@@ -394,6 +447,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/renewal-reminders': {
+      id: '/api/public/hooks/renewal-reminders'
+      path: '/api/public/hooks/renewal-reminders'
+      fullPath: '/api/public/hooks/renewal-reminders'
+      preLoaderRoute: typeof ApiPublicHooksRenewalRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -407,6 +467,19 @@ const AuthenticatedClientsRouteChildren: AuthenticatedClientsRouteChildren = {
 
 const AuthenticatedClientsRouteWithChildren =
   AuthenticatedClientsRoute._addFileChildren(AuthenticatedClientsRouteChildren)
+
+interface AuthenticatedInvoicesRouteChildren {
+  AuthenticatedInvoicesIdRoute: typeof AuthenticatedInvoicesIdRoute
+}
+
+const AuthenticatedInvoicesRouteChildren: AuthenticatedInvoicesRouteChildren = {
+  AuthenticatedInvoicesIdRoute: AuthenticatedInvoicesIdRoute,
+}
+
+const AuthenticatedInvoicesRouteWithChildren =
+  AuthenticatedInvoicesRoute._addFileChildren(
+    AuthenticatedInvoicesRouteChildren,
+  )
 
 interface AuthenticatedPoliciesRouteChildren {
   AuthenticatedPoliciesIdRoute: typeof AuthenticatedPoliciesIdRoute
@@ -425,7 +498,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClaimsRoute: typeof AuthenticatedClaimsRoute
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
+  AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRouteWithChildren
   AuthenticatedPoliciesRoute: typeof AuthenticatedPoliciesRouteWithChildren
   AuthenticatedQuotationsRoute: typeof AuthenticatedQuotationsRoute
   AuthenticatedRenewalsRoute: typeof AuthenticatedRenewalsRoute
@@ -434,6 +507,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
   AuthenticatedAdminBranchesRoute: typeof AuthenticatedAdminBranchesRoute
   AuthenticatedAdminInsurersRoute: typeof AuthenticatedAdminInsurersRoute
+  AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
 }
 
@@ -441,7 +515,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClaimsRoute: AuthenticatedClaimsRoute,
   AuthenticatedClientsRoute: AuthenticatedClientsRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
+  AuthenticatedInvoicesRoute: AuthenticatedInvoicesRouteWithChildren,
   AuthenticatedPoliciesRoute: AuthenticatedPoliciesRouteWithChildren,
   AuthenticatedQuotationsRoute: AuthenticatedQuotationsRoute,
   AuthenticatedRenewalsRoute: AuthenticatedRenewalsRoute,
@@ -450,6 +524,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
   AuthenticatedAdminBranchesRoute: AuthenticatedAdminBranchesRoute,
   AuthenticatedAdminInsurersRoute: AuthenticatedAdminInsurersRoute,
+  AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
 }
 
@@ -461,6 +536,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicHooksRenewalRemindersRoute: ApiPublicHooksRenewalRemindersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
