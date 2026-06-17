@@ -23,7 +23,15 @@ import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
 import { Route as AuthenticatedClaimsRouteImport } from './routes/_authenticated/claims'
+import { Route as AuthenticatedPortalRouteRouteImport } from './routes/_authenticated/portal/route'
+import { Route as AuthenticatedPortalIndexRouteImport } from './routes/_authenticated/portal/index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as AuthenticatedPortalVehiclesRouteImport } from './routes/_authenticated/portal/vehicles'
+import { Route as AuthenticatedPortalProfileRouteImport } from './routes/_authenticated/portal/profile'
+import { Route as AuthenticatedPortalPoliciesRouteImport } from './routes/_authenticated/portal/policies'
+import { Route as AuthenticatedPortalInvoicesRouteImport } from './routes/_authenticated/portal/invoices'
+import { Route as AuthenticatedPortalDocumentsRouteImport } from './routes/_authenticated/portal/documents'
+import { Route as AuthenticatedPortalClaimsRouteImport } from './routes/_authenticated/portal/claims'
 import { Route as AuthenticatedPoliciesIdRouteImport } from './routes/_authenticated/policies.$id'
 import { Route as AuthenticatedInvoicesIdRouteImport } from './routes/_authenticated/invoices.$id'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
@@ -37,6 +45,8 @@ import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lova
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicHooksRenewalRemindersRouteImport } from './routes/api/public/hooks/renewal-reminders'
+import { Route as AuthenticatedPortalPoliciesIdRouteImport } from './routes/_authenticated/portal/policies.$id'
+import { Route as AuthenticatedPortalInvoicesIdRouteImport } from './routes/_authenticated/portal/invoices.$id'
 
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
@@ -107,11 +117,59 @@ const AuthenticatedClaimsRoute = AuthenticatedClaimsRouteImport.update({
   path: '/claims',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPortalRouteRoute =
+  AuthenticatedPortalRouteRouteImport.update({
+    id: '/portal',
+    path: '/portal',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPortalIndexRoute =
+  AuthenticatedPortalIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedPortalRouteRoute,
+  } as any)
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
   path: '/lovable/email/suppression',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedPortalVehiclesRoute =
+  AuthenticatedPortalVehiclesRouteImport.update({
+    id: '/vehicles',
+    path: '/vehicles',
+    getParentRoute: () => AuthenticatedPortalRouteRoute,
+  } as any)
+const AuthenticatedPortalProfileRoute =
+  AuthenticatedPortalProfileRouteImport.update({
+    id: '/profile',
+    path: '/profile',
+    getParentRoute: () => AuthenticatedPortalRouteRoute,
+  } as any)
+const AuthenticatedPortalPoliciesRoute =
+  AuthenticatedPortalPoliciesRouteImport.update({
+    id: '/policies',
+    path: '/policies',
+    getParentRoute: () => AuthenticatedPortalRouteRoute,
+  } as any)
+const AuthenticatedPortalInvoicesRoute =
+  AuthenticatedPortalInvoicesRouteImport.update({
+    id: '/invoices',
+    path: '/invoices',
+    getParentRoute: () => AuthenticatedPortalRouteRoute,
+  } as any)
+const AuthenticatedPortalDocumentsRoute =
+  AuthenticatedPortalDocumentsRouteImport.update({
+    id: '/documents',
+    path: '/documents',
+    getParentRoute: () => AuthenticatedPortalRouteRoute,
+  } as any)
+const AuthenticatedPortalClaimsRoute =
+  AuthenticatedPortalClaimsRouteImport.update({
+    id: '/claims',
+    path: '/claims',
+    getParentRoute: () => AuthenticatedPortalRouteRoute,
+  } as any)
 const AuthenticatedPoliciesIdRoute = AuthenticatedPoliciesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -185,11 +243,24 @@ const ApiPublicHooksRenewalRemindersRoute =
     path: '/api/public/hooks/renewal-reminders',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedPortalPoliciesIdRoute =
+  AuthenticatedPortalPoliciesIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedPortalPoliciesRoute,
+  } as any)
+const AuthenticatedPortalInvoicesIdRoute =
+  AuthenticatedPortalInvoicesIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedPortalInvoicesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/portal': typeof AuthenticatedPortalRouteRouteWithChildren
   '/claims': typeof AuthenticatedClaimsRoute
   '/clients': typeof AuthenticatedClientsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -209,7 +280,16 @@ export interface FileRoutesByFullPath {
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/policies/$id': typeof AuthenticatedPoliciesIdRoute
+  '/portal/claims': typeof AuthenticatedPortalClaimsRoute
+  '/portal/documents': typeof AuthenticatedPortalDocumentsRoute
+  '/portal/invoices': typeof AuthenticatedPortalInvoicesRouteWithChildren
+  '/portal/policies': typeof AuthenticatedPortalPoliciesRouteWithChildren
+  '/portal/profile': typeof AuthenticatedPortalProfileRoute
+  '/portal/vehicles': typeof AuthenticatedPortalVehiclesRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/portal/': typeof AuthenticatedPortalIndexRoute
+  '/portal/invoices/$id': typeof AuthenticatedPortalInvoicesIdRoute
+  '/portal/policies/$id': typeof AuthenticatedPortalPoliciesIdRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -238,7 +318,16 @@ export interface FileRoutesByTo {
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/policies/$id': typeof AuthenticatedPoliciesIdRoute
+  '/portal/claims': typeof AuthenticatedPortalClaimsRoute
+  '/portal/documents': typeof AuthenticatedPortalDocumentsRoute
+  '/portal/invoices': typeof AuthenticatedPortalInvoicesRouteWithChildren
+  '/portal/policies': typeof AuthenticatedPortalPoliciesRouteWithChildren
+  '/portal/profile': typeof AuthenticatedPortalProfileRoute
+  '/portal/vehicles': typeof AuthenticatedPortalVehiclesRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/portal': typeof AuthenticatedPortalIndexRoute
+  '/portal/invoices/$id': typeof AuthenticatedPortalInvoicesIdRoute
+  '/portal/policies/$id': typeof AuthenticatedPortalPoliciesIdRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -250,6 +339,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/_authenticated/portal': typeof AuthenticatedPortalRouteRouteWithChildren
   '/_authenticated/claims': typeof AuthenticatedClaimsRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -269,7 +359,16 @@ export interface FileRoutesById {
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/_authenticated/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/_authenticated/policies/$id': typeof AuthenticatedPoliciesIdRoute
+  '/_authenticated/portal/claims': typeof AuthenticatedPortalClaimsRoute
+  '/_authenticated/portal/documents': typeof AuthenticatedPortalDocumentsRoute
+  '/_authenticated/portal/invoices': typeof AuthenticatedPortalInvoicesRouteWithChildren
+  '/_authenticated/portal/policies': typeof AuthenticatedPortalPoliciesRouteWithChildren
+  '/_authenticated/portal/profile': typeof AuthenticatedPortalProfileRoute
+  '/_authenticated/portal/vehicles': typeof AuthenticatedPortalVehiclesRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/_authenticated/portal/': typeof AuthenticatedPortalIndexRoute
+  '/_authenticated/portal/invoices/$id': typeof AuthenticatedPortalInvoicesIdRoute
+  '/_authenticated/portal/policies/$id': typeof AuthenticatedPortalPoliciesIdRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -281,6 +380,7 @@ export interface FileRouteTypes {
     | '/'
     | '/reset-password'
     | '/unsubscribe'
+    | '/portal'
     | '/claims'
     | '/clients'
     | '/dashboard'
@@ -300,7 +400,16 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/invoices/$id'
     | '/policies/$id'
+    | '/portal/claims'
+    | '/portal/documents'
+    | '/portal/invoices'
+    | '/portal/policies'
+    | '/portal/profile'
+    | '/portal/vehicles'
     | '/lovable/email/suppression'
+    | '/portal/'
+    | '/portal/invoices/$id'
+    | '/portal/policies/$id'
     | '/api/public/hooks/renewal-reminders'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -329,7 +438,16 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/invoices/$id'
     | '/policies/$id'
+    | '/portal/claims'
+    | '/portal/documents'
+    | '/portal/invoices'
+    | '/portal/policies'
+    | '/portal/profile'
+    | '/portal/vehicles'
     | '/lovable/email/suppression'
+    | '/portal'
+    | '/portal/invoices/$id'
+    | '/portal/policies/$id'
     | '/api/public/hooks/renewal-reminders'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -340,6 +458,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/reset-password'
     | '/unsubscribe'
+    | '/_authenticated/portal'
     | '/_authenticated/claims'
     | '/_authenticated/clients'
     | '/_authenticated/dashboard'
@@ -359,7 +478,16 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/$id'
     | '/_authenticated/invoices/$id'
     | '/_authenticated/policies/$id'
+    | '/_authenticated/portal/claims'
+    | '/_authenticated/portal/documents'
+    | '/_authenticated/portal/invoices'
+    | '/_authenticated/portal/policies'
+    | '/_authenticated/portal/profile'
+    | '/_authenticated/portal/vehicles'
     | '/lovable/email/suppression'
+    | '/_authenticated/portal/'
+    | '/_authenticated/portal/invoices/$id'
+    | '/_authenticated/portal/policies/$id'
     | '/api/public/hooks/renewal-reminders'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -479,12 +607,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClaimsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/portal': {
+      id: '/_authenticated/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof AuthenticatedPortalRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/portal/': {
+      id: '/_authenticated/portal/'
+      path: '/'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof AuthenticatedPortalIndexRouteImport
+      parentRoute: typeof AuthenticatedPortalRouteRoute
+    }
     '/lovable/email/suppression': {
       id: '/lovable/email/suppression'
       path: '/lovable/email/suppression'
       fullPath: '/lovable/email/suppression'
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/portal/vehicles': {
+      id: '/_authenticated/portal/vehicles'
+      path: '/vehicles'
+      fullPath: '/portal/vehicles'
+      preLoaderRoute: typeof AuthenticatedPortalVehiclesRouteImport
+      parentRoute: typeof AuthenticatedPortalRouteRoute
+    }
+    '/_authenticated/portal/profile': {
+      id: '/_authenticated/portal/profile'
+      path: '/profile'
+      fullPath: '/portal/profile'
+      preLoaderRoute: typeof AuthenticatedPortalProfileRouteImport
+      parentRoute: typeof AuthenticatedPortalRouteRoute
+    }
+    '/_authenticated/portal/policies': {
+      id: '/_authenticated/portal/policies'
+      path: '/policies'
+      fullPath: '/portal/policies'
+      preLoaderRoute: typeof AuthenticatedPortalPoliciesRouteImport
+      parentRoute: typeof AuthenticatedPortalRouteRoute
+    }
+    '/_authenticated/portal/invoices': {
+      id: '/_authenticated/portal/invoices'
+      path: '/invoices'
+      fullPath: '/portal/invoices'
+      preLoaderRoute: typeof AuthenticatedPortalInvoicesRouteImport
+      parentRoute: typeof AuthenticatedPortalRouteRoute
+    }
+    '/_authenticated/portal/documents': {
+      id: '/_authenticated/portal/documents'
+      path: '/documents'
+      fullPath: '/portal/documents'
+      preLoaderRoute: typeof AuthenticatedPortalDocumentsRouteImport
+      parentRoute: typeof AuthenticatedPortalRouteRoute
+    }
+    '/_authenticated/portal/claims': {
+      id: '/_authenticated/portal/claims'
+      path: '/claims'
+      fullPath: '/portal/claims'
+      preLoaderRoute: typeof AuthenticatedPortalClaimsRouteImport
+      parentRoute: typeof AuthenticatedPortalRouteRoute
     }
     '/_authenticated/policies/$id': {
       id: '/_authenticated/policies/$id'
@@ -577,8 +761,78 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksRenewalRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/portal/policies/$id': {
+      id: '/_authenticated/portal/policies/$id'
+      path: '/$id'
+      fullPath: '/portal/policies/$id'
+      preLoaderRoute: typeof AuthenticatedPortalPoliciesIdRouteImport
+      parentRoute: typeof AuthenticatedPortalPoliciesRoute
+    }
+    '/_authenticated/portal/invoices/$id': {
+      id: '/_authenticated/portal/invoices/$id'
+      path: '/$id'
+      fullPath: '/portal/invoices/$id'
+      preLoaderRoute: typeof AuthenticatedPortalInvoicesIdRouteImport
+      parentRoute: typeof AuthenticatedPortalInvoicesRoute
+    }
   }
 }
+
+interface AuthenticatedPortalInvoicesRouteChildren {
+  AuthenticatedPortalInvoicesIdRoute: typeof AuthenticatedPortalInvoicesIdRoute
+}
+
+const AuthenticatedPortalInvoicesRouteChildren: AuthenticatedPortalInvoicesRouteChildren =
+  {
+    AuthenticatedPortalInvoicesIdRoute: AuthenticatedPortalInvoicesIdRoute,
+  }
+
+const AuthenticatedPortalInvoicesRouteWithChildren =
+  AuthenticatedPortalInvoicesRoute._addFileChildren(
+    AuthenticatedPortalInvoicesRouteChildren,
+  )
+
+interface AuthenticatedPortalPoliciesRouteChildren {
+  AuthenticatedPortalPoliciesIdRoute: typeof AuthenticatedPortalPoliciesIdRoute
+}
+
+const AuthenticatedPortalPoliciesRouteChildren: AuthenticatedPortalPoliciesRouteChildren =
+  {
+    AuthenticatedPortalPoliciesIdRoute: AuthenticatedPortalPoliciesIdRoute,
+  }
+
+const AuthenticatedPortalPoliciesRouteWithChildren =
+  AuthenticatedPortalPoliciesRoute._addFileChildren(
+    AuthenticatedPortalPoliciesRouteChildren,
+  )
+
+interface AuthenticatedPortalRouteRouteChildren {
+  AuthenticatedPortalClaimsRoute: typeof AuthenticatedPortalClaimsRoute
+  AuthenticatedPortalDocumentsRoute: typeof AuthenticatedPortalDocumentsRoute
+  AuthenticatedPortalInvoicesRoute: typeof AuthenticatedPortalInvoicesRouteWithChildren
+  AuthenticatedPortalPoliciesRoute: typeof AuthenticatedPortalPoliciesRouteWithChildren
+  AuthenticatedPortalProfileRoute: typeof AuthenticatedPortalProfileRoute
+  AuthenticatedPortalVehiclesRoute: typeof AuthenticatedPortalVehiclesRoute
+  AuthenticatedPortalIndexRoute: typeof AuthenticatedPortalIndexRoute
+}
+
+const AuthenticatedPortalRouteRouteChildren: AuthenticatedPortalRouteRouteChildren =
+  {
+    AuthenticatedPortalClaimsRoute: AuthenticatedPortalClaimsRoute,
+    AuthenticatedPortalDocumentsRoute: AuthenticatedPortalDocumentsRoute,
+    AuthenticatedPortalInvoicesRoute:
+      AuthenticatedPortalInvoicesRouteWithChildren,
+    AuthenticatedPortalPoliciesRoute:
+      AuthenticatedPortalPoliciesRouteWithChildren,
+    AuthenticatedPortalProfileRoute: AuthenticatedPortalProfileRoute,
+    AuthenticatedPortalVehiclesRoute: AuthenticatedPortalVehiclesRoute,
+    AuthenticatedPortalIndexRoute: AuthenticatedPortalIndexRoute,
+  }
+
+const AuthenticatedPortalRouteRouteWithChildren =
+  AuthenticatedPortalRouteRoute._addFileChildren(
+    AuthenticatedPortalRouteRouteChildren,
+  )
 
 interface AuthenticatedClientsRouteChildren {
   AuthenticatedClientsIdRoute: typeof AuthenticatedClientsIdRoute
@@ -618,6 +872,7 @@ const AuthenticatedPoliciesRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedPortalRouteRoute: typeof AuthenticatedPortalRouteRouteWithChildren
   AuthenticatedClaimsRoute: typeof AuthenticatedClaimsRoute
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -636,6 +891,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedPortalRouteRoute: AuthenticatedPortalRouteRouteWithChildren,
   AuthenticatedClaimsRoute: AuthenticatedClaimsRoute,
   AuthenticatedClientsRoute: AuthenticatedClientsRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
