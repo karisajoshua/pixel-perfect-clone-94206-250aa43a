@@ -1,50 +1,56 @@
-## Goal
-Make the Import page populate the whole system in one shot (clients, vehicles, insurers, policies, invoices, paid payments) so dashboard counters and Total Revenue update automatically from the sheet — using the `INSTALLMENT` column as the revenue figure.
+## 1. Import: capture client contacts
 
-## Changes (all in `src/routes/_authenticated/admin.import.tsx`)
+Right now the importer never reads phone/email columns, so imported clients show no contact info.
 
-The existing client + vehicle passes stay as-is. Add these passes after vehicles are inserted:
+Extend `src/routes/_authenticated/admin.import.tsx` to map common header variants (case-insensitive, trimmed):
 
-1. **Insurers — auto-create from `COMPANY`**
-   - Load all existing insurers once.
-   - Normalize the `COMPANY` value (trim, strip trailing `/MANKONE` etc., title-case).
-   - For each unique normalized name not already present, insert into `insurers` with `active=true`.
-   - Build a `name → id` map keyed by normalized name.
+- `email` ← `EMAIL`, `E-MAIL`, `MAIL`
+- `phone` ← `PHONE`, `TEL`, `TELEPHONE`, `MOBILE`, `CONTACT`, `CELL`, `MSISDN`
+- `alt_phone` ← `ALT PHONE`, `ALT TEL`, `OTHER PHONE`, `PHONE 2`
+- `id_number` ← `ID`, `ID NO`, `ID NUMBER`, `REG NO`
+- `kra_pin` ← `KRA`, `KRA PIN`, `PIN`
 
-2. **Policies — one per imported vehicle that has an insurer**
-   - Skip rows with no `COMPANY`.
-   - Parse `MONTH` (`MM`, `MMYY`, `MYY`) → `end_date`; `start_date = end_date − 1 year`.
-   - Defaults: `product_class='motor_private'` (or `motor_commercial` when sheet usage is commercial/PSV/hire), `cover_type='comprehensive'`, `status` derived from dates (`expired` / `active` / `pending`), `payment_status='paid'` when an installment is present else `unpaid`.
-   - `premium_gross` and `premium_net` = `INSTALLMENT` value (numeric).
-   - `sum_insured` from `S/INS` if numeric.
-   - `policy_no` = `IMP-{YYYYMMDD}-{seq}` to avoid collisions.
-   - Dedupe per import on `(client_id, vehicle_id, insurer_id, end_date)` and skip if a policy already exists matching that key in DB.
-   - Insert in batches; collect the returned `id`s.
+Normalize phone (strip spaces, keep leading `+` or `0`). Apply to **new** client inserts and **also backfill existing** clients in the same sheet when their `phone`/`email` is null — so previously imported clients get updated on re-import.
 
-3. **Invoices — one per new policy with an installment amount**
-   - Skip policies with no installment.
-   - `invoice_no` = `INV-{YYYYMMDD}-{seq}`; `client_id`, `policy_id` from the policy; `issue_date = today`; `due_date = today + 30d`.
-   - `subtotal = total = amount_paid = installment`, `tax = 0`, `status = 'paid'`.
+Add a one-time "Backfill contacts from vehicle notes" button on the import page that scans `clients` with null phone/email and tries to recover from `vehicles.notes` (which currently holds raw row text for older imports), since past imports already lost the columns.
 
-4. **Payments — one per invoice (so Total Revenue updates)**
-   - `invoice_id` from the invoice just created, `amount = installment`, `paid_date = today`, `method = 'import'`, `reference = 'Imported from sheet'`, `recorded_by = current user`.
-   - This is the only thing that actually moves `revenue` on the dashboard (which sums `payments.amount`).
+## 2. Clients list: 15 per page
 
-5. **Vehicle notes cleanup**
-   - After a policy is created from a vehicle, strip the `Insurer:` / `Installment:` / `Month:` / `Sum insured:` fragments from that vehicle's `notes` (leave any remaining text).
+In `src/routes/_authenticated/clients.tsx`:
 
-6. **Idempotency**
-   - Existing clients (by KRA PIN / name) and vehicles (by registration) already dedupe.
-   - Policies dedupe on `(client_id, vehicle_id, insurer_id, end_date)`.
-   - Invoices/payments only created for policies created this run, so re-running the same import won't double-charge revenue.
+- Add URL search params via `validateSearch` (`page: number`, defaulted to 1; keep existing `search` text).
+- Query with Supabase `.range((page-1)*15, page*15-1)` and `{ count: 'exact' }`.
+- Render shadcn `Pagination` (Prev / page numbers / Next) below the table. Reset to page 1 when search changes.
+- Show "Showing X–Y of Z" counter.
 
-7. **Import log**
-   - Extend the final log line to: `X clients, Y vehicles, Z insurers, P policies, I invoices, KES R revenue added`.
+## 3. Admin export: PDF + Excel with filters
 
-## Why policies are included
-The user picked Insurers + Invoices + Payments. `invoices.policy_id` is the link that ties an invoice to a vehicle/cover period and feeds the "active policies" KPI; without a policy the invoice has no business context. Creating the policy is required to make the invoice meaningful.
+Add an **Export** button next to "New client" on the clients list (admin/manager only — gated via `useMyRoles`).
+
+Opens a dialog with filters:
+- **Company name** contains (text)
+- **Client type** (any / individual / corporate)
+- **Branch** (dropdown)
+- **Created between** (date range)
+- **KYC status** (any / pending / verified / rejected / expired)
+- **Format**: Excel (`.xlsx`) or PDF
+
+On submit:
+- Query `clients` (no row limit) with the filters applied server-side.
+- **Excel**: build with `xlsx` (SheetJS) client-side — columns: Name, Company, Type, Email, Phone, ID/Reg, KRA PIN, City, KYC, Branch, Created. Download as `clients-YYYY-MM-DD.xlsx`.
+- **PDF**: build with `jspdf` + `jspdf-autotable` (already light, client-side) — same columns, landscape A4, with filter summary in the header. Download as `clients-YYYY-MM-DD.pdf`.
+
+Install: `bun add xlsx jspdf jspdf-autotable`.
 
 ## Out of scope
-- No changes to the form/UI other than the log line.
-- No changes to RLS, schema, or other pages.
-- Sheets with no `COMPANY`/`INSTALLMENT` still import clients + vehicles only (current behavior).
+
+- No schema/RLS changes (all data already in `clients`).
+- No edits to client detail page (contacts already render there once populated).
+- Export limited to clients table (not vehicles/policies) — those can be added later if needed.
+
+## Files touched
+
+- `src/routes/_authenticated/admin.import.tsx` — contact column mapping + backfill action
+- `src/routes/_authenticated/clients.tsx` — pagination + export button
+- `src/components/clients/client-export-dialog.tsx` — new, filter form + xlsx/pdf generation
+- `package.json` — add 3 deps
