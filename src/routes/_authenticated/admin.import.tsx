@@ -18,6 +18,18 @@ type Row = Record<string, any>;
 const norm = (s: any) => (s ?? "").toString().trim();
 const upper = (s: any) => norm(s).toUpperCase();
 const num = (s: any) => { const n = Number(norm(s).replace(/[^0-9.\-]/g, "")); return Number.isFinite(n) && n !== 0 ? n : null; };
+const normPhone = (s: any) => {
+  const t = norm(s);
+  if (!t) return null;
+  const plus = t.startsWith("+");
+  const digits = t.replace(/[^0-9]/g, "");
+  if (!digits) return null;
+  return plus ? `+${digits}` : digits;
+};
+const normEmail = (s: any) => {
+  const t = norm(s).toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t) ? t : null;
+};
 
 function pick(row: Row, ...keys: string[]) {
   for (const k of keys) {
@@ -94,18 +106,20 @@ function ImportPage() {
     const createdBy = u.user?.id;
 
     // Existing clients (by kra_pin and lower(full_name))
-    const { data: existingClients } = await supabase.from("clients").select("id, full_name, kra_pin");
+    const { data: existingClients } = await supabase.from("clients").select("id, full_name, kra_pin, phone, email, alt_phone");
     const byPin = new Map<string, string>();
     const byName = new Map<string, string>();
+    const existingById = new Map<string, { phone: string | null; email: string | null; alt_phone: string | null }>();
     (existingClients ?? []).forEach((c: any) => {
       if (c.kra_pin) byPin.set(c.kra_pin.toUpperCase(), c.id);
       byName.set((c.full_name ?? "").toLowerCase(), c.id);
+      existingById.set(c.id, { phone: c.phone ?? null, email: c.email ?? null, alt_phone: c.alt_phone ?? null });
     });
 
     const { data: existingVeh } = await supabase.from("vehicles").select("registration_no");
     const regs = new Set((existingVeh ?? []).map((v: any) => v.registration_no.toUpperCase()));
 
-    let clientsAdded = 0, vehiclesAdded = 0, skippedVeh = 0, errors = 0;
+    let clientsAdded = 0, clientsUpdated = 0, vehiclesAdded = 0, skippedVeh = 0, errors = 0;
     const newClients: any[] = [];
     const nameKeyToTempIdx = new Map<string, number>();
 
@@ -115,15 +129,36 @@ function ImportPage() {
       if (!name) continue;
       const pin = upper(pick(r, "KRA PIN", "PIN", "KRAPIN"));
       const id_number = norm(pick(r, "ID", "ID NUMBER", "ID NO"));
+      const email = normEmail(pick(r, "EMAIL", "E-MAIL", "MAIL"));
+      const phone = normPhone(pick(r, "PHONE", "TEL", "TELEPHONE", "MOBILE", "CONTACT", "CELL", "MSISDN"));
+      const alt_phone = normPhone(pick(r, "ALT PHONE", "ALT TEL", "OTHER PHONE", "PHONE 2", "PHONE2"));
       const key = pin || name.toLowerCase();
-      if (pin && byPin.has(pin)) continue;
-      if (!pin && byName.has(name.toLowerCase())) continue;
+      const existingId = (pin && byPin.get(pin)) || byName.get(name.toLowerCase());
+      if (existingId) {
+        // Backfill missing contact info on existing clients
+        const cur = existingById.get(existingId);
+        const patch: any = {};
+        if (cur && !cur.phone && phone) patch.phone = phone;
+        if (cur && !cur.email && email) patch.email = email;
+        if (cur && !cur.alt_phone && alt_phone) patch.alt_phone = alt_phone;
+        if (Object.keys(patch).length) {
+          const { error } = await supabase.from("clients").update(patch).eq("id", existingId);
+          if (!error) {
+            clientsUpdated++;
+            existingById.set(existingId, { ...cur!, ...patch });
+          }
+        }
+        continue;
+      }
       if (nameKeyToTempIdx.has(key)) continue;
       nameKeyToTempIdx.set(key, newClients.length);
       newClients.push({
         full_name: name,
         kra_pin: pin || null,
         id_number: id_number || null,
+        email,
+        phone,
+        alt_phone,
         client_type: "individual",
         created_by: createdBy,
       });
@@ -370,7 +405,7 @@ function ImportPage() {
     const fmtMoney = (n: number) => `KES ${Math.round(n).toLocaleString()}`;
     setLog((l) => [
       ...l,
-      `Done: ${clientsAdded} clients, ${vehiclesAdded} vehicles, ${insurersAdded} insurers, ${policiesAdded} policies, ${invoicesAdded} invoices, ${fmtMoney(revenueAdded)} revenue. ${skippedVeh} vehicles skipped, ${errors} errors.`,
+      `Done: ${clientsAdded} clients added, ${clientsUpdated} clients updated with contact info, ${vehiclesAdded} vehicles, ${insurersAdded} insurers, ${policiesAdded} policies, ${invoicesAdded} invoices, ${fmtMoney(revenueAdded)} revenue. ${skippedVeh} vehicles skipped, ${errors} errors.`,
     ]);
     toast.success(`Imported ${policiesAdded} policies · ${fmtMoney(revenueAdded)} revenue`);
   };
