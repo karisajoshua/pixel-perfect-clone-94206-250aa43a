@@ -40,7 +40,7 @@ const Email = ({
       <Body style={main}>
         <Container style={container}>
           <Section style={brand}>
-            <Text style={brandText}>Zest Insurance</Text>
+            <img src="https://pixel-perfect-clone-94206.lovable.app/__l5e/assets-v1/eebb88a1-040c-4590-ba83-e847a4eed58e/zia-logo-red.png" alt="Zest Insurance Agency" height="60" style={{ display: "block", border: 0 }} />
           </Section>
           <Heading style={h1}>Time to renew your cover</Heading>
           <Text style={text}>Hi {clientName},</Text>
