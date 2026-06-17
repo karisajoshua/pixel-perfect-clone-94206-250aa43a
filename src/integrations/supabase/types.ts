@@ -80,6 +80,124 @@ export type Database = {
         }
         Relationships: []
       }
+      client_communications: {
+        Row: {
+          body: string | null
+          channel: Database["public"]["Enums"]["comm_channel"]
+          client_id: string
+          created_at: string
+          created_by: string | null
+          direction: Database["public"]["Enums"]["comm_direction"]
+          id: string
+          subject: string | null
+        }
+        Insert: {
+          body?: string | null
+          channel: Database["public"]["Enums"]["comm_channel"]
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          direction?: Database["public"]["Enums"]["comm_direction"]
+          id?: string
+          subject?: string | null
+        }
+        Update: {
+          body?: string | null
+          channel?: Database["public"]["Enums"]["comm_channel"]
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          direction?: Database["public"]["Enums"]["comm_direction"]
+          id?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_communications_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          address: string | null
+          alt_phone: string | null
+          assigned_agent: string | null
+          branch_id: string | null
+          city: string | null
+          client_type: Database["public"]["Enums"]["client_type"]
+          company_name: string | null
+          created_at: string
+          created_by: string | null
+          date_of_birth: string | null
+          email: string | null
+          full_name: string
+          id: string
+          id_number: string | null
+          kra_pin: string | null
+          kyc_status: Database["public"]["Enums"]["kyc_status"]
+          notes: string | null
+          occupation: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          alt_phone?: string | null
+          assigned_agent?: string | null
+          branch_id?: string | null
+          city?: string | null
+          client_type?: Database["public"]["Enums"]["client_type"]
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          id_number?: string | null
+          kra_pin?: string | null
+          kyc_status?: Database["public"]["Enums"]["kyc_status"]
+          notes?: string | null
+          occupation?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          alt_phone?: string | null
+          assigned_agent?: string | null
+          branch_id?: string | null
+          city?: string | null
+          client_type?: Database["public"]["Enums"]["client_type"]
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          id_number?: string | null
+          kra_pin?: string | null
+          kyc_status?: Database["public"]["Enums"]["kyc_status"]
+          notes?: string | null
+          occupation?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -157,9 +275,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      user_branch: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "manager" | "agent" | "viewer" | "client"
+      client_type: "individual" | "corporate"
+      comm_channel: "call" | "email" | "sms" | "whatsapp" | "in_person" | "note"
+      comm_direction: "inbound" | "outbound"
+      kyc_status: "pending" | "verified" | "rejected" | "expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -288,6 +411,10 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "agent", "viewer", "client"],
+      client_type: ["individual", "corporate"],
+      comm_channel: ["call", "email", "sms", "whatsapp", "in_person", "note"],
+      comm_direction: ["inbound", "outbound"],
+      kyc_status: ["pending", "verified", "rejected", "expired"],
     },
   },
 } as const
