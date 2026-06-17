@@ -13,8 +13,15 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedVehiclesRouteImport } from './routes/_authenticated/vehicles'
+import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
+import { Route as AuthenticatedRenewalsRouteImport } from './routes/_authenticated/renewals'
+import { Route as AuthenticatedQuotationsRouteImport } from './routes/_authenticated/quotations'
+import { Route as AuthenticatedPoliciesRouteImport } from './routes/_authenticated/policies'
+import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
+import { Route as AuthenticatedClaimsRouteImport } from './routes/_authenticated/claims'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedAdminBranchesRouteImport } from './routes/_authenticated/admin.branches'
@@ -39,6 +46,36 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedVehiclesRoute = AuthenticatedVehiclesRouteImport.update({
+  id: '/vehicles',
+  path: '/vehicles',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRenewalsRoute = AuthenticatedRenewalsRouteImport.update({
+  id: '/renewals',
+  path: '/renewals',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedQuotationsRoute = AuthenticatedQuotationsRouteImport.update({
+  id: '/quotations',
+  path: '/quotations',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPoliciesRoute = AuthenticatedPoliciesRouteImport.update({
+  id: '/policies',
+  path: '/policies',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInvoicesRoute = AuthenticatedInvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -47,6 +84,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
 const AuthenticatedClientsRoute = AuthenticatedClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedClaimsRoute = AuthenticatedClaimsRouteImport.update({
+  id: '/claims',
+  path: '/claims',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedClientsIdRoute = AuthenticatedClientsIdRouteImport.update({
@@ -75,8 +117,15 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/claims': typeof AuthenticatedClaimsRoute
   '/clients': typeof AuthenticatedClientsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/invoices': typeof AuthenticatedInvoicesRoute
+  '/policies': typeof AuthenticatedPoliciesRoute
+  '/quotations': typeof AuthenticatedQuotationsRoute
+  '/renewals': typeof AuthenticatedRenewalsRoute
+  '/reports': typeof AuthenticatedReportsRoute
+  '/vehicles': typeof AuthenticatedVehiclesRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/branches': typeof AuthenticatedAdminBranchesRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -86,8 +135,15 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/claims': typeof AuthenticatedClaimsRoute
   '/clients': typeof AuthenticatedClientsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/invoices': typeof AuthenticatedInvoicesRoute
+  '/policies': typeof AuthenticatedPoliciesRoute
+  '/quotations': typeof AuthenticatedQuotationsRoute
+  '/renewals': typeof AuthenticatedRenewalsRoute
+  '/reports': typeof AuthenticatedReportsRoute
+  '/vehicles': typeof AuthenticatedVehiclesRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/branches': typeof AuthenticatedAdminBranchesRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -99,8 +155,15 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/claims': typeof AuthenticatedClaimsRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
+  '/_authenticated/policies': typeof AuthenticatedPoliciesRoute
+  '/_authenticated/quotations': typeof AuthenticatedQuotationsRoute
+  '/_authenticated/renewals': typeof AuthenticatedRenewalsRoute
+  '/_authenticated/reports': typeof AuthenticatedReportsRoute
+  '/_authenticated/vehicles': typeof AuthenticatedVehiclesRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/branches': typeof AuthenticatedAdminBranchesRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -112,8 +175,15 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/claims'
     | '/clients'
     | '/dashboard'
+    | '/invoices'
+    | '/policies'
+    | '/quotations'
+    | '/renewals'
+    | '/reports'
+    | '/vehicles'
     | '/admin/audit'
     | '/admin/branches'
     | '/admin/users'
@@ -123,8 +193,15 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/claims'
     | '/clients'
     | '/dashboard'
+    | '/invoices'
+    | '/policies'
+    | '/quotations'
+    | '/renewals'
+    | '/reports'
+    | '/vehicles'
     | '/admin/audit'
     | '/admin/branches'
     | '/admin/users'
@@ -135,8 +212,15 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/reset-password'
+    | '/_authenticated/claims'
     | '/_authenticated/clients'
     | '/_authenticated/dashboard'
+    | '/_authenticated/invoices'
+    | '/_authenticated/policies'
+    | '/_authenticated/quotations'
+    | '/_authenticated/renewals'
+    | '/_authenticated/reports'
+    | '/_authenticated/vehicles'
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/branches'
     | '/_authenticated/admin/users'
@@ -180,6 +264,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/vehicles': {
+      id: '/_authenticated/vehicles'
+      path: '/vehicles'
+      fullPath: '/vehicles'
+      preLoaderRoute: typeof AuthenticatedVehiclesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reports': {
+      id: '/_authenticated/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AuthenticatedReportsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/renewals': {
+      id: '/_authenticated/renewals'
+      path: '/renewals'
+      fullPath: '/renewals'
+      preLoaderRoute: typeof AuthenticatedRenewalsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/quotations': {
+      id: '/_authenticated/quotations'
+      path: '/quotations'
+      fullPath: '/quotations'
+      preLoaderRoute: typeof AuthenticatedQuotationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/policies': {
+      id: '/_authenticated/policies'
+      path: '/policies'
+      fullPath: '/policies'
+      preLoaderRoute: typeof AuthenticatedPoliciesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/invoices': {
+      id: '/_authenticated/invoices'
+      path: '/invoices'
+      fullPath: '/invoices'
+      preLoaderRoute: typeof AuthenticatedInvoicesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -192,6 +318,13 @@ declare module '@tanstack/react-router' {
       path: '/clients'
       fullPath: '/clients'
       preLoaderRoute: typeof AuthenticatedClientsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/claims': {
+      id: '/_authenticated/claims'
+      path: '/claims'
+      fullPath: '/claims'
+      preLoaderRoute: typeof AuthenticatedClaimsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clients/$id': {
@@ -237,16 +370,30 @@ const AuthenticatedClientsRouteWithChildren =
   AuthenticatedClientsRoute._addFileChildren(AuthenticatedClientsRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedClaimsRoute: typeof AuthenticatedClaimsRoute
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
+  AuthenticatedPoliciesRoute: typeof AuthenticatedPoliciesRoute
+  AuthenticatedQuotationsRoute: typeof AuthenticatedQuotationsRoute
+  AuthenticatedRenewalsRoute: typeof AuthenticatedRenewalsRoute
+  AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
+  AuthenticatedVehiclesRoute: typeof AuthenticatedVehiclesRoute
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
   AuthenticatedAdminBranchesRoute: typeof AuthenticatedAdminBranchesRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedClaimsRoute: AuthenticatedClaimsRoute,
   AuthenticatedClientsRoute: AuthenticatedClientsRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
+  AuthenticatedPoliciesRoute: AuthenticatedPoliciesRoute,
+  AuthenticatedQuotationsRoute: AuthenticatedQuotationsRoute,
+  AuthenticatedRenewalsRoute: AuthenticatedRenewalsRoute,
+  AuthenticatedReportsRoute: AuthenticatedReportsRoute,
+  AuthenticatedVehiclesRoute: AuthenticatedVehiclesRoute,
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
   AuthenticatedAdminBranchesRoute: AuthenticatedAdminBranchesRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
