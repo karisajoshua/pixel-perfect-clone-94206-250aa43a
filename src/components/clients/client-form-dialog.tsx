@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { sendTransactionalEmail, clientDisplayName } from "@/lib/email/send";
 
 type Props = {
   open: boolean;
@@ -35,11 +36,19 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
     const payload = { ...form, created_by: u.user?.id };
     const op = initial?.id
       ? supabase.from("clients").update(payload).eq("id", initial.id)
-      : supabase.from("clients").insert(payload);
-    const { error } = await op;
+      : supabase.from("clients").insert(payload).select("id").single();
+    const { data: saved, error } = await op as any;
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success(initial?.id ? "Client updated" : "Client created");
+    if (!initial?.id && form.email && saved?.id) {
+      sendTransactionalEmail({
+        templateName: "client-welcome",
+        recipientEmail: form.email,
+        idempotencyKey: `client-welcome-${saved.id}`,
+        templateData: { clientName: clientDisplayName(form) },
+      });
+    }
     onSaved?.();
     onOpenChange(false);
   };
