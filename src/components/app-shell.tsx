@@ -9,6 +9,7 @@ import { useMyProfile, useMyRoles } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import logoWhite from "@/assets/zia-logo-white.png.asset.json";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -50,10 +51,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen flex bg-background text-foreground">
       <aside className="w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col">
         <div className="p-5 flex items-center gap-2 border-b border-sidebar-border">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground font-bold">Z</div>
-          <div>
-            <div className="text-sm font-semibold">Zest Insurance</div>
-            <div className="text-[11px] text-sidebar-foreground/60">Agency Workspace</div>
+          <img src={logoWhite.url} alt="Zest Insurance Agency" className="h-12 w-auto object-contain" />
+          <div className="ml-1">
+            <div className="text-[11px] uppercase tracking-wider text-sidebar-foreground/60">Agency Workspace</div>
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
