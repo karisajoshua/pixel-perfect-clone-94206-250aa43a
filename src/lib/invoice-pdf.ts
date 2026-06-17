@@ -177,5 +177,26 @@ export async function downloadInvoicePdf({ invoice, client, branch, policyNo, it
   doc.text("Thank you for choosing Zest Insurance Agency.", margin, pageH - 32);
   doc.text(`Generated ${new Date().toLocaleDateString()}`, pageW - margin, pageH - 32, { align: "right" });
 
-  doc.save(`Invoice-${invoice.invoice_no ?? invoice.id}.pdf`);
+  const filename = `Invoice-${invoice.invoice_no ?? invoice.id}.pdf`;
+  const blob = doc.output("blob");
+  const url = URL.createObjectURL(blob);
+
+  // Try a normal download first (works in standalone tabs).
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  // Fallback for sandboxed iframes (Lovable preview) where the download
+  // attribute is silently blocked: open the PDF in a new tab so the user
+  // can save it from the browser's PDF viewer.
+  const inIframe = typeof window !== "undefined" && window.self !== window.top;
+  if (inIframe) {
+    window.open(url, "_blank", "noopener");
+  }
+
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
