@@ -33,8 +33,16 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
   const submit = async () => {
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
-    const payload = { ...form, created_by: u.user?.id };
-    const op = initial?.id ? supabase.from("vehicles").update(payload).eq("id", initial.id) : supabase.from("vehicles").insert(payload);
+    const COLS = [
+      "client_id","branch_id","registration_no","make","model","year","body_type",
+      "color","chassis_no","engine_no","fuel_type","seating_capacity","cubic_capacity",
+      "usage_type","estimated_value","inspection_due","notes","active",
+    ] as const;
+    const clean: any = {};
+    for (const k of COLS) if (form[k] !== undefined) clean[k] = form[k];
+    const op = initial?.id
+      ? supabase.from("vehicles").update(clean).eq("id", initial.id)
+      : supabase.from("vehicles").insert({ ...clean, created_by: u.user?.id } as any);
     const { error } = await op;
     setSaving(false);
     if (error) return toast.error(error.message);
