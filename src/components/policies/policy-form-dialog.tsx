@@ -64,8 +64,17 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
   const submit = async () => {
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
-    const payload = { ...form, created_by: u.user?.id };
-    const op = initial?.id ? supabase.from("policies").update(payload).eq("id", initial.id) : supabase.from("policies").insert(payload).select("id").single();
+    const allowed = [
+      "policy_no","client_id","vehicle_id","insurer_id","branch_id",
+      "product_class","cover_type","sum_insured","premium_gross","premium_net",
+      "commission","taxes","start_date","end_date","status","payment_status",
+      "previous_policy_id","document_url","notes",
+    ];
+    const payload: any = {};
+    for (const k of allowed) if (form[k] !== undefined) payload[k] = form[k];
+    const op = initial?.id
+      ? supabase.from("policies").update(payload).eq("id", initial.id)
+      : supabase.from("policies").insert({ ...payload, created_by: u.user?.id }).select("id").single();
     const { data, error } = await op as any;
     setSaving(false);
     if (error) return toast.error(error.message);
