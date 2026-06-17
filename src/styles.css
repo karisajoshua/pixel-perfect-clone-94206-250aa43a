@@ -143,3 +143,9 @@
     color: var(--color-foreground);
   }
 }
+
+@media print {
+  aside, .print\:hidden { display: none !important; }
+  main { overflow: visible !important; }
+  body { background: #ffffff !important; }
+}

@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import logoRed from "@/assets/zia-logo-red.png.asset.json";
 
 function NotFoundComponent() {
   return (
@@ -97,6 +98,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "icon", type: "image/png", href: logoRed.url },
+      { rel: "apple-touch-icon", href: logoRed.url },
     ],
   }),
   shellComponent: RootShell,

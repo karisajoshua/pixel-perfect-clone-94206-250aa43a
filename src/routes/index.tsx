@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import bg1 from "@/assets/auth-bg-1.jpg";
 import bg2 from "@/assets/auth-bg-2.jpg";
 import bg3 from "@/assets/auth-bg-3.jpg";
+import logoWhite from "@/assets/zia-logo-white.png.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -106,9 +107,8 @@ function AuthPage() {
           />
         ))}
         <div className="absolute inset-0 bg-gradient-to-br from-sidebar/90 via-sidebar/70 to-sidebar/95" />
-        <Link to="/" className="relative flex items-center gap-2">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground font-bold">Z</div>
-          <span className="text-lg font-semibold">Zest Insurance</span>
+        <Link to="/" className="relative flex items-center">
+          <img src={logoWhite.url} alt="Zest Insurance Agency" className="h-20 w-auto object-contain" />
         </Link>
         <div className="relative">
           <h2 className="text-3xl font-bold">Built for the way agencies actually run.</h2>
