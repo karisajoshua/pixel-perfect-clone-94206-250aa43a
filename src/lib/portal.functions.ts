@@ -111,7 +111,7 @@ export const getMyInvoice = createServerFn({ method: "GET" })
     const client = await getMyClient(context.supabase, context.userId);
     const { data: invoice, error } = await context.supabase
       .from("invoices")
-      .select("*, policies(policy_no), invoice_items(*), payments(*)")
+      .select("*, policies(policy_no), invoice_items(*), payments(*), branches(name, address, phone, email), clients(full_name, company_name, client_type, email, phone)")
       .eq("id", data.id)
       .eq("client_id", client.id)
       .maybeSingle();
