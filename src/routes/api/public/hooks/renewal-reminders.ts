@@ -130,7 +130,7 @@ export const Route = createFileRoute("/api/public/hooks/renewal-reminders")({
                 typeof tpl.subject === "function" ? tpl.subject(data) : tpl.subject;
 
               // Suppression check
-              const { data: suppressed } = await supabaseAdmin
+              const { data: suppressed } = await (supabaseAdmin as any)
                 .from("suppressed_emails")
                 .select("id")
                 .eq("email", cl.email.toLowerCase())
