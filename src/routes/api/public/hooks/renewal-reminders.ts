@@ -43,7 +43,13 @@ async function getOrCreateUnsubscribeToken(
 export const Route = createFileRoute("/api/public/hooks/renewal-reminders")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        // Auth: require shared secret header (configure pg_cron / scheduler to send it)
+        const provided = request.headers.get("x-hook-secret") ?? "";
+        const expected = process.env.RENEWAL_HOOK_SECRET ?? "";
+        if (!expected || provided !== expected) {
+          return Response.json({ error: "Forbidden" }, { status: 403 });
+        }
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         const tpl = TEMPLATES["renewal-reminder"];
