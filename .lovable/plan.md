@@ -1,56 +1,61 @@
-## 1. Import: capture client contacts
+## Goal
 
-Right now the importer never reads phone/email columns, so imported clients show no contact info.
+Send branded emails from `notify.zestinsurance.co.ke` for every customer-facing event in the app, plus brand all auth emails. All sends fire automatically when the event occurs (idempotent — safe on retries).
 
-Extend `src/routes/_authenticated/admin.import.tsx` to map common header variants (case-insensitive, trimmed):
+## Already in place
 
-- `email` ← `EMAIL`, `E-MAIL`, `MAIL`
-- `phone` ← `PHONE`, `TEL`, `TELEPHONE`, `MOBILE`, `CONTACT`, `CELL`, `MSISDN`
-- `alt_phone` ← `ALT PHONE`, `ALT TEL`, `OTHER PHONE`, `PHONE 2`
-- `id_number` ← `ID`, `ID NO`, `ID NUMBER`, `REG NO`
-- `kra_pin` ← `KRA`, `KRA PIN`, `PIN`
+- Verified domain `notify.zestinsurance.co.ke`
+- Email infrastructure (queue, cron, suppression, unsubscribe)
+- Existing templates: `renewal-reminder`, `policy-issued`, `payment-receipt`, `claim-update`
 
-Normalize phone (strip spaces, keep leading `+` or `0`). Apply to **new** client inserts and **also backfill existing** clients in the same sheet when their `phone`/`email` is null — so previously imported clients get updated on re-import.
+## New app email templates
 
-Add a one-time "Backfill contacts from vehicle notes" button on the import page that scans `clients` with null phone/email and tries to recover from `vehicles.notes` (which currently holds raw row text for older imports), since past imports already lost the columns.
+Created under `src/lib/email-templates/` and registered in `registry.ts`:
 
-## 2. Clients list: 15 per page
+1. **client-welcome** — new client added with an email
+2. **quotation-sent** — quotation issued/sent to client (with totals + validity)
+3. **invoice-issued** — new invoice created (amount, due date, link)
+4. **claim-acknowledgement** — claim filed (claim no, next steps)
+5. **portal-invite** — when a client is granted portal access
 
-In `src/routes/_authenticated/clients.tsx`:
+All match the existing brand styling (Zest red logo, Inter, white body, card layout used in `payment-receipt`/`claim-update`).
 
-- Add URL search params via `validateSearch` (`page: number`, defaulted to 1; keep existing `search` text).
-- Query with Supabase `.range((page-1)*15, page*15-1)` and `{ count: 'exact' }`.
-- Render shadcn `Pagination` (Prev / page numbers / Next) below the table. Reset to page 1 when search changes.
-- Show "Showing X–Y of Z" counter.
+## Auto-fire wiring (one helper, one call per event)
 
-## 3. Admin export: PDF + Excel with filters
+Add `src/lib/email/send.ts` (client + server helper) that POSTs to `/lovable/email/transactional/send` with the user's JWT and an `idempotencyKey` derived from the entity id + template name.
 
-Add an **Export** button next to "New client" on the clients list (admin/manager only — gated via `useMyRoles`).
+Fire from existing creation/update sites:
 
-Opens a dialog with filters:
-- **Company name** contains (text)
-- **Client type** (any / individual / corporate)
-- **Branch** (dropdown)
-- **Created between** (date range)
-- **KYC status** (any / pending / verified / rejected / expired)
-- **Format**: Excel (`.xlsx`) or PDF
+| Event | File | Template |
+|---|---|---|
+| Client created (with email) | `client-form-dialog.tsx`, `admin.import.tsx` | `client-welcome` |
+| Quotation issued | `quotations.tsx` | `quotation-sent` |
+| Policy issued | `policy-form-dialog.tsx` | `policy-issued` (already exists) |
+| Invoice created | `invoice-form-dialog.tsx` | `invoice-issued` |
+| Payment recorded | payment recording flow | `payment-receipt` (already exists) |
+| Claim created | `claims.tsx` | `claim-acknowledgement` |
+| Claim status changed | `claims.tsx` | `claim-update` (already exists) |
+| Renewal window hit | existing cron `renewal-reminders` | `renewal-reminder` (already exists) |
 
-On submit:
-- Query `clients` (no row limit) with the filters applied server-side.
-- **Excel**: build with `xlsx` (SheetJS) client-side — columns: Name, Company, Type, Email, Phone, ID/Reg, KRA PIN, City, KYC, Branch, Created. Download as `clients-YYYY-MM-DD.xlsx`.
-- **PDF**: build with `jspdf` + `jspdf-autotable` (already light, client-side) — same columns, landscape A4, with filter summary in the header. Download as `clients-YYYY-MM-DD.pdf`.
+Idempotency keys (e.g. `client-welcome-{clientId}`, `invoice-issued-{invoiceId}`) ensure re-saves and importer re-runs don't double-send. Importer bulk-creates skip welcome emails by default to avoid mass-mailing legacy clients.
 
-Install: `bun add xlsx jspdf jspdf-autotable`.
+## Auth emails
+
+Run `scaffold_auth_email_templates` to brand: signup confirm, magic link, password recovery, invite, email change, reauthentication. Apply Zest red/white styling matching the app templates.
 
 ## Out of scope
 
-- No schema/RLS changes (all data already in `clients`).
-- No edits to client detail page (contacts already render there once populated).
-- Export limited to clients table (not vehicles/policies) — those can be added later if needed.
+- No marketing/bulk emails
+- No attachments (PDFs delivered as Supabase signed-URL links inside the email)
+- No changes to RLS or schema
+- No new cron jobs (renewals cron already exists)
 
-## Files touched
+## Technical notes
 
-- `src/routes/_authenticated/admin.import.tsx` — contact column mapping + backfill action
-- `src/routes/_authenticated/clients.tsx` — pagination + export button
-- `src/components/clients/client-export-dialog.tsx` — new, filter form + xlsx/pdf generation
-- `package.json` — add 3 deps
+- Sends go through existing `/lovable/email/transactional/send` route → pgmq → cron processor. No new server routes.
+- Suppression and unsubscribe are honoured automatically.
+- Each new template exports `{ component, subject, displayName, previewData }` and is added to `TEMPLATES` in `registry.ts`.
+- `FROM_DOMAIN` stays `zestinsurance.co.ke`, `SENDER_DOMAIN` stays `notify.zestinsurance.co.ke`.
+
+**Files added:** 5 new templates, `src/lib/email/send.ts`
+**Files edited:** `registry.ts`, client/quotation/invoice/claim dialogs and routes, `admin.import.tsx`

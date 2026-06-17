@@ -120,12 +120,32 @@ function PaymentDialog({ open, onOpenChange, invoiceId, max, currentPaid, total,
 
   const submit = async () => {
     const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("payments").insert({ invoice_id: invoiceId, amount, method, reference, paid_date: date, recorded_by: u.user?.id });
+    const { data: pay, error } = await supabase.from("payments").insert({ invoice_id: invoiceId, amount, method, reference, paid_date: date, recorded_by: u.user?.id }).select("id").single();
     if (error) return toast.error(error.message);
     const newPaid = currentPaid + amount;
     const newStatus = newPaid >= total ? "paid" : "partial";
     await supabase.from("invoices").update({ amount_paid: newPaid, status: newStatus }).eq("id", invoiceId);
     toast.success("Payment recorded");
+    try {
+      const { data: inv } = await supabase.from("invoices").select("invoice_no, client_id, clients(email, full_name, company_name, client_type)").eq("id", invoiceId).maybeSingle();
+      const c: any = (inv as any)?.clients;
+      if (c?.email && pay?.id) {
+        const { sendTransactionalEmail, clientDisplayName, formatKES } = await import("@/lib/email/send");
+        sendTransactionalEmail({
+          templateName: "payment-receipt",
+          recipientEmail: c.email,
+          idempotencyKey: `payment-receipt-${pay.id}`,
+          templateData: {
+            clientName: clientDisplayName(c),
+            invoiceNo: (inv as any)?.invoice_no ?? '',
+            amount: formatKES(amount),
+            paidAt: date,
+            method,
+            reference,
+          },
+        });
+      }
+    } catch {}
     onSaved?.(); onOpenChange(false);
   };
 

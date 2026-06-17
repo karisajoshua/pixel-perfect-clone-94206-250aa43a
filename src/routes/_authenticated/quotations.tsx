@@ -139,11 +139,36 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
     const payload = { ...form, created_by: u.user?.id };
-    const op = initial?.id ? supabase.from("quotations").update(payload).eq("id", initial.id) : supabase.from("quotations").insert(payload);
-    const { error } = await op;
+    const op = initial?.id
+      ? supabase.from("quotations").update(payload).eq("id", initial.id).select("id").single()
+      : supabase.from("quotations").insert(payload).select("id").single();
+    const { data: saved, error } = await op as any;
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Saved"); onSaved?.(); onOpenChange(false);
+    toast.success("Saved");
+    if (saved?.id && form.client_id) {
+      const { sendTransactionalEmail, clientDisplayName, formatKES } = await import("@/lib/email/send");
+      const { data: c } = await supabase.from("clients").select("email, full_name, company_name, client_type").eq("id", form.client_id).maybeSingle();
+      if (c?.email) {
+        const insurer = insurers.find((i: any) => i.id === form.insurer_id);
+        sendTransactionalEmail({
+          templateName: "quotation-sent",
+          recipientEmail: c.email,
+          idempotencyKey: `quotation-sent-${saved.id}`,
+          templateData: {
+            clientName: clientDisplayName(c),
+            quoteNo: form.quote_no,
+            insurerName: insurer?.name ?? '',
+            premium: form.premium_gross ? formatKES(form.premium_gross) : '',
+            sumInsured: form.sum_insured ? formatKES(form.sum_insured) : '',
+            validUntil: form.valid_until ?? '',
+            productClass: form.product_class ?? '',
+            coverType: form.cover_type ?? '',
+          },
+        });
+      }
+    }
+    onSaved?.(); onOpenChange(false);
   };
 
   const vForClient = form.client_id ? vehicles.filter((v) => v.client_id === form.client_id) : vehicles;

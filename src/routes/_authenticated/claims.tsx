@@ -108,11 +108,47 @@ function ClaimDialog({ open, onOpenChange, initial, onSaved }: any) {
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
     const payload = { ...form, created_by: u.user?.id };
-    const op = initial?.id ? supabase.from("claims").update(payload).eq("id", initial.id) : supabase.from("claims").insert(payload);
-    const { error } = await op;
+    const op = initial?.id
+      ? supabase.from("claims").update(payload).eq("id", initial.id).select("id, status").single()
+      : supabase.from("claims").insert(payload).select("id, status").single();
+    const { data: saved, error } = await op as any;
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Saved"); onSaved?.(); onOpenChange(false);
+    toast.success("Saved");
+    if (saved?.id && form.client_id) {
+      const { sendTransactionalEmail, clientDisplayName } = await import("@/lib/email/send");
+      const { data: c } = await supabase.from("clients").select("email, full_name, company_name, client_type").eq("id", form.client_id).maybeSingle();
+      if (c?.email) {
+        const policy = policies.find((p) => p.id === form.policy_id);
+        if (!initial?.id) {
+          sendTransactionalEmail({
+            templateName: "claim-acknowledgement",
+            recipientEmail: c.email,
+            idempotencyKey: `claim-ack-${saved.id}`,
+            templateData: {
+              clientName: clientDisplayName(c),
+              claimNo: form.claim_no,
+              policyNo: policy?.policy_no ?? '',
+              incidentDate: form.incident_date ?? '',
+              description: form.description ?? '',
+            },
+          });
+        } else if (initial.status !== saved.status) {
+          sendTransactionalEmail({
+            templateName: "claim-update",
+            recipientEmail: c.email,
+            idempotencyKey: `claim-update-${saved.id}-${saved.status}`,
+            templateData: {
+              clientName: clientDisplayName(c),
+              claimNo: form.claim_no,
+              status: String(saved.status).replace(/_/g, ' '),
+              notes: form.notes ?? '',
+            },
+          });
+        }
+      }
+    }
+    onSaved?.(); onOpenChange(false);
   };
 
   const pForClient = form.client_id ? policies.filter((p) => p.client_id === form.client_id) : policies;
