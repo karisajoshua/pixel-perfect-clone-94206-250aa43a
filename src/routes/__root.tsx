@@ -83,10 +83,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Zest Insurance Agency — in-house management system for clients, policies, claims, billing and renewals." },
       { name: "author", content: "Zest Insurance Agency" },
       { property: "og:title", content: "Zest Insurance Agency" },
-      { property: "og:description", content: "Manage clients, policies, claims and renewals in one secure platform." },
+      { property: "og:description", content: "Zest Insurance Agency — in-house management system for clients, policies, claims, billing and renewals." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Zest Insurance Agency" },
+      { name: "twitter:description", content: "Zest Insurance Agency — in-house management system for clients, policies, claims, billing and renewals." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d60bcc15-ade7-4452-bc2a-68c6da8da8d5/id-preview-1a9b65f5--985ee922-e897-4a14-bb28-5665a84f933f.lovable.app-1781658472714.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d60bcc15-ade7-4452-bc2a-68c6da8da8d5/id-preview-1a9b65f5--985ee922-e897-4a14-bb28-5665a84f933f.lovable.app-1781658472714.png" },
     ],
     links: [
       {
