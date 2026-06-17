@@ -29,6 +29,7 @@ import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminInsurersRouteImport } from './routes/_authenticated/admin.insurers'
 import { Route as AuthenticatedAdminBranchesRouteImport } from './routes/_authenticated/admin.branches'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
+import { Route as ApiPublicHooksRenewalRemindersRouteImport } from './routes/api/public/hooks/renewal-reminders'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -131,6 +132,12 @@ const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
   path: '/admin/audit',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicHooksRenewalRemindersRoute =
+  ApiPublicHooksRenewalRemindersRouteImport.update({
+    id: '/api/public/hooks/renewal-reminders',
+    path: '/api/public/hooks/renewal-reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/policies/$id': typeof AuthenticatedPoliciesIdRoute
+  '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -173,6 +181,7 @@ export interface FileRoutesByTo {
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/policies/$id': typeof AuthenticatedPoliciesIdRoute
+  '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -196,6 +205,7 @@ export interface FileRoutesById {
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/_authenticated/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/_authenticated/policies/$id': typeof AuthenticatedPoliciesIdRoute
+  '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -219,6 +229,7 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/invoices/$id'
     | '/policies/$id'
+    | '/api/public/hooks/renewal-reminders'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -240,6 +251,7 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/invoices/$id'
     | '/policies/$id'
+    | '/api/public/hooks/renewal-reminders'
   id:
     | '__root__'
     | '/'
@@ -262,6 +274,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/$id'
     | '/_authenticated/invoices/$id'
     | '/_authenticated/policies/$id'
+    | '/api/public/hooks/renewal-reminders'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -269,6 +282,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicHooksRenewalRemindersRoute: typeof ApiPublicHooksRenewalRemindersRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -413,6 +427,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/renewal-reminders': {
+      id: '/api/public/hooks/renewal-reminders'
+      path: '/api/public/hooks/renewal-reminders'
+      fullPath: '/api/public/hooks/renewal-reminders'
+      preLoaderRoute: typeof ApiPublicHooksRenewalRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -493,6 +514,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicHooksRenewalRemindersRoute: ApiPublicHooksRenewalRemindersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
