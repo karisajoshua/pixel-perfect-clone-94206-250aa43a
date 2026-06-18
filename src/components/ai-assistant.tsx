@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ReactMarkdown from "react-markdown";
+import { supabase } from "@/integrations/supabase/client";
 
 // Detect routes mentioned in a response: `/clients`, `/admin/users`, etc.
 const ROUTE_RE = /`(\/[a-zA-Z0-9/_-]+)`/g;
@@ -23,7 +24,16 @@ export function AiAssistant() {
   const [input, setInput] = useState("");
   const navigate = useNavigate();
   const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat" }),
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+      fetch: async (input, init) => {
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token;
+        const headers = new Headers(init?.headers);
+        if (token) headers.set("Authorization", `Bearer ${token}`);
+        return fetch(input, { ...init, headers });
+      },
+    }),
   });
 
   const busy = status === "submitted" || status === "streaming";
