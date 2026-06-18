@@ -41,7 +41,7 @@ function Dashboard() {
 
   return (
     <div className="p-8 space-y-6">
-      <PageHeader title="Dashboard" subtitle="Overview of agency activity across all branches." />
+      <PageHeader title="Dashboard" subtitle="Overview of agency activity across all branches." helpDocId="getting-started" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="lg:col-span-2">
