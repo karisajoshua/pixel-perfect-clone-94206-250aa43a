@@ -36,6 +36,7 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [slide, setSlide] = useState(0);
+  const [tab, setTab] = useState<"signin" | "signup">("signin");
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
@@ -80,6 +81,8 @@ function AuthPage() {
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Account created. Check your email if confirmation is required.");
+    setTab("signin");
+    setPassword("");
   };
 
   const google = async () => {
@@ -146,7 +149,7 @@ function AuthPage() {
             <CardDescription>Sign in to the management workspace.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin">
+            <Tabs value={tab} onValueChange={(v) => setTab(v as "signin" | "signup")}>
               <TabsList className="grid grid-cols-2 w-full">
                 <TabsTrigger value="signin">Sign in</TabsTrigger>
                 <TabsTrigger value="signup">Create account</TabsTrigger>
