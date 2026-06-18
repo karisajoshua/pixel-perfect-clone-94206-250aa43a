@@ -24,7 +24,7 @@ const Email = ({
     <Preview>{`Receipt for invoice ${invoiceNo}`}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Section style={brand}><img src="https://pixel-perfect-clone-94206.lovable.app/__l5e/assets-v1/eebb88a1-040c-4590-ba83-e847a4eed58e/zia-logo-red.png" alt="Zest Insurance Agency" height="60" style={{ display: "block", border: 0 }} /></Section>
+        <Section style={brand}><img src="https://app.zestinsurance.co.ke/__l5e/assets-v1/eebb88a1-040c-4590-ba83-e847a4eed58e/zia-logo-red.png" alt="Zest Insurance Agency" height="60" style={{ display: "block", border: 0 }} /></Section>
         <Heading style={h1}>Payment received</Heading>
         <Text style={text}>Hi {clientName},</Text>
         <Text style={text}>
