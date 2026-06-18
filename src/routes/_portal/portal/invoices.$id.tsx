@@ -8,7 +8,7 @@ import { ArrowLeft, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { downloadInvoicePdf } from "@/lib/invoice-pdf";
 
-export const Route = createFileRoute("/_authenticated/portal/invoices/$id")({ component: Page });
+export const Route = createFileRoute("/_portal/portal/invoices/$id")({ component: Page });
 
 function Page() {
   const { id } = Route.useParams();

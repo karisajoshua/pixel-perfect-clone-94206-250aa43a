@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getPortalOverview } from "@/lib/portal.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const Route = createFileRoute("/_authenticated/portal/profile")({ component: Page });
+export const Route = createFileRoute("/_portal/portal/profile")({ component: Page });
 
 function Page() {
   const fn = useServerFn(getPortalOverview);
