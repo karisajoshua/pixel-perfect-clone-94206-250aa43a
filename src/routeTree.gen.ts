@@ -14,7 +14,6 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
-import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedVehiclesRouteImport } from './routes/_authenticated/vehicles'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedRenewalsRouteImport } from './routes/_authenticated/renewals'
@@ -75,11 +74,6 @@ const IndexRoute = IndexRouteImport.update({
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiChatRoute = ApiChatRouteImport.update({
-  id: '/api/chat',
-  path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedVehiclesRoute = AuthenticatedVehiclesRouteImport.update({
@@ -301,7 +295,6 @@ export interface FileRoutesByFullPath {
   '/renewals': typeof AuthenticatedRenewalsRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
-  '/api/chat': typeof ApiChatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/branches': typeof AuthenticatedAdminBranchesRoute
@@ -344,7 +337,6 @@ export interface FileRoutesByTo {
   '/renewals': typeof AuthenticatedRenewalsRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
-  '/api/chat': typeof ApiChatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/branches': typeof AuthenticatedAdminBranchesRoute
@@ -390,7 +382,6 @@ export interface FileRoutesById {
   '/_authenticated/renewals': typeof AuthenticatedRenewalsRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/vehicles': typeof AuthenticatedVehiclesRoute
-  '/api/chat': typeof ApiChatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/branches': typeof AuthenticatedAdminBranchesRoute
@@ -436,7 +427,6 @@ export interface FileRouteTypes {
     | '/renewals'
     | '/reports'
     | '/vehicles'
-    | '/api/chat'
     | '/email/unsubscribe'
     | '/admin/audit'
     | '/admin/branches'
@@ -479,7 +469,6 @@ export interface FileRouteTypes {
     | '/renewals'
     | '/reports'
     | '/vehicles'
-    | '/api/chat'
     | '/email/unsubscribe'
     | '/admin/audit'
     | '/admin/branches'
@@ -524,7 +513,6 @@ export interface FileRouteTypes {
     | '/_authenticated/renewals'
     | '/_authenticated/reports'
     | '/_authenticated/vehicles'
-    | '/api/chat'
     | '/email/unsubscribe'
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/branches'
@@ -560,7 +548,6 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
-  ApiChatRoute: typeof ApiChatRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksRenewalRemindersRoute: typeof ApiPublicHooksRenewalRemindersRoute
@@ -606,13 +593,6 @@ declare module '@tanstack/react-router' {
       path: '/email/unsubscribe'
       fullPath: '/email/unsubscribe'
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/chat': {
-      id: '/api/chat'
-      path: '/api/chat'
-      fullPath: '/api/chat'
-      preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/vehicles': {
@@ -1020,7 +1000,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   UnsubscribeRoute: UnsubscribeRoute,
-  ApiChatRoute: ApiChatRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksRenewalRemindersRoute: ApiPublicHooksRenewalRemindersRoute,
