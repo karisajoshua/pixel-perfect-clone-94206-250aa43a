@@ -1,15 +1,18 @@
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Car, FileText, FileSignature, Receipt, ScrollText,
   BarChart3, ShieldCheck, LogOut, Building2, BellRing, Settings, Mail, Upload,
+  BookOpen, Menu,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyProfile, useMyRoles } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import logoWhite from "@/assets/zia-logo-white.png.asset.json";
+import { AiAssistant } from "@/components/ai-assistant";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -31,6 +34,7 @@ const adminNav = [
   { to: "/admin/notifications", label: "Notifications", icon: BellRing },
   { to: "/admin/emails", label: "Email log", icon: Mail },
   { to: "/admin/audit", label: "Audit log", icon: Settings },
+  { to: "/admin/docs", label: "Documentation", icon: BookOpen },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -40,6 +44,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: roles } = useMyRoles();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isAdmin = roles?.includes("admin");
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const signOut = async () => {
     await qc.cancelQueries();
@@ -48,44 +53,62 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate({ to: "/", replace: true });
   };
 
+  const sidebarContent = (
+    <>
+      <div className="p-5 flex items-center gap-2 border-b border-sidebar-border">
+        <img src={logoWhite.url} alt="Zest Insurance Agency" className="h-12 w-auto object-contain" />
+        <div className="ml-1">
+          <div className="text-[11px] uppercase tracking-wider text-sidebar-foreground/60">Agency Workspace</div>
+        </div>
+      </div>
+      <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-0.5" onClick={() => setMobileOpen(false)}>
+        {nav.map((n) => (
+          <SideLink key={n.to} to={n.to} label={n.label} Icon={n.icon} active={pathname === n.to || pathname.startsWith(n.to + "/")} />
+        ))}
+        {isAdmin && (
+          <>
+            <div className="px-3 pt-5 pb-2 text-[11px] uppercase tracking-wider text-sidebar-foreground/50">Admin</div>
+            {adminNav.map((n) => (
+              <SideLink key={n.to} to={n.to} label={n.label} Icon={n.icon} active={pathname.startsWith(n.to)} />
+            ))}
+          </>
+        )}
+      </nav>
+      <div className="p-3 border-t border-sidebar-border">
+        <div className="px-3 py-2 text-xs">
+          <div className="font-medium truncate">{profile?.full_name ?? "Loading…"}</div>
+          <div className="text-sidebar-foreground/60 truncate">{roles?.join(", ") || "—"}</div>
+        </div>
+        <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent" onClick={signOut}>
+          <LogOut className="h-4 w-4 mr-2" /> Sign out
+        </Button>
+      </div>
+    </>
+  );
+
   return (
     <div className="min-h-screen flex bg-background text-foreground">
-      <aside className="w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col sticky top-0 h-screen max-h-screen overflow-hidden">
-        <div className="p-5 flex items-center gap-2 border-b border-sidebar-border">
-          <img src={logoWhite.url} alt="Zest Insurance Agency" className="h-12 w-auto object-contain" />
-          <div className="ml-1">
-            <div className="text-[11px] uppercase tracking-wider text-sidebar-foreground/60">Agency Workspace</div>
-          </div>
-        </div>
-        <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-0.5">
-          {nav.map((n) => (
-            <SideLink key={n.to} to={n.to} label={n.label} Icon={n.icon} active={pathname === n.to || pathname.startsWith(n.to + "/")} />
-          ))}
-          {isAdmin && (
-            <>
-              <div className="px-3 pt-5 pb-2 text-[11px] uppercase tracking-wider text-sidebar-foreground/50">Admin</div>
-              {adminNav.map((n) => (
-                <SideLink key={n.to} to={n.to} label={n.label} Icon={n.icon} active={pathname.startsWith(n.to)} />
-              ))}
-            </>
-          )}
-        </nav>
-        <div className="p-3 border-t border-sidebar-border">
-          <div className="px-3 py-2 text-xs">
-            <div className="font-medium truncate">{profile?.full_name ?? "Loading…"}</div>
-            <div className="text-sidebar-foreground/60 truncate">{roles?.join(", ") || "—"}</div>
-          </div>
-          <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent" onClick={signOut}>
-            <LogOut className="h-4 w-4 mr-2" /> Sign out
-          </Button>
-        </div>
+      <aside className="hidden md:flex w-64 shrink-0 bg-sidebar text-sidebar-foreground flex-col sticky top-0 h-screen max-h-screen overflow-hidden">
+        {sidebarContent}
       </aside>
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="p-0 w-72 bg-sidebar text-sidebar-foreground flex flex-col">
+          {sidebarContent}
+        </SheetContent>
+      </Sheet>
       <main className="flex-1 min-w-0 overflow-auto flex flex-col">
+        <div className="md:hidden flex items-center gap-2 border-b px-3 py-2 sticky top-0 bg-background z-30">
+          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} aria-label="Open menu">
+            <Menu className="h-5 w-5" />
+          </Button>
+          <img src={logoWhite.url} alt="Zest" className="h-7 w-auto object-contain" />
+        </div>
         <div className="flex-1 min-w-0">{children}</div>
-        <footer className="border-t px-6 py-3 text-xs text-muted-foreground text-center">
+        <footer className="border-t px-4 py-3 text-xs text-muted-foreground text-center">
           Powered by Texcortech Systems
         </footer>
       </main>
+      <AiAssistant />
     </div>
   );
 }
