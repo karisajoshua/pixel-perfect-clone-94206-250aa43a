@@ -19,6 +19,13 @@ const BRAND = "#2563eb";
 const BRAND_DARK = "#1e3a8a";
 const MUTED = "#6b7280";
 
+const AGENCY_CONTACT = {
+  name: "Zest Insurance Agency",
+  address: "Ruai, Miranje Hse, Nairobi, Kenya",
+  phone: "+254 713 985230",
+  email: "info@zestinsurance.co.ke",
+};
+
 let cachedLogo: string | null = null;
 async function loadLogo(): Promise<string | null> {
   if (cachedLogo) return cachedLogo;
@@ -78,9 +85,9 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   doc.setTextColor(MUTED);
 
   const fromLines = [
-    branch?.name ?? "Zest Insurance Agency",
-    branch?.address ?? "",
-    [branch?.phone, branch?.email].filter(Boolean).join(" • "),
+    branch?.name ?? AGENCY_CONTACT.name,
+    branch?.address ?? AGENCY_CONTACT.address,
+    [branch?.phone ?? AGENCY_CONTACT.phone, branch?.email ?? AGENCY_CONTACT.email].filter(Boolean).join(" • "),
   ].filter(Boolean);
   fromLines.forEach((l, i) => doc.text(String(l), margin, y + i * 12));
 
@@ -161,7 +168,13 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   doc.text("This quotation is indicative and subject to underwriter approval.", margin, pageH - 32);
   doc.text(`Generated ${new Date().toLocaleDateString()}`, pageW - margin, pageH - 32, { align: "right" });
   doc.setFontSize(8);
-  doc.text("Powered by Texcortech Systems", pageW / 2, pageH - 18, { align: "center" });
+  doc.text(
+    `${AGENCY_CONTACT.address}  •  ${AGENCY_CONTACT.phone}  •  ${AGENCY_CONTACT.email}`,
+    pageW / 2,
+    pageH - 22,
+    { align: "center" },
+  );
+  doc.text("Powered by Texcortech Systems", pageW / 2, pageH - 10, { align: "center" });
 
   const filename = `Quotation-${quotation.quote_no ?? quotation.id}.pdf`;
   const blob = doc.output("blob");
