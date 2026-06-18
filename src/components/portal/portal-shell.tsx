@@ -1,5 +1,9 @@
 import { type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getPortalOverview } from "@/lib/portal.functions";
+import { KycBanner } from "@/components/portal/kyc-banner";
 import { LayoutDashboard, FileText, Car, Receipt, ScrollText, FolderOpen, UserCircle, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyProfile } from "@/hooks/use-auth";
@@ -24,6 +28,12 @@ export function PortalShell({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const { data: profile } = useMyProfile();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const overviewFn = useServerFn(getPortalOverview);
+  const { data: overview } = useQuery({
+    queryKey: ["portal-overview"],
+    queryFn: () => overviewFn(),
+    staleTime: 60_000,
+  });
 
   const signOut = async () => {
     await qc.cancelQueries();
@@ -78,7 +88,16 @@ export function PortalShell({ children }: { children: ReactNode }) {
               );
             })}
           </nav>
-          <div className="p-6">{children}</div>
+          <div className="p-4 sm:p-6 space-y-4">
+            {overview?.kyc && !overview.kyc.complete && (
+              <KycBanner
+                status={overview.kyc.status}
+                missingFields={overview.kyc.missingFields}
+                hasUploadedDocs={overview.kyc.hasUploadedDocs}
+              />
+            )}
+            {children}
+          </div>
         </main>
       </div>
     </div>

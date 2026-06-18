@@ -7,6 +7,7 @@ import { Users, FileText, ScrollText, BellRing, DollarSign } from "lucide-react"
 import { PageHeader } from "@/components/page-header";
 import { getDashboardSummary } from "@/lib/dashboard.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { OnboardingChecklist } from "@/components/onboarding-checklist";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   beforeLoad: async () => {
@@ -42,6 +43,8 @@ function Dashboard() {
   return (
     <div className="p-8 space-y-6">
       <PageHeader title="Dashboard" subtitle="Overview of agency activity across all branches." helpDocId="getting-started" />
+
+      <OnboardingChecklist />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="lg:col-span-2">

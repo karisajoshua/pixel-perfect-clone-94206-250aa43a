@@ -32,6 +32,18 @@ export const getPortalOverview = createServerFn({ method: "GET" })
     const outstanding = (invoices ?? []).reduce((s: number, i: any) => s + (Number(i.total) - Number(i.amount_paid || 0)), 0);
     const openClaims = (claims ?? []).filter((c: any) => c.status !== "settled" && c.status !== "closed").length;
 
+    const missingFields: string[] = [];
+    if (!client.id_number) missingFields.push("ID number");
+    if (!client.kra_pin) missingFields.push("KRA PIN");
+    if (!client.phone) missingFields.push("Phone");
+    if (!client.address) missingFields.push("Postal address");
+    if (!client.date_of_birth && client.client_type === "individual") missingFields.push("Date of birth");
+
+    const { data: kycFiles } = await supabase.storage
+      .from("client-documents")
+      .list(`${client.id}/kyc`, { limit: 1 });
+    const hasUploadedDocs = (kycFiles ?? []).length > 0;
+
     return {
       client,
       kpis: {
@@ -41,6 +53,12 @@ export const getPortalOverview = createServerFn({ method: "GET" })
         openClaims,
       },
       recentClaims: claims ?? [],
+      kyc: {
+        status: client.kyc_status as string,
+        missingFields,
+        hasUploadedDocs,
+        complete: client.kyc_status === "verified",
+      },
     };
   });
 
@@ -172,18 +190,89 @@ export const listMyDocuments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const client = await getMyClient(context.supabase, context.userId);
-    const { data, error } = await context.supabase.storage
-      .from("client-documents")
-      .list(client.id, { limit: 200, sortBy: { column: "created_at", order: "desc" } });
-    if (error) throw error;
-    const files = (data ?? []).filter((f: any) => f.name && f.id);
+    const [rootRes, kycRes] = await Promise.all([
+      context.supabase.storage.from("client-documents").list(client.id, { limit: 200, sortBy: { column: "created_at", order: "desc" } }),
+      context.supabase.storage.from("client-documents").list(`${client.id}/kyc`, { limit: 200, sortBy: { column: "created_at", order: "desc" } }),
+    ]);
+    if (rootRes.error) throw rootRes.error;
+    const entries: { folder: "shared" | "kyc"; name: string; meta: any }[] = [];
+    for (const f of rootRes.data ?? []) {
+      if (f.name && f.id && f.name !== "kyc") entries.push({ folder: "shared", name: f.name, meta: f });
+    }
+    for (const f of kycRes.data ?? []) {
+      if (f.name && f.id) entries.push({ folder: "kyc", name: f.name, meta: f });
+    }
     const signed = await Promise.all(
-      files.map(async (f: any) => {
-        const { data: s } = await context.supabase.storage
-          .from("client-documents")
-          .createSignedUrl(`${client.id}/${f.name}`, 60 * 30);
-        return { name: f.name, size: f.metadata?.size, created_at: f.created_at, url: s?.signedUrl ?? null };
+      entries.map(async (e) => {
+        const path = e.folder === "kyc" ? `${client.id}/kyc/${e.name}` : `${client.id}/${e.name}`;
+        const { data: s } = await context.supabase.storage.from("client-documents").createSignedUrl(path, 60 * 30);
+        return {
+          name: e.name,
+          folder: e.folder,
+          path,
+          size: e.meta.metadata?.size,
+          created_at: e.meta.created_at,
+          url: s?.signedUrl ?? null,
+          canDelete: e.folder === "kyc",
+        };
       }),
     );
     return signed;
+  });
+
+export const getOnboardingStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const [{ data: rolesData }, { data: profile }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+      supabase.from("profiles").select("full_name, phone, branch_id, avatar_url").eq("id", userId).maybeSingle(),
+    ]);
+    const roles = (rolesData ?? []).map((r: any) => r.role as string);
+    const isAdmin = roles.includes("admin");
+    const isStaff = isAdmin || roles.includes("manager") || roles.includes("agent");
+
+    const items: { id: string; label: string; done: boolean; href: string; required: boolean }[] = [];
+
+    if (isStaff) {
+      items.push({
+        id: "profile-phone",
+        label: "Add your phone number to your profile",
+        done: !!profile?.phone,
+        href: "/admin/users",
+        required: false,
+      });
+      items.push({
+        id: "profile-branch",
+        label: "Get assigned to a branch",
+        done: !!profile?.branch_id,
+        href: "/admin/branches",
+        required: true,
+      });
+    }
+
+    if (isAdmin) {
+      const [{ count: branches }, { count: insurers }, { count: staff }, { count: clients }] = await Promise.all([
+        supabase.from("branches").select("id", { count: "exact", head: true }),
+        supabase.from("insurers").select("id", { count: "exact", head: true }),
+        supabase.from("user_roles").select("user_id", { count: "exact", head: true }).neq("role", "client"),
+        supabase.from("clients").select("id", { count: "exact", head: true }),
+      ]);
+      items.push({ id: "branches", label: "Create your first branch", done: (branches ?? 0) > 0, href: "/admin/branches", required: true });
+      items.push({ id: "insurers", label: "Add at least one insurer", done: (insurers ?? 0) > 0, href: "/admin/insurers", required: true });
+      items.push({ id: "staff", label: "Invite another staff member", done: (staff ?? 0) > 1, href: "/admin/users", required: false });
+      items.push({ id: "clients", label: "Onboard your first client", done: (clients ?? 0) > 0, href: "/clients", required: false });
+    } else if (isStaff) {
+      const { count: clients } = await supabase.from("clients").select("id", { count: "exact", head: true });
+      items.push({ id: "clients", label: "Add your first client", done: (clients ?? 0) > 0, href: "/clients", required: false });
+    }
+
+    const totalRequired = items.filter((i) => i.required).length;
+    const doneRequired = items.filter((i) => i.required && i.done).length;
+    return {
+      roles,
+      items,
+      complete: items.every((i) => i.done),
+      requiredComplete: totalRequired > 0 ? doneRequired === totalRequired : true,
+    };
   });
