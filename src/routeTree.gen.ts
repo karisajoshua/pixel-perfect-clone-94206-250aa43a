@@ -41,6 +41,7 @@ import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminInsurersRouteImport } from './routes/_authenticated/admin.insurers'
 import { Route as AuthenticatedAdminImportRouteImport } from './routes/_authenticated/admin.import'
 import { Route as AuthenticatedAdminEmailsRouteImport } from './routes/_authenticated/admin.emails'
+import { Route as AuthenticatedAdminDocsRouteImport } from './routes/_authenticated/admin.docs'
 import { Route as AuthenticatedAdminBranchesRouteImport } from './routes/_authenticated/admin.branches'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
@@ -223,6 +224,11 @@ const AuthenticatedAdminEmailsRoute =
     path: '/admin/emails',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminDocsRoute = AuthenticatedAdminDocsRouteImport.update({
+  id: '/admin/docs',
+  path: '/admin/docs',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminBranchesRoute =
   AuthenticatedAdminBranchesRouteImport.update({
     id: '/admin/branches',
@@ -299,6 +305,7 @@ export interface FileRoutesByFullPath {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/branches': typeof AuthenticatedAdminBranchesRoute
+  '/admin/docs': typeof AuthenticatedAdminDocsRoute
   '/admin/emails': typeof AuthenticatedAdminEmailsRoute
   '/admin/import': typeof AuthenticatedAdminImportRoute
   '/admin/insurers': typeof AuthenticatedAdminInsurersRoute
@@ -341,6 +348,7 @@ export interface FileRoutesByTo {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/branches': typeof AuthenticatedAdminBranchesRoute
+  '/admin/docs': typeof AuthenticatedAdminDocsRoute
   '/admin/emails': typeof AuthenticatedAdminEmailsRoute
   '/admin/import': typeof AuthenticatedAdminImportRoute
   '/admin/insurers': typeof AuthenticatedAdminInsurersRoute
@@ -386,6 +394,7 @@ export interface FileRoutesById {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/branches': typeof AuthenticatedAdminBranchesRoute
+  '/_authenticated/admin/docs': typeof AuthenticatedAdminDocsRoute
   '/_authenticated/admin/emails': typeof AuthenticatedAdminEmailsRoute
   '/_authenticated/admin/import': typeof AuthenticatedAdminImportRoute
   '/_authenticated/admin/insurers': typeof AuthenticatedAdminInsurersRoute
@@ -431,6 +440,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/admin/audit'
     | '/admin/branches'
+    | '/admin/docs'
     | '/admin/emails'
     | '/admin/import'
     | '/admin/insurers'
@@ -473,6 +483,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/admin/audit'
     | '/admin/branches'
+    | '/admin/docs'
     | '/admin/emails'
     | '/admin/import'
     | '/admin/insurers'
@@ -517,6 +528,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/branches'
+    | '/_authenticated/admin/docs'
     | '/_authenticated/admin/emails'
     | '/_authenticated/admin/import'
     | '/_authenticated/admin/insurers'
@@ -785,6 +797,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminEmailsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/docs': {
+      id: '/_authenticated/admin/docs'
+      path: '/admin/docs'
+      fullPath: '/admin/docs'
+      preLoaderRoute: typeof AuthenticatedAdminDocsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/branches': {
       id: '/_authenticated/admin/branches'
       path: '/admin/branches'
@@ -964,6 +983,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedVehiclesRoute: typeof AuthenticatedVehiclesRoute
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
   AuthenticatedAdminBranchesRoute: typeof AuthenticatedAdminBranchesRoute
+  AuthenticatedAdminDocsRoute: typeof AuthenticatedAdminDocsRoute
   AuthenticatedAdminEmailsRoute: typeof AuthenticatedAdminEmailsRoute
   AuthenticatedAdminImportRoute: typeof AuthenticatedAdminImportRoute
   AuthenticatedAdminInsurersRoute: typeof AuthenticatedAdminInsurersRoute
@@ -984,6 +1004,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVehiclesRoute: AuthenticatedVehiclesRoute,
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
   AuthenticatedAdminBranchesRoute: AuthenticatedAdminBranchesRoute,
+  AuthenticatedAdminDocsRoute: AuthenticatedAdminDocsRoute,
   AuthenticatedAdminEmailsRoute: AuthenticatedAdminEmailsRoute,
   AuthenticatedAdminImportRoute: AuthenticatedAdminImportRoute,
   AuthenticatedAdminInsurersRoute: AuthenticatedAdminInsurersRoute,

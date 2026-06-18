@@ -97,8 +97,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         </SheetContent>
       </Sheet>
       <main className="flex-1 min-w-0 overflow-auto flex flex-col">
-        <div className="md:hidden flex items-center gap-2 border-b px-3 py-2 sticky top-0 bg-background z-30">
-          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} aria-label="Open menu">
+        <div className="md:hidden flex items-center gap-2 px-3 py-2 sticky top-0 bg-sidebar text-sidebar-foreground z-30">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open menu"
+            className="text-sidebar-foreground hover:bg-sidebar-accent"
+          >
             <Menu className="h-5 w-5" />
           </Button>
           <img src={logoWhite.url} alt="Zest" className="h-7 w-auto object-contain" />
