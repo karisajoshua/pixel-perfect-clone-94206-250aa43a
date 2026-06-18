@@ -19,3 +19,14 @@ export function isClientOnly(roles: AppRole[]): boolean {
 export function landingFor(roles: AppRole[]): "/portal" | "/dashboard" {
   return isClientOnly(roles) ? "/portal" : "/dashboard";
 }
+
+import { redirect } from "@tanstack/react-router";
+
+export function requireRole(allowed: AppRole[]) {
+  return ({ context }: { context: { roles?: string[] } }) => {
+    const roles = (context?.roles ?? []) as AppRole[];
+    if (!roles.some((r) => allowed.includes(r))) {
+      throw redirect({ to: "/dashboard" });
+    }
+  };
+}
