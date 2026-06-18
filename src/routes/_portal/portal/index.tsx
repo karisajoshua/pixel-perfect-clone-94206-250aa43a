@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Receipt, ScrollText, CalendarClock } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/portal/")({
+export const Route = createFileRoute("/_portal/portal/")({
   component: Page,
 });
 

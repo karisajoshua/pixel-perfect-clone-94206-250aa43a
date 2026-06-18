@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, File, Upload, Trash2, ShieldCheck } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/portal/documents")({ component: Page });
+export const Route = createFileRoute("/_portal/portal/documents")({ component: Page });
 
 function Page() {
   const qc = useQueryClient();

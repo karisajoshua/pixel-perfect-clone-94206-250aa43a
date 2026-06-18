@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireRole } from "@/lib/roles";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -7,7 +8,7 @@ import { PageHeader } from "@/components/page-header";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 
-export const Route = createFileRoute("/_authenticated/admin/users")({ component: UsersAdmin });
+export const Route = createFileRoute("/_authenticated/admin/users")({ beforeLoad: requireRole(["admin"]), component: UsersAdmin });
 
 const ROLES = ["admin", "manager", "agent", "viewer", "client"] as const;
 

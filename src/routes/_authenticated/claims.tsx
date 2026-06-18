@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireRole } from "@/lib/roles";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +17,7 @@ import { toast } from "sonner";
 
 const STATUSES = ["reported","under_review","approved","rejected","settled","closed"];
 
-export const Route = createFileRoute("/_authenticated/claims")({ component: ClaimsPage });
+export const Route = createFileRoute("/_authenticated/claims")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: ClaimsPage });
 
 function ClaimsPage() {
   const qc = useQueryClient();

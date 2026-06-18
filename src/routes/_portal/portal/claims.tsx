@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { Plus } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/portal/claims")({ component: Page });
+export const Route = createFileRoute("/_portal/portal/claims")({ component: Page });
 
 function Page() {
   const list = useServerFn(listMyClaims);

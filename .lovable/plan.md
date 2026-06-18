@@ -1,50 +1,96 @@
-## Problems
+## Problem
 
-1. **Client portal Documents page is read-only.** It lists files but has no upload UI, and storage RLS has no INSERT/UPDATE policy for clients on `client-documents` — so clients literally cannot upload their KYC docs. This is what the user means by "the document upload for kyc doesn't work".
-2. **No onboarding nudge.** When a client signs in with `kyc_status != 'verified'`, nothing tells them to complete KYC.
-3. **Same issue for staff roles.** Admin/agent/manager dashboards don't surface their pending setup tasks (no branches, no insurers, missing profile fields, etc.).
+When a **client** signs in, they see TWO sidebars: the staff "Agency Workspace" sidebar (Dashboard, Clients, Vehicles, Policies, Quotations…) AND the client portal sidebar (Overview, My Policies, Vehicles…). That's because portal pages live under `src/routes/_authenticated/portal/*`, and the parent `_authenticated` layout wraps every child in `<AppShell>` (the staff sidebar). The portal then adds its own `<PortalShell>` on top, producing the double-nav. Clients can also navigate to `/dashboard`, `/clients`, `/admin/*` etc., which they should never see.
 
-(Note on "side menus" — the portal correctly uses its own `PortalShell` with a slim client sidebar, not the admin shell. I'll leave that nav in place; if you actually want the sidebar hidden for clients, say so and I'll remove it.)
+Staff roles (manager, agent, viewer) also currently see admin-only links and pages because access is not gated by role beyond "logged in".
 
-## Plan
+## Goal
 
-### 1. Let clients upload their own KYC docs
-- Add a storage migration: INSERT + UPDATE + DELETE policies on `storage.objects` for `bucket_id='client-documents'` scoped to `(storage.foldername(name))[1] = current_client_id()::text`. Clients can only touch their own folder.
-- Extend `/portal/documents` page with an Upload button (file input + drag-drop), uploading to `{client_id}/{timestamp}-{name}`, with toast feedback and query invalidation. Reuse the pattern from `ClientDocuments` but call it through the portal's authenticated path.
-- Add a `Delete` action limited to files the client uploaded themselves (we'll prefix client-uploaded files with `kyc/` so staff-shared files are not removable by the client).
+- Clients see ONLY the client portal shell (single sidebar).
+- Staff (admin/manager/agent/viewer) see ONLY the staff `AppShell`.
+- Each role only sees and can reach the routes it is allowed to use; visiting a forbidden URL redirects to the user's home (clients → `/portal`, staff → `/dashboard`).
 
-### 2. KYC banner + onboarding card on portal sign-in
-- New component `KycBanner` shown at the top of every `/portal/*` page when `client.kyc_status` is `pending` or `incomplete`. It includes:
-  - A clear "Complete your KYC" message
-  - List of what's needed (ID copy, KRA PIN, proof of address)
-  - Primary CTA → `/portal/documents` (scroll-to upload)
-  - Secondary CTA → `/portal/profile` to fill missing ID number / KRA PIN / DOB
-- `getPortalOverview` already returns `client`; add `kyc_status` + missing-field flags to its return so the banner has data without an extra round-trip.
-- Also surface an inline toast (sonner) once per session via a tiny `useEffect` in `PortalShell` when `kyc_status !== 'verified'`.
+## Changes
 
-### 3. Onboarding guidance for staff roles
-- New `OnboardingChecklist` card on `/dashboard` (admin/manager/agent view) that pulls from a new lightweight server fn `getOnboardingStatus`:
-  - Admin: branches exist? insurers exist? at least one other staff invited? email domain verified?
-  - Manager/agent: profile has phone + branch assigned? at least one client created?
-- Each item is a row with status badge + "Do it" link to the relevant admin or workspace page.
-- A dismissible top-of-dashboard alert appears when any required item is incomplete, mirroring the portal KYC banner pattern for visual consistency.
+### 1. Split portal out of the staff layout
 
-### 4. Wire-up
-- Surface counts in the existing `PageHeader` help panel (already in place) so the same guidance is reachable from any page, not only the dashboard.
+Move portal routes out from under `_authenticated` into their own pathless layout so they no longer inherit `AppShell`.
+
+```text
+src/routes/
+  _authenticated/route.tsx        -> AppShell + staff-only guard
+    dashboard.tsx, clients.tsx, vehicles.tsx, policies.tsx,
+    quotations.tsx, invoices.tsx, claims.tsx, renewals.tsx,
+    reports.tsx, admin.*.tsx
+  _portal/route.tsx               -> PortalShell + client-only guard
+    portal/index.tsx, portal/policies.tsx, portal/vehicles.tsx,
+    portal/invoices.tsx, portal/claims.tsx, portal/documents.tsx,
+    portal/profile.tsx, portal/invoices.$id.tsx, portal/policies.$id.tsx
+```
+
+URLs stay the same (`/portal`, `/portal/policies`, …) — only the layout chain changes. The existing `src/routes/_authenticated/portal/` folder and its `route.tsx` are removed.
+
+### 2. Role-based guards in each layout
+
+`_authenticated/route.tsx` (staff):
+- Require auth; fetch `user_roles`.
+- If user has ONLY the `client` role → redirect to `/portal`.
+- Otherwise continue, expose `roles` via route context.
+
+`_portal/route.tsx` (client):
+- Require auth; fetch `user_roles`.
+- If user does NOT have the `client` role → redirect to `/dashboard`.
+
+### 3. Per-role route gating for staff areas
+
+Use `beforeLoad` on individual route files to allow only roles that should access them. Mapping:
+
+| Route(s)                                                                       | Allowed roles                       |
+| ------------------------------------------------------------------------------ | ----------------------------------- |
+| `/dashboard`, `/reports`, `/renewals`                                          | admin, manager, agent, viewer       |
+| `/clients`, `/clients/$id`, `/vehicles`, `/policies`, `/policies/$id`, `/quotations` | admin, manager, agent          |
+| `/invoices`, `/invoices/$id`, `/claims`                                        | admin, manager, agent               |
+| `/admin/*` (users, branches, insurers, import, notifications, emails, audit, docs) | admin only                      |
+
+Viewer = read-only; for now they get Dashboard/Reports/Renewals only. Unauthorized URL → redirect to `/dashboard` with a toast "You don't have access to that page."
+
+### 4. Hide nav links the user can't use
+
+In `src/components/app-shell.tsx`:
+- Filter the main `nav` array by role using the same mapping above.
+- Keep the `adminNav` block guarded by `isAdmin` (already done).
+
+Client portal already only lists portal links — no change to `portal-shell.tsx` nav.
+
+### 5. Landing redirect after sign-in
+
+`src/routes/index.tsx` (sign-in page) already routes to `/dashboard` after login. Update it to:
+- After successful sign-in, fetch roles; if user has only `client` → `navigate({ to: "/portal" })`, else `/dashboard`.
+
+This prevents a client from briefly landing on `/dashboard` and being bounced.
 
 ## Technical notes
 
-- New migration: 3 storage policies (`INSERT`, `UPDATE`, `DELETE`) on `client-documents` scoped to the client's own folder via `current_client_id()`.
-- New server fn: `getOnboardingStatus` in `src/lib/portal.functions.ts` (or a new `src/lib/onboarding.functions.ts`) with `requireSupabaseAuth`. Returns `{ role, items: [{ id, label, done, href }] }`.
-- `getPortalOverview` return shape gains `kyc: { status, missingFields: string[] }`.
-- New components:
-  - `src/components/portal/kyc-banner.tsx`
-  - `src/components/portal/document-upload.tsx`
-  - `src/components/onboarding-checklist.tsx`
-- Edits:
-  - `src/routes/_authenticated/portal/documents.tsx` — add upload UI
-  - `src/components/portal/portal-shell.tsx` — render `KycBanner` above `{children}` when status pending
-  - `src/routes/_authenticated/dashboard.tsx` — render `OnboardingChecklist`
-  - `src/lib/portal.functions.ts` — extend overview, add onboarding fn
+- Add a tiny `src/lib/roles.ts` helper: `getMyRoles()` returns `AppRole[]` via `supabase.from("user_roles")`. Used by both layout `beforeLoad`s and the post-login redirect to avoid duplication.
+- Per-route gating helper: `requireRole(roles: AppRole[])` returning a `beforeLoad` function that throws `redirect({ to: "/dashboard" })` when the check fails.
+- No database/migration changes. No changes to server functions.
+- `routeTree.gen.ts` regenerates automatically when route files move.
 
-No changes to existing layouts, route structure, or auth flow.
+## Files
+
+**New**
+- `src/routes/_portal/route.tsx`
+- `src/lib/roles.ts`
+
+**Moved (same content, new path)**
+- `src/routes/_authenticated/portal/*` → `src/routes/_portal/portal/*` (8 files)
+
+**Edited**
+- `src/routes/_authenticated/route.tsx` — add client-redirect guard
+- `src/routes/index.tsx` — role-aware post-login redirect
+- `src/components/app-shell.tsx` — filter nav by role
+- `src/routes/_authenticated/admin.*.tsx` (8 files) — `beforeLoad` admin gate
+- `src/routes/_authenticated/{clients,vehicles,policies,quotations,invoices,claims}.tsx` and `.$id.tsx` variants — `beforeLoad` staff gate
+
+**Deleted**
+- `src/routes/_authenticated/portal/route.tsx` (replaced by `_portal/route.tsx`)

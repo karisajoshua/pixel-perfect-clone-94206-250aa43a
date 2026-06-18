@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireRole } from "@/lib/roles";
 import { useState } from "react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +12,7 @@ import { PageHeader } from "@/components/page-header";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/admin/import")({ component: ImportPage });
+export const Route = createFileRoute("/_authenticated/admin/import")({ beforeLoad: requireRole(["admin"]), component: ImportPage });
 
 type Row = Record<string, any>;
 

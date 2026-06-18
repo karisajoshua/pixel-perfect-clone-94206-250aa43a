@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download, ArrowLeft } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/portal/policies/$id")({ component: Page });
+export const Route = createFileRoute("/_portal/portal/policies/$id")({ component: Page });
 
 function Page() {
   const { id } = Route.useParams();

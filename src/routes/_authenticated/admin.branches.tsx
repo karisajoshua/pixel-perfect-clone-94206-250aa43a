@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireRole } from "@/lib/roles";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +12,7 @@ import { PageHeader } from "@/components/page-header";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/admin/branches")({ component: Branches });
+export const Route = createFileRoute("/_authenticated/admin/branches")({ beforeLoad: requireRole(["admin"]), component: Branches });
 
 function Branches() {
   const qc = useQueryClient();

@@ -5,7 +5,7 @@ import { listMyVehicles } from "@/lib/portal.functions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-export const Route = createFileRoute("/_authenticated/portal/vehicles")({ component: Page });
+export const Route = createFileRoute("/_portal/portal/vehicles")({ component: Page });
 
 function Page() {
   const fn = useServerFn(listMyVehicles);

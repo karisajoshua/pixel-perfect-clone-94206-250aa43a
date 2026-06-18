@@ -14,17 +14,18 @@ import { cn } from "@/lib/utils";
 import logoWhite from "@/assets/zia-logo-white.png.asset.json";
 import { AiAssistant } from "@/components/ai-assistant";
 
-const nav = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/clients", label: "Clients", icon: Users },
-  { to: "/vehicles", label: "Vehicles", icon: Car },
-  { to: "/policies", label: "Policies", icon: FileText },
-  { to: "/quotations", label: "Quotations", icon: FileSignature },
-  { to: "/invoices", label: "Invoices", icon: Receipt },
-  { to: "/claims", label: "Claims", icon: ScrollText },
-  { to: "/renewals", label: "Renewals", icon: BellRing },
-  { to: "/reports", label: "Reports", icon: BarChart3 },
-] as const;
+type Role = "admin" | "manager" | "agent" | "viewer" | "client";
+const nav: { to: string; label: string; icon: typeof Users; roles: Role[] }[] = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "manager", "agent", "viewer"] },
+  { to: "/clients", label: "Clients", icon: Users, roles: ["admin", "manager", "agent"] },
+  { to: "/vehicles", label: "Vehicles", icon: Car, roles: ["admin", "manager", "agent"] },
+  { to: "/policies", label: "Policies", icon: FileText, roles: ["admin", "manager", "agent"] },
+  { to: "/quotations", label: "Quotations", icon: FileSignature, roles: ["admin", "manager", "agent"] },
+  { to: "/invoices", label: "Invoices", icon: Receipt, roles: ["admin", "manager", "agent"] },
+  { to: "/claims", label: "Claims", icon: ScrollText, roles: ["admin", "manager", "agent"] },
+  { to: "/renewals", label: "Renewals", icon: BellRing, roles: ["admin", "manager", "agent", "viewer"] },
+  { to: "/reports", label: "Reports", icon: BarChart3, roles: ["admin", "manager", "agent", "viewer"] },
+];
 
 const adminNav = [
   { to: "/admin/users", label: "Users & Roles", icon: ShieldCheck },
@@ -45,6 +46,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isAdmin = roles?.includes("admin");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const visibleNav = nav.filter((n) => (roles ?? []).some((r) => n.roles.includes(r as Role)));
 
   const signOut = async () => {
     await qc.cancelQueries();
@@ -62,7 +64,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </div>
       <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-0.5" onClick={() => setMobileOpen(false)}>
-        {nav.map((n) => (
+        {visibleNav.map((n) => (
           <SideLink key={n.to} to={n.to} label={n.label} Icon={n.icon} active={pathname === n.to || pathname.startsWith(n.to + "/")} />
         ))}
         {isAdmin && (

@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { requireRole } from "@/lib/roles";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +15,7 @@ import { InvoiceFormDialog } from "@/components/invoices/invoice-form-dialog";
 import { toast } from "sonner";
 import { downloadInvoicePdf } from "@/lib/invoice-pdf";
 
-export const Route = createFileRoute("/_authenticated/invoices/$id")({ component: InvoiceDetail });
+export const Route = createFileRoute("/_authenticated/invoices/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: InvoiceDetail });
 
 function InvoiceDetail() {
   const { id } = useParams({ from: "/_authenticated/invoices/$id" });
