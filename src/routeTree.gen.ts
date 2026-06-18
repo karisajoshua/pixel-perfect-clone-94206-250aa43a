@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PortalRouteRouteImport } from './routes/_portal/route'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
@@ -60,6 +61,10 @@ const UnsubscribeRoute = UnsubscribeRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRouteRoute = PortalRouteRouteImport.update({
+  id: '/_portal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -127,9 +132,9 @@ const AuthenticatedClaimsRoute = AuthenticatedClaimsRouteImport.update({
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const PortalPortalIndexRoute = PortalPortalIndexRouteImport.update({
-  id: '/_portal/portal/',
+  id: '/portal/',
   path: '/portal/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => PortalRouteRoute,
 } as any)
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
@@ -137,34 +142,34 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const PortalPortalVehiclesRoute = PortalPortalVehiclesRouteImport.update({
-  id: '/_portal/portal/vehicles',
+  id: '/portal/vehicles',
   path: '/portal/vehicles',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => PortalRouteRoute,
 } as any)
 const PortalPortalProfileRoute = PortalPortalProfileRouteImport.update({
-  id: '/_portal/portal/profile',
+  id: '/portal/profile',
   path: '/portal/profile',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => PortalRouteRoute,
 } as any)
 const PortalPortalPoliciesRoute = PortalPortalPoliciesRouteImport.update({
-  id: '/_portal/portal/policies',
+  id: '/portal/policies',
   path: '/portal/policies',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => PortalRouteRoute,
 } as any)
 const PortalPortalInvoicesRoute = PortalPortalInvoicesRouteImport.update({
-  id: '/_portal/portal/invoices',
+  id: '/portal/invoices',
   path: '/portal/invoices',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => PortalRouteRoute,
 } as any)
 const PortalPortalDocumentsRoute = PortalPortalDocumentsRouteImport.update({
-  id: '/_portal/portal/documents',
+  id: '/portal/documents',
   path: '/portal/documents',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => PortalRouteRoute,
 } as any)
 const PortalPortalClaimsRoute = PortalPortalClaimsRouteImport.update({
-  id: '/_portal/portal/claims',
+  id: '/portal/claims',
   path: '/portal/claims',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => PortalRouteRoute,
 } as any)
 const AuthenticatedPoliciesIdRoute = AuthenticatedPoliciesIdRouteImport.update({
   id: '/$id',
@@ -361,6 +366,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/_portal': typeof PortalRouteRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/_authenticated/claims': typeof AuthenticatedClaimsRoute
@@ -493,6 +499,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/_portal'
     | '/reset-password'
     | '/unsubscribe'
     | '/_authenticated/claims'
@@ -538,18 +545,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  PortalRouteRoute: typeof PortalRouteRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   ApiChatRoute: typeof ApiChatRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
-  PortalPortalClaimsRoute: typeof PortalPortalClaimsRoute
-  PortalPortalDocumentsRoute: typeof PortalPortalDocumentsRoute
-  PortalPortalInvoicesRoute: typeof PortalPortalInvoicesRouteWithChildren
-  PortalPortalPoliciesRoute: typeof PortalPortalPoliciesRouteWithChildren
-  PortalPortalProfileRoute: typeof PortalPortalProfileRoute
-  PortalPortalVehiclesRoute: typeof PortalPortalVehiclesRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
-  PortalPortalIndexRoute: typeof PortalPortalIndexRoute
   ApiPublicHooksRenewalRemindersRoute: typeof ApiPublicHooksRenewalRemindersRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -572,6 +573,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_portal': {
+      id: '/_portal'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof PortalRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -670,7 +678,7 @@ declare module '@tanstack/react-router' {
       path: '/portal'
       fullPath: '/portal/'
       preLoaderRoute: typeof PortalPortalIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof PortalRouteRoute
     }
     '/lovable/email/suppression': {
       id: '/lovable/email/suppression'
@@ -684,42 +692,42 @@ declare module '@tanstack/react-router' {
       path: '/portal/vehicles'
       fullPath: '/portal/vehicles'
       preLoaderRoute: typeof PortalPortalVehiclesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof PortalRouteRoute
     }
     '/_portal/portal/profile': {
       id: '/_portal/portal/profile'
       path: '/portal/profile'
       fullPath: '/portal/profile'
       preLoaderRoute: typeof PortalPortalProfileRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof PortalRouteRoute
     }
     '/_portal/portal/policies': {
       id: '/_portal/portal/policies'
       path: '/portal/policies'
       fullPath: '/portal/policies'
       preLoaderRoute: typeof PortalPortalPoliciesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof PortalRouteRoute
     }
     '/_portal/portal/invoices': {
       id: '/_portal/portal/invoices'
       path: '/portal/invoices'
       fullPath: '/portal/invoices'
       preLoaderRoute: typeof PortalPortalInvoicesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof PortalRouteRoute
     }
     '/_portal/portal/documents': {
       id: '/_portal/portal/documents'
       path: '/portal/documents'
       fullPath: '/portal/documents'
       preLoaderRoute: typeof PortalPortalDocumentsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof PortalRouteRoute
     }
     '/_portal/portal/claims': {
       id: '/_portal/portal/claims'
       path: '/portal/claims'
       fullPath: '/portal/claims'
       preLoaderRoute: typeof PortalPortalClaimsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof PortalRouteRoute
     }
     '/_authenticated/policies/$id': {
       id: '/_authenticated/policies/$id'
@@ -959,21 +967,39 @@ const PortalPortalPoliciesRouteChildren: PortalPortalPoliciesRouteChildren = {
 const PortalPortalPoliciesRouteWithChildren =
   PortalPortalPoliciesRoute._addFileChildren(PortalPortalPoliciesRouteChildren)
 
-const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  ResetPasswordRoute: ResetPasswordRoute,
-  UnsubscribeRoute: UnsubscribeRoute,
-  ApiChatRoute: ApiChatRoute,
-  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
+interface PortalRouteRouteChildren {
+  PortalPortalClaimsRoute: typeof PortalPortalClaimsRoute
+  PortalPortalDocumentsRoute: typeof PortalPortalDocumentsRoute
+  PortalPortalInvoicesRoute: typeof PortalPortalInvoicesRouteWithChildren
+  PortalPortalPoliciesRoute: typeof PortalPortalPoliciesRouteWithChildren
+  PortalPortalProfileRoute: typeof PortalPortalProfileRoute
+  PortalPortalVehiclesRoute: typeof PortalPortalVehiclesRoute
+  PortalPortalIndexRoute: typeof PortalPortalIndexRoute
+}
+
+const PortalRouteRouteChildren: PortalRouteRouteChildren = {
   PortalPortalClaimsRoute: PortalPortalClaimsRoute,
   PortalPortalDocumentsRoute: PortalPortalDocumentsRoute,
   PortalPortalInvoicesRoute: PortalPortalInvoicesRouteWithChildren,
   PortalPortalPoliciesRoute: PortalPortalPoliciesRouteWithChildren,
   PortalPortalProfileRoute: PortalPortalProfileRoute,
   PortalPortalVehiclesRoute: PortalPortalVehiclesRoute,
-  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   PortalPortalIndexRoute: PortalPortalIndexRoute,
+}
+
+const PortalRouteRouteWithChildren = PortalRouteRoute._addFileChildren(
+  PortalRouteRouteChildren,
+)
+
+const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  PortalRouteRoute: PortalRouteRouteWithChildren,
+  ResetPasswordRoute: ResetPasswordRoute,
+  UnsubscribeRoute: UnsubscribeRoute,
+  ApiChatRoute: ApiChatRoute,
+  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
+  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksRenewalRemindersRoute: ApiPublicHooksRenewalRemindersRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,

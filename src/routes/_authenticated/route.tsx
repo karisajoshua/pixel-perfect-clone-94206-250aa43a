@@ -7,7 +7,15 @@ export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async () => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/" });
-    return { user: data.user };
+    const { data: rolesRow } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", data.user.id);
+    const roles = (rolesRow ?? []).map((r) => r.role as string);
+    if (roles.length > 0 && roles.every((r) => r === "client")) {
+      throw redirect({ to: "/portal" });
+    }
+    return { user: data.user, roles };
   },
   component: () => (
     <AppShell>
