@@ -31,7 +31,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "pixel-perfect-clone-94206"
+const SITE_NAME = "Zest Insurance Agency"
 const SENDER_DOMAIN = "notify.zestinsurance.co.ke"
 const ROOT_DOMAIN = "zestinsurance.co.ke"
 const FROM_DOMAIN = "zestinsurance.co.ke"

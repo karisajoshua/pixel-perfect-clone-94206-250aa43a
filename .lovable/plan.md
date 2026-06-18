@@ -1,86 +1,41 @@
-
 ## Goal
-Four changes: (1) make the app mobile-friendly, (2) stamp the Zest contact block on every invoice/quotation PDF, (3) ship comprehensive in-app documentation (admin hub + per-dashboard help), and (4) add an AI assistant that can answer questions and deep-link to the right page.
 
-## 1. Mobile optimization
-Audit and fix the highest-traffic surfaces for ≤390px width:
-- `src/components/app-shell.tsx` — sidebar collapses into a `Sheet` drawer triggered by a top-bar hamburger; main content padding shrinks (`p-4 md:p-8`); footer text wraps.
-- `src/components/page-header.tsx` — stack title/subtitle/actions vertically on mobile (`flex-col sm:flex-row`).
-- All data tables in `_authenticated/*` (clients, policies, invoices, claims, quotations, renewals, vehicles, admin.users, admin.branches, etc.) — wrap in `overflow-x-auto` and hide non-essential columns under `hidden md:table-cell`.
-- Form dialogs (`client-form-dialog`, `invoice-form-dialog`, `policy-form-dialog`, `vehicle-form-dialog`) — switch fixed grid layouts to `grid-cols-1 sm:grid-cols-2`, make `DialogContent` `max-h-[90vh] overflow-y-auto`.
-- Dashboard tiles (`_authenticated/dashboard.tsx`) — already responsive; verify tap targets ≥44px.
-- Landing page (`src/routes/index.tsx`) — verify the split-screen auth form already collapses (it does — just polish spacing).
-- Portal shell (`src/components/portal/portal-shell.tsx`) — same drawer pattern.
+1. Stop emails from showing `pixel-perfect-clone-94206` and use the brand "Zest Insurance Agency" + the production domain `app.zestinsurance.co.ke` everywhere.
+2. Make signup confirmation emails actually arrive in users' inboxes.
 
-## 2. Contact block on PDFs
-Add a constant `AGENCY_CONTACT` used as fallback when no branch is loaded, and always render the address line in the footer:
+## 1. Rebrand all email templates
 
-```
-Ruai, Miranje Hse, Nairobi, Kenya  •  +254 713 985230  •  info@zestinsurance.co.ke
-```
+Every email template and the auth webhook were scaffolded with the auto-generated project slug `pixel-perfect-clone-94206` baked in as both `SITE_NAME` and the logo image host. That's why recipients see that string instead of the brand.
 
-Edits:
-- `src/lib/invoice-pdf.ts` — when `branch` is null/empty, use AGENCY_CONTACT for the FROM block; add a second footer line above "Powered by Texcortech Systems" with the full contact string.
-- `src/lib/quotation-pdf.ts` — same treatment.
+Replace in all files:
+- `SITE_NAME = "pixel-perfect-clone-94206"` → `SITE_NAME = "Zest Insurance Agency"`
+- Logo `src="https://pixel-perfect-clone-94206.lovable.app/__l5e/.../zia-logo-red.png"` → host swapped to `https://app.zestinsurance.co.ke/...` (the verified custom domain)
+- `SAMPLE_PROJECT_URL` in `preview.ts` → `https://app.zestinsurance.co.ke`
 
-## 3. In-app documentation
+Files touched (18):
+- `src/routes/lovable/email/auth/webhook.ts`
+- `src/routes/lovable/email/auth/preview.ts`
+- All 16 templates in `src/lib/email-templates/*.tsx` (signup, magic-link, recovery, invite, email-change, reauthentication, renewal-reminder, policy-issued, payment-receipt, claim-update, claim-acknowledgement, client-welcome, quotation-sent, invoice-issued, portal-invite)
 
-### 3a. Admin documentation hub
-New route `src/routes/_authenticated/admin.docs.tsx` — a searchable, sectioned documentation page covering:
-- Getting started (branches → users → clients)
-- Clients & KYC
-- Vehicles
-- Policies & renewals
-- Quotations
-- Invoices & payments
-- Claims workflow
-- Reports
-- Admin: branches, users/roles, insurers, emails, notifications, audit, import
-- Client portal overview
-- Email templates & transactional sending
-- PDF documents
-- AI assistant usage
-- FAQ & troubleshooting
+Also update the footer `"Zest Insurance · Nairobi, Kenya"` lines to the full agency contact line previously requested (Ruai, Miranje Hse, Nairobi • +254 713 985230 • info@zestinsurance.co.ke).
 
-Add a nav entry "Documentation" in the admin section of `app-shell.tsx`.
+## 2. Signup emails not arriving — diagnose & fix
 
-### 3b. Per-dashboard guidance
-New component `src/components/help-panel.tsx` — a small `HelpCircle` button in `PageHeader` that opens a `Sheet` showing page-specific tips. Each route passes a short `help` prop (markdown-ish string) describing what the page does, common actions, and links to the relevant section of `/admin/docs`.
+The auth hook IS firing (auth logs show `Hook ran successfully` on the most recent signup), so Supabase is calling our queue. The issue is downstream — most likely one of:
 
-Wire `help` into: dashboard, clients, vehicles, policies, quotations, invoices, claims, renewals, reports, admin.* pages, and portal pages.
+a. **Email domain not yet DNS-verified** for `zestinsurance.co.ke`. Until verified, queued sends fail at the provider.
+b. **Queue/cron** for `process-email-queue` isn't active in this environment.
+c. **Suppression list** has the recipient (unlikely on first signup, but worth checking).
 
-## 4. AI Assistant
-A floating chat button (bottom-right, every authenticated page) opens a Sheet with a chat UI powered by Lovable AI Gateway (`google/gemini-3-flash-preview`).
+Steps in build mode:
+1. Run `email_domain--check_email_domain_status` to see the verified sender domain + status.
+2. Read recent rows from `email_send_log` (filter `template_name='signup'`) and `suppressed_emails` to see what's actually happening to enqueued messages.
+3. Confirm `cron.job` contains `process-email-queue`. If missing, call `email_domain--setup_email_infra`.
+4. If DNS is still pending, tell the user it activates after verification and point to Cloud → Emails. If the domain isn't set at all, surface the email setup dialog.
+5. If suppression is the cause, identify and clear the test address.
 
-- Server function `src/lib/ai-assistant.functions.ts` using `createServerFn` + AI SDK + `createLovableAiGatewayProvider` (stack-modern pattern). System prompt embeds the documentation index + a map of `{topic → route}` so the model can suggest navigation.
-- Tools (AI SDK `tool()` with `inputSchema`):
-  - `navigate_to(route)` — returns a suggested route the UI renders as a "Go to {page}" button.
-  - `search_docs(query)` — returns the matching doc section text.
-- Client component `src/components/ai-assistant.tsx` — floating button + Sheet, uses `useChat` against a server route `src/routes/api/chat.ts` streaming via `toUIMessageStreamResponse`. Conversation is one-session (no persistence) to keep scope tight.
-- Renders markdown responses; tool-call results render as actionable buttons (navigate, open doc section).
+No code changes are needed for issue (2) beyond what the diagnostics turn up — the auth webhook itself is already correctly wired through `enqueue_email`.
 
-Mount the assistant inside `app-shell.tsx` so it appears on every internal page (skip on portal unless requested).
-
-## Files to create
-- `src/routes/_authenticated/admin.docs.tsx`
-- `src/components/help-panel.tsx`
-- `src/components/ai-assistant.tsx`
-- `src/lib/ai-assistant.functions.ts`
-- `src/lib/ai-gateway.server.ts` (gateway helper)
-- `src/routes/api/chat.ts` (streaming chat endpoint)
-- `src/lib/docs/content.ts` (single source of truth for doc sections, consumed by both the docs page and the AI system prompt)
-
-## Files to edit
-- `src/components/app-shell.tsx` (mobile drawer, docs nav, mount AI assistant, footer wrap)
-- `src/components/portal/portal-shell.tsx` (mobile drawer)
-- `src/components/page-header.tsx` (mobile stack + help button slot)
-- `src/lib/invoice-pdf.ts` (contact footer)
-- `src/lib/quotation-pdf.ts` (contact footer)
-- Each `_authenticated/*.tsx` route (pass `help` prop; minor table responsiveness)
-- Form dialogs listed above (responsive grids)
-
-## Technical notes
-- AI assistant uses Lovable AI Gateway — no user-supplied keys.
-- Help panel content lives alongside doc sections in `src/lib/docs/content.ts` so docs and tooltips stay in sync.
-- Mobile work is presentation-only — no business logic changes.
-- Conversation history is in-memory per session; can promote to DB later if you want persistent threads.
+## Out of scope
+- No changes to signup form UX (still works; the email just isn't being received).
+- No template content rewrites beyond the brand/host swap and footer line.
