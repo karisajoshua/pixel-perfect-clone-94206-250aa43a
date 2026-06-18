@@ -1,4 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { requireRole } from "@/lib/roles";
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +13,7 @@ import { ClientFormDialog } from "@/components/clients/client-form-dialog";
 import { ClientExportDialog } from "@/components/clients/client-export-dialog";
 import { useMyRoles } from "@/hooks/use-auth";
 
-export const Route = createFileRoute("/_authenticated/clients")({
+export const Route = createFileRoute("/_authenticated/clients")({ beforeLoad: requireRole(["admin", "manager", "agent"]),
   component: ClientsLayout,
 });
 

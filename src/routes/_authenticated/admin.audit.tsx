@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireRole } from "@/lib/roles";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { format } from "date-fns";
 
-export const Route = createFileRoute("/_authenticated/admin/audit")({ component: AuditLog });
+export const Route = createFileRoute("/_authenticated/admin/audit")({ beforeLoad: requireRole(["admin"]), component: AuditLog });
 
 function AuditLog() {
   const { data } = useQuery({

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { requireRole } from "@/lib/roles";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +11,7 @@ import { PageHeader } from "@/components/page-header";
 import { Plus, Search, Pencil } from "lucide-react";
 import { VehicleFormDialog } from "@/components/vehicles/vehicle-form-dialog";
 
-export const Route = createFileRoute("/_authenticated/vehicles")({ component: VehiclesList });
+export const Route = createFileRoute("/_authenticated/vehicles")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: VehiclesList });
 
 function VehiclesList() {
   const qc = useQueryClient();

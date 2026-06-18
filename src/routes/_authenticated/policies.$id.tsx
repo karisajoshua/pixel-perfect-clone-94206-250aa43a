@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { requireRole } from "@/lib/roles";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +10,7 @@ import { PageHeader } from "@/components/page-header";
 import { PolicyFormDialog } from "@/components/policies/policy-form-dialog";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/policies/$id")({ component: PolicyDetail });
+export const Route = createFileRoute("/_authenticated/policies/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: PolicyDetail });
 
 function PolicyDetail() {
   const { id } = useParams({ from: "/_authenticated/policies/$id" });

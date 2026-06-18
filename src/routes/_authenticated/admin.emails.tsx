@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireRole } from "@/lib/roles";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PageHeader } from "@/components/page-header";
 import { useMyRoles } from "@/hooks/use-auth";
 
-export const Route = createFileRoute("/_authenticated/admin/emails")({ component: EmailsPage });
+export const Route = createFileRoute("/_authenticated/admin/emails")({ beforeLoad: requireRole(["admin"]), component: EmailsPage });
 
 type Row = {
   id: string;

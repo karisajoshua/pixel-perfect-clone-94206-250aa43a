@@ -1,4 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { requireRole } from "@/lib/roles";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +11,7 @@ import { PageHeader } from "@/components/page-header";
 import { Plus, Search } from "lucide-react";
 import { PolicyFormDialog } from "@/components/policies/policy-form-dialog";
 
-export const Route = createFileRoute("/_authenticated/policies")({ component: PoliciesLayout });
+export const Route = createFileRoute("/_authenticated/policies")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: PoliciesLayout });
 
 function PoliciesLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });

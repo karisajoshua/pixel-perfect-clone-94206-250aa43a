@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireRole } from "@/lib/roles";
 import { useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { DOC_SECTIONS } from "@/lib/docs/content";
 import ReactMarkdown from "react-markdown";
 
-export const Route = createFileRoute("/_authenticated/admin/docs")({
+export const Route = createFileRoute("/_authenticated/admin/docs")({ beforeLoad: requireRole(["admin"]),
   component: DocsPage,
 });
 
