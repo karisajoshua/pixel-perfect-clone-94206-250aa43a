@@ -39,10 +39,11 @@ export const getPortalOverview = createServerFn({ method: "GET" })
     if (!client.address) missingFields.push("Postal address");
     if (!client.date_of_birth && client.client_type === "individual") missingFields.push("Date of birth");
 
-    const { data: kycFiles } = await supabase.storage
-      .from("client-documents")
-      .list(`${client.id}/kyc`, { limit: 1 });
-    const hasUploadedDocs = (kycFiles ?? []).length > 0;
+    const { count: kycCount } = await supabase
+      .from("client_required_documents")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", client.id);
+    const hasUploadedDocs = (kycCount ?? 0) > 0;
 
     return {
       client,

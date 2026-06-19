@@ -219,6 +219,59 @@ export type Database = {
           },
         ]
       }
+      client_required_documents: {
+        Row: {
+          client_id: string
+          created_at: string
+          doc_type: Database["public"]["Enums"]["kyc_doc_type"]
+          expires_at: string | null
+          file_name: string | null
+          id: string
+          rejection_reason: string | null
+          status: Database["public"]["Enums"]["kyc_doc_status"]
+          storage_path: string
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          doc_type: Database["public"]["Enums"]["kyc_doc_type"]
+          expires_at?: string | null
+          file_name?: string | null
+          id?: string
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["kyc_doc_status"]
+          storage_path: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          doc_type?: Database["public"]["Enums"]["kyc_doc_type"]
+          expires_at?: string | null
+          file_name?: string | null
+          id?: string
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["kyc_doc_status"]
+          storage_path?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_required_documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
@@ -1186,7 +1239,17 @@ export type Database = {
       client_type: "individual" | "corporate"
       comm_channel: "call" | "email" | "sms" | "whatsapp" | "in_person" | "note"
       comm_direction: "inbound" | "outbound"
-      kyc_status: "pending" | "verified" | "rejected" | "expired"
+      kyc_doc_status: "pending" | "verified" | "rejected"
+      kyc_doc_type:
+        | "id_front"
+        | "id_back"
+        | "kra_pin"
+        | "proof_of_address"
+        | "passport_photo"
+        | "cert_incorporation"
+        | "cr12"
+        | "director_id"
+      kyc_status: "pending" | "in_review" | "verified" | "rejected" | "expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1318,7 +1381,18 @@ export const Constants = {
       client_type: ["individual", "corporate"],
       comm_channel: ["call", "email", "sms", "whatsapp", "in_person", "note"],
       comm_direction: ["inbound", "outbound"],
-      kyc_status: ["pending", "verified", "rejected", "expired"],
+      kyc_doc_status: ["pending", "verified", "rejected"],
+      kyc_doc_type: [
+        "id_front",
+        "id_back",
+        "kra_pin",
+        "proof_of_address",
+        "passport_photo",
+        "cert_incorporation",
+        "cr12",
+        "director_id",
+      ],
+      kyc_status: ["pending", "in_review", "verified", "rejected", "expired"],
     },
   },
 } as const
