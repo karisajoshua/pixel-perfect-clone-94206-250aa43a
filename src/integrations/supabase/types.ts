@@ -1249,7 +1249,7 @@ export type Database = {
         | "cert_incorporation"
         | "cr12"
         | "director_id"
-      kyc_status: "pending" | "verified" | "rejected" | "expired"
+      kyc_status: "pending" | "in_review" | "verified" | "rejected" | "expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1392,7 +1392,7 @@ export const Constants = {
         "cr12",
         "director_id",
       ],
-      kyc_status: ["pending", "verified", "rejected", "expired"],
+      kyc_status: ["pending", "in_review", "verified", "rejected", "expired"],
     },
   },
 } as const
