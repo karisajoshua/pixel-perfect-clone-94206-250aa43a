@@ -24,6 +24,7 @@ const nav: { to: string; label: string; icon: typeof Users; roles: Role[] }[] = 
   { to: "/invoices", label: "Invoices", icon: Receipt, roles: ["admin", "manager", "agent"] },
   { to: "/claims", label: "Claims", icon: ScrollText, roles: ["admin", "manager", "agent"] },
   { to: "/renewals", label: "Renewals", icon: BellRing, roles: ["admin", "manager", "agent", "viewer"] },
+  { to: "/admin/requests", label: "Service requests", icon: Inbox, roles: ["admin", "manager", "agent"] },
   { to: "/reports", label: "Reports", icon: BarChart3, roles: ["admin", "manager", "agent", "viewer"] },
 ];
 
@@ -31,7 +32,6 @@ const adminNav = [
   { to: "/admin/users", label: "Users & Roles", icon: ShieldCheck },
   { to: "/admin/branches", label: "Branches", icon: Building2 },
   { to: "/admin/insurers", label: "Insurers", icon: ShieldCheck },
-  { to: "/admin/requests", label: "Service requests", icon: Inbox },
   { to: "/admin/import", label: "Data import", icon: Upload },
   { to: "/admin/notifications", label: "Notifications", icon: BellRing },
   { to: "/admin/emails", label: "Email log", icon: Mail },
