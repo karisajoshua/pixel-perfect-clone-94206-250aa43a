@@ -120,6 +120,33 @@ export const Route = createFileRoute("/api/public/hooks/renewal-reminders")({
             }
             queued += 1;
 
+            // Also queue SMS and WhatsApp records if a phone is on file.
+            if (cl.phone) {
+              for (const ch of ["sms", "whatsapp"] as const) {
+                const { data: existingCh } = await supabaseAdmin
+                  .from("notifications")
+                  .select("id")
+                  .eq("entity_type", "policy")
+                  .eq("entity_id", p.id)
+                  .eq("kind", `renewal_reminder_${days}d_${ch}`)
+                  .limit(1);
+                if (existingCh && existingCh.length > 0) continue;
+                await supabaseAdmin.from("notifications").insert({
+                  kind: `renewal_reminder_${days}d_${ch}`,
+                  entity_type: "policy",
+                  entity_id: p.id,
+                  client_id: p.client_id,
+                  recipient_phone: cl.phone,
+                  channel: ch,
+                  status: "queued",
+                  subject,
+                  body,
+                  payload: { policy_no: p.policy_no, end_date: p.end_date, days_to_expiry: days },
+                });
+                queued += 1;
+              }
+            }
+
             // Dispatch via Lovable email queue (only if we have an email address).
             if (!cl.email) continue;
             try {

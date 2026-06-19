@@ -82,6 +82,7 @@ export type Database = {
       }
       claims: {
         Row: {
+          accident_statement: string | null
           assigned_to: string | null
           branch_id: string | null
           claim_amount: number | null
@@ -98,10 +99,12 @@ export type Database = {
           settled_amount: number | null
           settled_date: string | null
           status: string
+          third_party_details: Json
           updated_at: string
           vehicle_id: string | null
         }
         Insert: {
+          accident_statement?: string | null
           assigned_to?: string | null
           branch_id?: string | null
           claim_amount?: number | null
@@ -118,10 +121,12 @@ export type Database = {
           settled_amount?: number | null
           settled_date?: string | null
           status?: string
+          third_party_details?: Json
           updated_at?: string
           vehicle_id?: string | null
         }
         Update: {
+          accident_statement?: string | null
           assigned_to?: string | null
           branch_id?: string | null
           claim_amount?: number | null
@@ -138,6 +143,7 @@ export type Database = {
           settled_amount?: number | null
           settled_date?: string | null
           status?: string
+          third_party_details?: Json
           updated_at?: string
           vehicle_id?: string | null
         }
@@ -802,6 +808,9 @@ export type Database = {
       }
       quotations: {
         Row: {
+          approval_required: boolean
+          approved_at: string | null
+          approved_by: string | null
           branch_id: string | null
           client_id: string
           converted_policy_id: string | null
@@ -812,10 +821,13 @@ export type Database = {
           insurer_id: string | null
           line_items: Json
           notes: string | null
+          parent_quote_id: string | null
           premium_gross: number | null
           premium_net: number | null
           product_class: string
           quote_no: string
+          rejection_reason: string | null
+          revision: number
           status: string
           sum_insured: number | null
           updated_at: string
@@ -823,6 +835,9 @@ export type Database = {
           vehicle_id: string | null
         }
         Insert: {
+          approval_required?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
           branch_id?: string | null
           client_id: string
           converted_policy_id?: string | null
@@ -833,10 +848,13 @@ export type Database = {
           insurer_id?: string | null
           line_items?: Json
           notes?: string | null
+          parent_quote_id?: string | null
           premium_gross?: number | null
           premium_net?: number | null
           product_class?: string
           quote_no: string
+          rejection_reason?: string | null
+          revision?: number
           status?: string
           sum_insured?: number | null
           updated_at?: string
@@ -844,6 +862,9 @@ export type Database = {
           vehicle_id?: string | null
         }
         Update: {
+          approval_required?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
           branch_id?: string | null
           client_id?: string
           converted_policy_id?: string | null
@@ -854,10 +875,13 @@ export type Database = {
           insurer_id?: string | null
           line_items?: Json
           notes?: string | null
+          parent_quote_id?: string | null
           premium_gross?: number | null
           premium_net?: number | null
           product_class?: string
           quote_no?: string
+          rejection_reason?: string | null
+          revision?: number
           status?: string
           sum_insured?: number | null
           updated_at?: string
@@ -894,10 +918,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "quotations_parent_quote_id_fkey"
+            columns: ["parent_quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "quotations_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_requests: {
+        Row: {
+          branch_id: string | null
+          client_id: string
+          created_at: string
+          id: string
+          policy_id: string | null
+          preferred_contact: string
+          reason: string | null
+          request_type: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          branch_id?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          policy_id?: string | null
+          preferred_contact?: string
+          reason?: string | null
+          request_type: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          policy_id?: string | null
+          preferred_contact?: string
+          reason?: string | null
+          request_type?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_requests_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
             referencedColumns: ["id"]
           },
         ]
@@ -966,6 +1064,7 @@ export type Database = {
           logbook_url: string | null
           make: string | null
           model: string | null
+          next_inspection_date: string | null
           notes: string | null
           registration_no: string
           seating_capacity: number | null
@@ -991,6 +1090,7 @@ export type Database = {
           logbook_url?: string | null
           make?: string | null
           model?: string | null
+          next_inspection_date?: string | null
           notes?: string | null
           registration_no: string
           seating_capacity?: number | null
@@ -1016,6 +1116,7 @@ export type Database = {
           logbook_url?: string | null
           make?: string | null
           model?: string | null
+          next_inspection_date?: string | null
           notes?: string | null
           registration_no?: string
           seating_capacity?: number | null

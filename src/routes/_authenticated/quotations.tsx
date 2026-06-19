@@ -12,9 +12,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/page-header";
-import { Plus, Pencil, ArrowRight, Download } from "lucide-react";
+import { Plus, Pencil, ArrowRight, Download, Check, X, Send } from "lucide-react";
 import { toast } from "sonner";
 import { downloadQuotationPdf } from "@/lib/quotation-pdf";
+import { useMyRoles } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/quotations")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: QuotationsPage });
 
@@ -22,6 +23,8 @@ function QuotationsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<any>(null);
+  const { data: roles } = useMyRoles();
+  const canApprove = (roles ?? []).some((r) => r === "admin" || r === "manager");
 
   const { data } = useQuery({
     queryKey: ["quotations"],
@@ -52,6 +55,53 @@ function QuotationsPage() {
     toast.success("Quote converted to policy. Update the policy number.");
     qc.invalidateQueries({ queryKey: ["quotations"] });
     qc.invalidateQueries({ queryKey: ["policies"] });
+  };
+
+  const submitForApproval = async (q: any) => {
+    const { error } = await supabase.from("quotations").update({ status: "pending_approval", approval_required: true }).eq("id", q.id);
+    if (error) return toast.error(error.message);
+    toast.success("Submitted for approval");
+    qc.invalidateQueries({ queryKey: ["quotations"] });
+  };
+
+  const approve = async (q: any) => {
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase.from("quotations").update({ status: "approved", approved_by: u.user?.id, approved_at: new Date().toISOString(), rejection_reason: null }).eq("id", q.id);
+    if (error) return toast.error(error.message);
+    toast.success("Approved");
+    qc.invalidateQueries({ queryKey: ["quotations"] });
+  };
+
+  const reject = async (q: any) => {
+    const reason = prompt("Reason for rejection?") ?? "";
+    if (!reason) return;
+    const { error } = await supabase.from("quotations").update({ status: "rejected", rejection_reason: reason }).eq("id", q.id);
+    if (error) return toast.error(error.message);
+    toast.success("Rejected");
+    qc.invalidateQueries({ queryKey: ["quotations"] });
+  };
+
+  const revise = async (q: any) => {
+    if (!confirm(`Create a new revision of ${q.quote_no}?`)) return;
+    const { data: u } = await supabase.auth.getUser();
+    const { id, created_at, updated_at, clients, insurers, vehicles, approved_by, approved_at, ...base } = q as any;
+    const newQuote = {
+      ...base,
+      quote_no: `${q.quote_no}-R${(q.revision ?? 1) + 1}`,
+      status: "draft",
+      revision: (q.revision ?? 1) + 1,
+      parent_quote_id: q.id,
+      approval_required: false,
+      approved_by: null,
+      approved_at: null,
+      rejection_reason: null,
+      converted_policy_id: null,
+      created_by: u.user?.id,
+    };
+    const { error } = await supabase.from("quotations").insert(newQuote);
+    if (error) return toast.error(error.message);
+    toast.success("Revision created");
+    qc.invalidateQueries({ queryKey: ["quotations"] });
   };
 
   const handleDownload = async (quoteId: string) => {
@@ -103,6 +153,18 @@ function QuotationsPage() {
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       <Button size="sm" variant="ghost" onClick={() => handleDownload(q.id)}><Download className="h-4 w-4 mr-1" /> PDF</Button>
                       <Button size="sm" variant="ghost" onClick={() => { setEdit(q); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                      {q.status === "draft" && (
+                        <Button size="sm" variant="ghost" onClick={() => submitForApproval(q)}><Send className="h-3 w-3 mr-1" /> Submit</Button>
+                      )}
+                      {q.status === "pending_approval" && canApprove && (
+                        <>
+                          <Button size="sm" variant="ghost" onClick={() => approve(q)}><Check className="h-3 w-3 mr-1" /> Approve</Button>
+                          <Button size="sm" variant="ghost" onClick={() => reject(q)}><X className="h-3 w-3 mr-1" /> Reject</Button>
+                        </>
+                      )}
+                      {(q.status === "rejected" || q.status === "expired") && (
+                        <Button size="sm" variant="ghost" onClick={() => revise(q)}>Revise</Button>
+                      )}
                       {q.status !== "converted" && (
                         <Button size="sm" variant="outline" onClick={() => convert(q)}>Convert <ArrowRight className="h-3 w-3 ml-1" /></Button>
                       )}
@@ -219,6 +281,9 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="pending_approval">Pending approval</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
                 <SelectItem value="sent">Sent</SelectItem>
                 <SelectItem value="accepted">Accepted</SelectItem>
                 <SelectItem value="declined">Declined</SelectItem>

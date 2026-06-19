@@ -3,7 +3,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Car, FileText, FileSignature, Receipt, ScrollText,
   BarChart3, ShieldCheck, LogOut, Building2, BellRing, Settings, Mail, Upload,
-  BookOpen, Menu,
+  BookOpen, Menu, Inbox, KeyRound,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyProfile, useMyRoles } from "@/hooks/use-auth";
@@ -24,6 +24,7 @@ const nav: { to: string; label: string; icon: typeof Users; roles: Role[] }[] = 
   { to: "/invoices", label: "Invoices", icon: Receipt, roles: ["admin", "manager", "agent"] },
   { to: "/claims", label: "Claims", icon: ScrollText, roles: ["admin", "manager", "agent"] },
   { to: "/renewals", label: "Renewals", icon: BellRing, roles: ["admin", "manager", "agent", "viewer"] },
+  { to: "/admin/requests", label: "Service requests", icon: Inbox, roles: ["admin", "manager", "agent"] },
   { to: "/reports", label: "Reports", icon: BarChart3, roles: ["admin", "manager", "agent", "viewer"] },
 ];
 
@@ -35,6 +36,7 @@ const adminNav = [
   { to: "/admin/notifications", label: "Notifications", icon: BellRing },
   { to: "/admin/emails", label: "Email log", icon: Mail },
   { to: "/admin/audit", label: "Audit log", icon: Settings },
+  { to: "/admin/security", label: "Account security", icon: KeyRound },
   { to: "/admin/docs", label: "Documentation", icon: BookOpen },
 ] as const;
 
