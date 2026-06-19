@@ -12,7 +12,7 @@ type Props = {
 export function KycBanner({ status, missingFields, hasUploadedDocs }: Props) {
   if (status === "verified") return null;
 
-  const pendingReview = hasUploadedDocs && missingFields.length === 0 && status !== "rejected";
+  const pendingReview = status === "in_review" || (hasUploadedDocs && missingFields.length === 0 && status !== "rejected");
 
   return (
     <div
