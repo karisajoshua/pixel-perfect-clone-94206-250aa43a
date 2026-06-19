@@ -95,20 +95,60 @@ function ClaimDialog({ open, onOpenChange, initial, onSaved }: any) {
   const [policies, setPolicies] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState<"incident" | "thirdparty" | "documents">("incident");
+  const [thirdParties, setThirdParties] = useState<any[]>([]);
+  const [docs, setDocs] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   useEffect(() => {
     if (!open) return;
-    setForm(initial ?? { claim_no: `CLM-${Date.now()}`, status: "reported", incident_date: new Date().toISOString().slice(0,10) });
+    setForm(initial ?? { claim_no: `CLM-${Date.now()}`, status: "reported", incident_date: new Date().toISOString().slice(0,10), accident_statement: "" });
+    setThirdParties(Array.isArray(initial?.third_party_details) ? initial.third_party_details : []);
+    setTab("incident");
+    if (initial?.id) loadDocs(initial.id); else setDocs([]);
     supabase.from("clients").select("id, full_name, company_name, client_type").order("full_name").then(({ data }) => setClients(data ?? []));
     supabase.from("policies").select("id, policy_no, client_id").then(({ data }) => setPolicies(data ?? []));
     supabase.from("vehicles").select("id, registration_no, client_id").then(({ data }) => setVehicles(data ?? []));
   }, [open, initial]);
 
+  const loadDocs = async (claimId: string) => {
+    const folders = ["abstract", "driver_license", "national_id", "sketch", "other"];
+    const all: any[] = [];
+    for (const folder of folders) {
+      const { data } = await supabase.storage.from("claim-documents").list(`${claimId}/${folder}`, { limit: 50 });
+      for (const f of data ?? []) {
+        if (!f.name || !f.id) continue;
+        const path = `${claimId}/${folder}/${f.name}`;
+        const { data: signed } = await supabase.storage.from("claim-documents").createSignedUrl(path, 60 * 30);
+        all.push({ folder, name: f.name, path, url: signed?.signedUrl });
+      }
+    }
+    setDocs(all);
+  };
+
+  const uploadDoc = async (folder: string, file: File) => {
+    if (!initial?.id) return toast.error("Save the claim first to attach documents.");
+    setUploading(true);
+    const path = `${initial.id}/${folder}/${Date.now()}-${file.name}`;
+    const { error } = await supabase.storage.from("claim-documents").upload(path, file, { upsert: false });
+    setUploading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Uploaded");
+    loadDocs(initial.id);
+  };
+
+  const removeDoc = async (path: string) => {
+    if (!confirm("Delete this document?")) return;
+    const { error } = await supabase.storage.from("claim-documents").remove([path]);
+    if (error) return toast.error(error.message);
+    if (initial?.id) loadDocs(initial.id);
+  };
+
   const submit = async () => {
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
-    const payload = { ...form, created_by: u.user?.id };
+    const payload = { ...form, third_party_details: thirdParties, created_by: u.user?.id };
     const op = initial?.id
       ? supabase.from("claims").update(payload).eq("id", initial.id).select("id, status").single()
       : supabase.from("claims").insert(payload).select("id, status").single();
