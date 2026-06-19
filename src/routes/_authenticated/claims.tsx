@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/page-header";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Upload, Trash2, FileText, X } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUSES = ["reported","under_review","approved","rejected","settled","closed"];
