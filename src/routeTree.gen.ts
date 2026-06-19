@@ -31,6 +31,7 @@ import { Route as PortalPortalVehiclesRouteImport } from './routes/_portal/porta
 import { Route as PortalPortalProfileRouteImport } from './routes/_portal/portal/profile'
 import { Route as PortalPortalPoliciesRouteImport } from './routes/_portal/portal/policies'
 import { Route as PortalPortalInvoicesRouteImport } from './routes/_portal/portal/invoices'
+import { Route as PortalPortalDocumentsRouteImport } from './routes/_portal/portal/documents'
 import { Route as PortalPortalClaimsRouteImport } from './routes/_portal/portal/claims'
 import { Route as AuthenticatedPoliciesIdRouteImport } from './routes/_authenticated/policies.$id'
 import { Route as AuthenticatedInvoicesIdRouteImport } from './routes/_authenticated/invoices.$id'
@@ -160,6 +161,11 @@ const PortalPortalPoliciesRoute = PortalPortalPoliciesRouteImport.update({
 const PortalPortalInvoicesRoute = PortalPortalInvoicesRouteImport.update({
   id: '/portal/invoices',
   path: '/portal/invoices',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
+const PortalPortalDocumentsRoute = PortalPortalDocumentsRouteImport.update({
+  id: '/portal/documents',
+  path: '/portal/documents',
   getParentRoute: () => PortalRouteRoute,
 } as any)
 const PortalPortalClaimsRoute = PortalPortalClaimsRouteImport.update({
@@ -313,6 +319,7 @@ export interface FileRoutesByFullPath {
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/policies/$id': typeof AuthenticatedPoliciesIdRoute
   '/portal/claims': typeof PortalPortalClaimsRoute
+  '/portal/documents': typeof PortalPortalDocumentsRoute
   '/portal/invoices': typeof PortalPortalInvoicesRouteWithChildren
   '/portal/policies': typeof PortalPortalPoliciesRouteWithChildren
   '/portal/profile': typeof PortalPortalProfileRoute
@@ -357,6 +364,7 @@ export interface FileRoutesByTo {
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/policies/$id': typeof AuthenticatedPoliciesIdRoute
   '/portal/claims': typeof PortalPortalClaimsRoute
+  '/portal/documents': typeof PortalPortalDocumentsRoute
   '/portal/invoices': typeof PortalPortalInvoicesRouteWithChildren
   '/portal/policies': typeof PortalPortalPoliciesRouteWithChildren
   '/portal/profile': typeof PortalPortalProfileRoute
@@ -404,6 +412,7 @@ export interface FileRoutesById {
   '/_authenticated/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/_authenticated/policies/$id': typeof AuthenticatedPoliciesIdRoute
   '/_portal/portal/claims': typeof PortalPortalClaimsRoute
+  '/_portal/portal/documents': typeof PortalPortalDocumentsRoute
   '/_portal/portal/invoices': typeof PortalPortalInvoicesRouteWithChildren
   '/_portal/portal/policies': typeof PortalPortalPoliciesRouteWithChildren
   '/_portal/portal/profile': typeof PortalPortalProfileRoute
@@ -450,6 +459,7 @@ export interface FileRouteTypes {
     | '/invoices/$id'
     | '/policies/$id'
     | '/portal/claims'
+    | '/portal/documents'
     | '/portal/invoices'
     | '/portal/policies'
     | '/portal/profile'
@@ -494,6 +504,7 @@ export interface FileRouteTypes {
     | '/invoices/$id'
     | '/policies/$id'
     | '/portal/claims'
+    | '/portal/documents'
     | '/portal/invoices'
     | '/portal/policies'
     | '/portal/profile'
@@ -540,6 +551,7 @@ export interface FileRouteTypes {
     | '/_authenticated/invoices/$id'
     | '/_authenticated/policies/$id'
     | '/_portal/portal/claims'
+    | '/_portal/portal/documents'
     | '/_portal/portal/invoices'
     | '/_portal/portal/policies'
     | '/_portal/portal/profile'
@@ -727,6 +739,13 @@ declare module '@tanstack/react-router' {
       path: '/portal/invoices'
       fullPath: '/portal/invoices'
       preLoaderRoute: typeof PortalPortalInvoicesRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
+    '/_portal/portal/documents': {
+      id: '/_portal/portal/documents'
+      path: '/portal/documents'
+      fullPath: '/portal/documents'
+      preLoaderRoute: typeof PortalPortalDocumentsRouteImport
       parentRoute: typeof PortalRouteRoute
     }
     '/_portal/portal/claims': {
@@ -994,6 +1013,7 @@ const PortalPortalPoliciesRouteWithChildren =
 
 interface PortalRouteRouteChildren {
   PortalPortalClaimsRoute: typeof PortalPortalClaimsRoute
+  PortalPortalDocumentsRoute: typeof PortalPortalDocumentsRoute
   PortalPortalInvoicesRoute: typeof PortalPortalInvoicesRouteWithChildren
   PortalPortalPoliciesRoute: typeof PortalPortalPoliciesRouteWithChildren
   PortalPortalProfileRoute: typeof PortalPortalProfileRoute
@@ -1003,6 +1023,7 @@ interface PortalRouteRouteChildren {
 
 const PortalRouteRouteChildren: PortalRouteRouteChildren = {
   PortalPortalClaimsRoute: PortalPortalClaimsRoute,
+  PortalPortalDocumentsRoute: PortalPortalDocumentsRoute,
   PortalPortalInvoicesRoute: PortalPortalInvoicesRouteWithChildren,
   PortalPortalPoliciesRoute: PortalPortalPoliciesRouteWithChildren,
   PortalPortalProfileRoute: PortalPortalProfileRoute,
