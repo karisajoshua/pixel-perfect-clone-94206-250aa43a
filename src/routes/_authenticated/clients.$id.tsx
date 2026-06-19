@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/page-header";
 import { ClientFormDialog } from "@/components/clients/client-form-dialog";
 import { ClientDocuments } from "@/components/clients/client-documents";
 import { ClientCommunications } from "@/components/clients/client-communications";
+import { ClientKycPanel } from "@/components/clients/client-kyc-panel";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]),
   component: ClientDetail,
@@ -45,6 +46,7 @@ function ClientDetail() {
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="kyc">KYC</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="comms">Communications</TabsTrigger>
         </TabsList>
@@ -67,6 +69,9 @@ function ClientDetail() {
               </dl>
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="kyc">
+          <ClientKycPanel clientId={id} />
         </TabsContent>
         <TabsContent value="documents">
           <ClientDocuments clientId={id} />
