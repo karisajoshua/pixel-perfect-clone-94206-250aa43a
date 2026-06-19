@@ -281,6 +281,9 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="pending_approval">Pending approval</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
                 <SelectItem value="sent">Sent</SelectItem>
                 <SelectItem value="accepted">Accepted</SelectItem>
                 <SelectItem value="declined">Declined</SelectItem>
