@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download, ArrowLeft } from "lucide-react";
+import { ServiceRequestButton } from "@/components/portal/service-request-button";
 
 export const Route = createFileRoute("/_portal/portal/policies/$id")({ component: Page });
 
@@ -32,6 +33,8 @@ function Page() {
               <a href={p.document_url} target="_blank" rel="noreferrer"><Download className="h-4 w-4 mr-1" /> Policy PDF</a>
             </Button>
           )}
+          <ServiceRequestButton policyId={p.id} type="renewal" label="Request renewal" variant="default" />
+          <ServiceRequestButton policyId={p.id} type="cancellation" label="Request cancellation" />
         </div>
       </div>
       <div className="grid md:grid-cols-2 gap-4">
