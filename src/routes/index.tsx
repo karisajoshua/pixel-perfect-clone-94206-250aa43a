@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -83,13 +82,6 @@ function AuthPage() {
     toast.success("Account created. Check your email if confirmation is required.");
     setTab("signin");
     setPassword("");
-  };
-
-  const google = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (result.error) return toast.error("Google sign-in failed");
-    if (result.redirected) return;
-    navigate({ to: "/dashboard" });
   };
 
   const reset = async () => {
@@ -186,11 +178,6 @@ function AuthPage() {
                 </form>
               </TabsContent>
             </Tabs>
-
-            <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
-              <div className="h-px flex-1 bg-border" /> or <div className="h-px flex-1 bg-border" />
-            </div>
-            <Button variant="outline" className="w-full" onClick={google}>Continue with Google</Button>
           </CardContent>
         </Card>
         <p className="absolute bottom-4 text-xs text-muted-foreground lg:hidden">
