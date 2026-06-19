@@ -3,7 +3,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Car, FileText, FileSignature, Receipt, ScrollText,
   BarChart3, ShieldCheck, LogOut, Building2, BellRing, Settings, Mail, Upload,
-  BookOpen, Menu,
+  BookOpen, Menu, Inbox, KeyRound,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyProfile, useMyRoles } from "@/hooks/use-auth";
@@ -31,10 +31,12 @@ const adminNav = [
   { to: "/admin/users", label: "Users & Roles", icon: ShieldCheck },
   { to: "/admin/branches", label: "Branches", icon: Building2 },
   { to: "/admin/insurers", label: "Insurers", icon: ShieldCheck },
+  { to: "/admin/requests", label: "Service requests", icon: Inbox },
   { to: "/admin/import", label: "Data import", icon: Upload },
   { to: "/admin/notifications", label: "Notifications", icon: BellRing },
   { to: "/admin/emails", label: "Email log", icon: Mail },
   { to: "/admin/audit", label: "Audit log", icon: Settings },
+  { to: "/admin/security", label: "Account security", icon: KeyRound },
   { to: "/admin/docs", label: "Documentation", icon: BookOpen },
 ] as const;
 
