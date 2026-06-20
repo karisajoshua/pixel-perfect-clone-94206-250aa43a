@@ -38,6 +38,7 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [slide, setSlide] = useState(0);
   const [tab, setTab] = useState<"signin" | "signup">("signin");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
