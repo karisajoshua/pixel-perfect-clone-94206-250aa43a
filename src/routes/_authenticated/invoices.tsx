@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
-import { Plus, Download } from "lucide-react";
+import { Plus, Download, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { InvoiceFormDialog } from "@/components/invoices/invoice-form-dialog";
 import { downloadInvoicePdf } from "@/lib/invoice-pdf";
 import { toast } from "sonner";
@@ -24,6 +25,7 @@ function InvoicesList() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<string>("all");
+  const [search, setSearch] = useState("");
 
   const { data } = useQuery({
     queryKey: ["invoices", status],
@@ -57,10 +59,16 @@ function InvoicesList() {
     <div className="p-8 space-y-6">
       <PageHeader title="Invoices" subtitle="Premium and fee billing."
         actions={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" /> New invoice</Button>} />
-      <div className="flex gap-1 flex-wrap">
-        {["all","draft","sent","partial","paid","overdue","void"].map(s => (
-          <Button key={s} size="sm" variant={status === s ? "default" : "outline"} onClick={() => setStatus(s)}>{s}</Button>
-        ))}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative w-full sm:w-auto sm:min-w-[280px]">
+          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Search by invoice # or client…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        </div>
+        <div className="flex gap-1 flex-wrap">
+          {["all","draft","sent","partial","paid","overdue","void"].map(s => (
+            <Button key={s} size="sm" variant={status === s ? "default" : "outline"} onClick={() => setStatus(s)}>{s}</Button>
+          ))}
+        </div>
       </div>
       <Card>
         <div className="overflow-x-auto">
@@ -78,8 +86,16 @@ function InvoicesList() {
               </tr>
             </thead>
             <tbody>
-              {data?.length === 0 && <tr><td colSpan={8} className="p-12 text-center text-muted-foreground">No invoices yet.</td></tr>}
-              {data?.map((i: any) => {
+              {(() => {
+                const term = search.trim().toLowerCase();
+                const filtered = (data ?? []).filter((i: any) => {
+                  if (!term) return true;
+                  const cl = i.clients;
+                  const name = cl ? (cl.client_type === "corporate" ? cl.company_name ?? cl.full_name : cl.full_name) : "";
+                  return [i.invoice_no, name].filter(Boolean).some((v: string) => v.toLowerCase().includes(term));
+                });
+                if (filtered.length === 0) return <tr><td colSpan={8} className="p-12 text-center text-muted-foreground">{term ? "No matches." : "No invoices yet."}</td></tr>;
+                return filtered.map((i: any) => {
                 const cl = i.clients; const name = cl ? (cl.client_type === "corporate" ? cl.company_name ?? cl.full_name : cl.full_name) : "—";
                 const balance = Number(i.total) - Number(i.amount_paid);
                 return (
@@ -97,7 +113,8 @@ function InvoicesList() {
                     </td>
                   </tr>
                 );
-              })}
+                });
+              })()}
             </tbody>
           </table>
         </div>
