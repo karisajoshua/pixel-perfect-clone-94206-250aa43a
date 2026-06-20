@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 import bg1 from "@/assets/auth-bg-1.jpg";
 import bg2 from "@/assets/auth-bg-2.jpg";
 import bg3 from "@/assets/auth-bg-3.jpg";
