@@ -15,13 +15,13 @@ export const updateUserProfile = createServerFn({ method: "POST" })
     await assertAdmin(supabase, userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const profileUpdate: Record<string, any> = {};
+    const profileUpdate: { full_name?: string | null; email?: string | null; phone?: string | null } = {};
     if (data.fullName !== undefined) profileUpdate.full_name = data.fullName;
     if (data.email !== undefined) profileUpdate.email = data.email;
     if (data.phone !== undefined) profileUpdate.phone = data.phone;
 
     if (Object.keys(profileUpdate).length > 0) {
-      const { error: pErr } = await supabaseAdmin.from("profiles").update(profileUpdate).eq("id", data.userId);
+      const { error: pErr } = await (supabaseAdmin.from("profiles") as any).update(profileUpdate).eq("id", data.userId);
       if (pErr) throw new Error(pErr.message);
     }
 
