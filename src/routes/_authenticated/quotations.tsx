@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/page-header";
-import { Plus, Pencil, ArrowRight, Download, Check, X, Send } from "lucide-react";
+import { Plus, Pencil, ArrowRight, Download, Check, X, Send, Search } from "lucide-react";
 import { toast } from "sonner";
 import { downloadQuotationPdf } from "@/lib/quotation-pdf";
 import { useMyRoles } from "@/hooks/use-auth";
@@ -23,6 +23,7 @@ function QuotationsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<any>(null);
+  const [search, setSearch] = useState("");
   const { data: roles } = useMyRoles();
   const canApprove = (roles ?? []).some((r) => r === "admin" || r === "manager");
 
@@ -124,6 +125,10 @@ function QuotationsPage() {
     <div className="p-8 space-y-6">
       <PageHeader title="Quotations" subtitle="Quote drafts that can be converted into policies."
         actions={<Button onClick={() => { setEdit(null); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> New quote</Button>} />
+      <div className="relative max-w-sm">
+        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input placeholder="Search by quote #, client, insurer, vehicle…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+      </div>
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -139,8 +144,17 @@ function QuotationsPage() {
               </tr>
             </thead>
             <tbody>
-              {data?.length === 0 && <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">No quotes yet.</td></tr>}
-              {data?.map((q: any) => {
+              {(() => {
+                const term = search.trim().toLowerCase();
+                const filtered = (data ?? []).filter((q: any) => {
+                  if (!term) return true;
+                  const cl = q.clients;
+                  const name = cl ? (cl.client_type === "corporate" ? cl.company_name ?? cl.full_name : cl.full_name) : "";
+                  return [q.quote_no, name, q.insurers?.name, q.vehicles?.registration_no]
+                    .filter(Boolean).some((v: string) => v.toLowerCase().includes(term));
+                });
+                if (filtered.length === 0) return <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">{term ? "No matches." : "No quotes yet."}</td></tr>;
+                return filtered.map((q: any) => {
                 const cl = q.clients; const name = cl ? (cl.client_type === "corporate" ? cl.company_name ?? cl.full_name : cl.full_name) : "—";
                 return (
                   <tr key={q.id} className="border-b last:border-0 hover:bg-muted/30">
@@ -171,7 +185,8 @@ function QuotationsPage() {
                     </td>
                   </tr>
                 );
-              })}
+                });
+              })()}
             </tbody>
           </table>
         </div>
