@@ -11,6 +11,7 @@ import bg1 from "@/assets/auth-bg-1.jpg";
 import bg2 from "@/assets/auth-bg-2.jpg";
 import bg3 from "@/assets/auth-bg-3.jpg";
 import logoWhite from "@/assets/zia-logo-white.png.asset.json";
+import logoRed from "@/assets/zia-logo-red.png.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -135,7 +136,13 @@ function AuthPage() {
       </div>
 
       <div className="flex items-center justify-center p-6">
-        <Card className="w-full max-w-md">
+        <div className="w-full max-w-md flex flex-col items-center">
+          <img
+            src={logoRed.url}
+            alt="Zest Insurance Agency"
+            className="h-16 w-auto object-contain mb-6 lg:hidden"
+          />
+          <Card className="w-full">
           <CardHeader>
             <CardTitle>Welcome to Zest</CardTitle>
             <CardDescription>Sign in to the management workspace.</CardDescription>
@@ -179,7 +186,8 @@ function AuthPage() {
               </TabsContent>
             </Tabs>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
         <p className="absolute bottom-4 text-xs text-muted-foreground lg:hidden">
           Powered by Texcortech Systems
         </p>
