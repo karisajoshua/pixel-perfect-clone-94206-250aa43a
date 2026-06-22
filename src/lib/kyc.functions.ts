@@ -23,9 +23,9 @@ export type KycSlot = {
 
 export const INDIVIDUAL_SLOTS: KycSlot[] = [
   { doc_type: "id_front", label: "National ID — front", description: "Clear photo of the front of your National ID or Passport bio page.", required: true },
-  { doc_type: "id_back", label: "National ID — back", description: "Back of your National ID (skip if using a passport).", required: true },
+  { doc_type: "id_back", label: "National ID — back", description: "Back of your National ID (optional; skip if using a passport).", required: false },
   { doc_type: "kra_pin", label: "KRA PIN certificate", description: "Your personal KRA PIN certificate (PDF preferred).", required: true },
-  { doc_type: "proof_of_address", label: "Proof of address", description: "Utility bill or bank statement issued in the last 3 months.", required: true },
+  { doc_type: "proof_of_address", label: "Proof of address", description: "Utility bill or bank statement issued in the last 3 months (optional).", required: false },
   { doc_type: "passport_photo", label: "Passport photo", description: "Recent passport-size photo on a plain background.", required: false },
 ];
 
@@ -34,7 +34,7 @@ export const CORPORATE_SLOTS: KycSlot[] = [
   { doc_type: "cr12", label: "CR12 / company registry extract", description: "Issued by the Business Registration Service.", required: true },
   { doc_type: "kra_pin", label: "Company KRA PIN certificate", description: "Company KRA PIN.", required: true },
   { doc_type: "director_id", label: "Director's ID", description: "ID copy of the principal director or authorized signatory.", required: true },
-  { doc_type: "proof_of_address", label: "Proof of address", description: "Recent utility bill or bank statement for the business address.", required: true },
+  { doc_type: "proof_of_address", label: "Proof of address", description: "Recent utility bill or bank statement for the business address (optional).", required: false },
 ];
 
 export const VEHICLE_SLOTS: KycSlot[] = [
