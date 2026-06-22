@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Pencil, Upload, MessageSquarePlus } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { ClientFormDialog, CredentialsDialog } from "@/components/clients/client-form-dialog";
+import { ClientFormDialog, CredentialsDialog, type PortalCreds } from "@/components/clients/client-form-dialog";
 import { ClientDocuments } from "@/components/clients/client-documents";
 import { ClientCommunications } from "@/components/clients/client-communications";
 import { ClientKycPanel } from "@/components/clients/client-kyc-panel";
@@ -16,6 +16,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { createClientPortalAccount } from "@/lib/admin-users.functions";
 import { KeyRound } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { normalizePhone } from "@/lib/phone";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]),
   component: ClientDetail,
@@ -25,8 +29,10 @@ function ClientDetail() {
   const { id } = useParams({ from: "/_authenticated/clients/$id" });
   const qc = useQueryClient();
   const [edit, setEdit] = useState(false);
-  const [creds, setCreds] = useState<{ email: string; password: string | null; linked: boolean } | null>(null);
+  const [creds, setCreds] = useState<PortalCreds | null>(null);
   const [genBusy, setGenBusy] = useState(false);
+  const [phonePrompt, setPhonePrompt] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
   const portalFn = useServerFn(createClientPortalAccount);
 
   const { data: client, isLoading } = useQuery({
@@ -41,11 +47,13 @@ function ClientDetail() {
   if (isLoading) return <div className="p-8 text-muted-foreground">Loading…</div>;
   if (!client) return <div className="p-8">Not found</div>;
 
-  const generatePortal = async () => {
+  const generatePortal = async (phone?: string) => {
     setGenBusy(true);
     try {
-      const res = await portalFn({ data: { client_id: id } });
+      const res = await portalFn({ data: { client_id: id, ...(phone ? { phone } : {}) } });
       setCreds(res);
+      setPhonePrompt(false);
+      setPhoneInput("");
       qc.invalidateQueries({ queryKey: ["client", id] });
     } catch (e: any) {
       toast.error(e?.message ?? "Could not create portal login");
@@ -64,14 +72,15 @@ function ClientDetail() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  if (!client.email) {
-                    toast.error("Add an email to this client first, then generate the portal login.");
+                  if (!client.phone && !client.email) {
+                    setPhoneInput("");
+                    setPhonePrompt(true);
                     return;
                   }
                   generatePortal();
                 }}
                 disabled={genBusy}
-                title={!client.email ? "Add an email first" : "Create a portal account for this client"}
+                title={!client.phone && !client.email ? "Add a phone number to create a portal login" : "Create a portal account for this client"}
               >
                 <KeyRound className="h-4 w-4 mr-1" /> {genBusy ? "Creating…" : "Generate portal login"}
               </Button>
@@ -121,6 +130,27 @@ function ClientDetail() {
 
       <ClientFormDialog open={edit} onOpenChange={setEdit} initial={client} onSaved={() => qc.invalidateQueries({ queryKey: ["client", id] })} />
       <CredentialsDialog creds={creds} onClose={() => setCreds(null)} />
+      <Dialog open={phonePrompt} onOpenChange={(o) => { if (!o) { setPhonePrompt(false); setPhoneInput(""); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Add a phone number</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">This client has no phone number on file. Enter one to create their portal login. Kenyan numbers like 0712345678 are accepted.</p>
+          <div className="space-y-1.5">
+            <Label>Phone number</Label>
+            <Input value={phoneInput} onChange={(e) => setPhoneInput(e.target.value)} placeholder="0712 345 678" autoFocus />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setPhonePrompt(false); setPhoneInput(""); }}>Cancel</Button>
+            <Button
+              disabled={genBusy || !normalizePhone(phoneInput)}
+              onClick={() => {
+                const p = normalizePhone(phoneInput);
+                if (!p) { toast.error("Enter a valid phone number"); return; }
+                generatePortal(p);
+              }}
+            >{genBusy ? "Creating…" : "Create login"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
