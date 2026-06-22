@@ -129,6 +129,7 @@ function Page() {
               row={item.row}
               url={item.url}
               locked={locked}
+              createUploadUrl={(file_name) => createUrlFn({ data: { doc_type: item.doc_type, file_name } })}
               onUploaded={async (path, file_name) => {
                 await recordFn({ data: { doc_type: item.doc_type, storage_path: path, file_name } });
                 qc.invalidateQueries({ queryKey: ["portal-kyc"] });
@@ -188,11 +189,12 @@ type SlotProps = {
   row: any;
   url: string | null;
   locked: boolean;
+  createUploadUrl: (fileName: string) => Promise<{ path: string; token: string }>;
   onUploaded: (path: string, fileName: string) => Promise<void>;
   onRemove: () => Promise<void>;
 };
 
-function DocSlot({ clientId, docType, label, description, required, row, url, locked, onUploaded, onRemove }: SlotProps) {
+function DocSlot({ clientId: _clientId, docType, label, description, required, row, url, locked, createUploadUrl, onUploaded, onRemove }: SlotProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
 
@@ -207,24 +209,21 @@ function DocSlot({ clientId, docType, label, description, required, row, url, lo
       return;
     }
     setBusy(true);
-    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const path = `${clientId}/kyc/${docType}/${Date.now()}-${safe}`;
-    const { error: upErr } = await supabase.storage
-      .from("client-documents")
-      .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
-    if (upErr) {
-      setBusy(false);
-      if (fileRef.current) fileRef.current.value = "";
-      toast.error(upErr.message || "Upload failed");
-      return;
-    }
+    let path: string | null = null;
     try {
-      await onUploaded(path, file.name);
+      const signed = await createUploadUrl(file.name);
+      path = signed.path;
+      const { error: upErr } = await supabase.storage
+        .from("client-documents")
+        .uploadToSignedUrl(signed.path, signed.token, file, {
+          contentType: file.type || "application/octet-stream",
+        });
+      if (upErr) throw upErr;
+      await onUploaded(signed.path, file.name);
       toast.success(`${label} uploaded`);
     } catch (err: any) {
-      // try to clean up the orphan file
-      await supabase.storage.from("client-documents").remove([path]);
-      toast.error(err?.message ?? "Could not save upload");
+      if (path) await supabase.storage.from("client-documents").remove([path]).catch(() => {});
+      toast.error(err?.message ?? "Upload failed");
     }
     setBusy(false);
     if (fileRef.current) fileRef.current.value = "";
