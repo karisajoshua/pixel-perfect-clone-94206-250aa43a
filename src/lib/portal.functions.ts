@@ -294,7 +294,7 @@ export const updateMyProfile = createServerFn({ method: "POST" })
     }
     const { data: updated, error } = await context.supabase
       .from("clients")
-      .update(payload)
+      .update(payload as any)
       .eq("id", client.id)
       .select("*, branches(name)")
       .single();
