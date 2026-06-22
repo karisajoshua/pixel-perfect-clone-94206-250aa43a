@@ -1,18 +1,20 @@
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   listClientKycDocuments,
   verifyKycDocument,
   rejectKycDocument,
   setClientKycStatus,
+  staffUploadKycDocument,
 } from "@/lib/kyc.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, XCircle, Download, AlertCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Download, AlertCircle, Upload } from "lucide-react";
 
 function badge(status?: string | null) {
   if (status === "verified") return <Badge className="bg-emerald-600 hover:bg-emerald-600">Verified</Badge>;
@@ -27,11 +29,33 @@ export function ClientKycPanel({ clientId }: { clientId: string }) {
   const verifyFn = useServerFn(verifyKycDocument);
   const rejectFn = useServerFn(rejectKycDocument);
   const setStatusFn = useServerFn(setClientKycStatus);
+  const uploadFn = useServerFn(staffUploadKycDocument);
   const { data, isLoading } = useQuery({
     queryKey: ["client-kyc", clientId],
     queryFn: () => fn({ data: { client_id: clientId } }),
   });
   const [reasons, setReasons] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const uploadFor = async (docType: string, file: File) => {
+    if (file.size > 10 * 1024 * 1024) { toast.error("File is too large (max 10 MB)"); return; }
+    setBusy((b) => ({ ...b, [docType]: true }));
+    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${clientId}/kyc/${docType}/${Date.now()}-${safe}`;
+    const { error: upErr } = await supabase.storage.from("client-documents")
+      .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
+    if (upErr) { setBusy((b) => ({ ...b, [docType]: false })); toast.error(upErr.message || "Upload failed"); return; }
+    try {
+      await uploadFn({ data: { client_id: clientId, doc_type: docType as any, storage_path: path, file_name: file.name } });
+      toast.success("Uploaded");
+      qc.invalidateQueries({ queryKey: ["client-kyc", clientId] });
+    } catch (e: any) {
+      await supabase.storage.from("client-documents").remove([path]);
+      toast.error(e?.message ?? "Could not save upload");
+    }
+    setBusy((b) => ({ ...b, [docType]: false }));
+  };
 
   const verify = useMutation({
     mutationFn: (id: string) => verifyFn({ data: { id } }),
