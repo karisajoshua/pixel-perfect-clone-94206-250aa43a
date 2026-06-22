@@ -151,6 +151,43 @@ export const recordKycUpload = createServerFn({ method: "POST" })
     return row;
   });
 
+export const createKycUploadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    doc_type: z.enum(DOC_TYPE_ENUM),
+    file_name: z.string().min(1),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const client = await getMyClient(context.supabase, context.userId);
+    const safe = data.file_name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${client.id}/kyc/${data.doc_type}/${Date.now()}-${safe}`;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from("client-documents")
+      .createSignedUploadUrl(path);
+    if (error || !signed) throw new Error(error?.message ?? "Could not create upload URL");
+    return { path, token: signed.token, clientId: client.id };
+  });
+
+export const staffCreateKycUploadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    client_id: z.string().uuid(),
+    doc_type: z.enum(DOC_TYPE_ENUM),
+    file_name: z.string().min(1),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context.supabase, context.userId);
+    const safe = data.file_name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${data.client_id}/kyc/${data.doc_type}/${Date.now()}-${safe}`;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from("client-documents")
+      .createSignedUploadUrl(path);
+    if (error || !signed) throw new Error(error?.message ?? "Could not create upload URL");
+    return { path, token: signed.token };
+  });
+
 export const removeKycUpload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({

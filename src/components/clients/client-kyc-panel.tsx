@@ -9,6 +9,7 @@ import {
   rejectKycDocument,
   setClientKycStatus,
   staffUploadKycDocument,
+  staffCreateKycUploadUrl,
 } from "@/lib/kyc.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ export function ClientKycPanel({ clientId }: { clientId: string }) {
   const rejectFn = useServerFn(rejectKycDocument);
   const setStatusFn = useServerFn(setClientKycStatus);
   const uploadFn = useServerFn(staffUploadKycDocument);
+  const createUrlFn = useServerFn(staffCreateKycUploadUrl);
   const { data, isLoading } = useQuery({
     queryKey: ["client-kyc", clientId],
     queryFn: () => fn({ data: { client_id: clientId } }),
@@ -41,18 +43,19 @@ export function ClientKycPanel({ clientId }: { clientId: string }) {
   const uploadFor = async (docType: string, file: File) => {
     if (file.size > 10 * 1024 * 1024) { toast.error("File is too large (max 10 MB)"); return; }
     setBusy((b) => ({ ...b, [docType]: true }));
-    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const path = `${clientId}/kyc/${docType}/${Date.now()}-${safe}`;
-    const { error: upErr } = await supabase.storage.from("client-documents")
-      .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
-    if (upErr) { setBusy((b) => ({ ...b, [docType]: false })); toast.error(upErr.message || "Upload failed"); return; }
+    let path: string | null = null;
     try {
-      await uploadFn({ data: { client_id: clientId, doc_type: docType as any, storage_path: path, file_name: file.name } });
+      const signed = await createUrlFn({ data: { client_id: clientId, doc_type: docType as any, file_name: file.name } });
+      path = signed.path;
+      const { error: upErr } = await supabase.storage.from("client-documents")
+        .uploadToSignedUrl(signed.path, signed.token, file, { contentType: file.type || "application/octet-stream" });
+      if (upErr) throw upErr;
+      await uploadFn({ data: { client_id: clientId, doc_type: docType as any, storage_path: signed.path, file_name: file.name } });
       toast.success("Uploaded");
       qc.invalidateQueries({ queryKey: ["client-kyc", clientId] });
     } catch (e: any) {
-      await supabase.storage.from("client-documents").remove([path]);
-      toast.error(e?.message ?? "Could not save upload");
+      if (path) await supabase.storage.from("client-documents").remove([path]).catch(() => {});
+      toast.error(e?.message ?? "Upload failed");
     }
     setBusy((b) => ({ ...b, [docType]: false }));
   };
