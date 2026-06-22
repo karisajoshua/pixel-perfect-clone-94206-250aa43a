@@ -1,32 +1,43 @@
-## Vehicle edit: lock client + logbook auto-fill
+## What's going wrong
 
-Two changes to the vehicle form (`src/components/vehicles/vehicle-form-dialog.tsx`).
+The portal page uploads files directly from the browser to the `client-documents` storage bucket. Storage allows that upload only when the first folder in the path equals the signed-in user's linked client id (the SQL policy `(storage.foldername(name))[1] = current_client_id()::text`). When that lookup returns nothing, every upload fails with **"new row violates row-level security policy"** — exactly what you're seeing.
 
-### 1. Client field on edit — no dropdown, just the name
+I checked the database: out of **1007 clients, 0 have a portal login linked** (`auth_user_id` is empty on every row). So `current_client_id()` returns nothing for any client account that signs in today, and storage rejects the upload before the file ever lands.
 
-When editing an existing vehicle (or when `defaultClientId` is passed in from a client page), replace the Client `<Select>` with a read-only display showing the client's name. The dropdown stays only for the "New vehicle" case opened from the global Vehicles list with no pre-selected client.
+This usually happens after a fresh client import (the new rows come in without `auth_user_id`), or because the portal accounts were created against earlier client rows that were later re-imported.
 
-- Fetch the single client by `initial.client_id` (or `defaultClientId`) and render its name in a disabled input / muted text row labelled "Client".
-- The client cannot be reassigned from this dialog — matches the rest of the app where vehicles belong to one client.
+## Plan
 
-### 2. "Scan logbook" to auto-fill vehicle fields
+### 1. Make uploads work through the server, not direct-from-browser
 
-Add a **Scan logbook** button at the top of the dialog. Flow:
+Replace the browser → storage upload in the portal KYC page with a server-issued **signed upload URL**. The server function authenticates the user, looks up their client, builds the path itself, and hands back a one-shot upload URL. Storage RLS no longer has to evaluate against `current_client_id()` for the upload step — it only matters for read/delete, which already work for staff anyway.
 
-1. User picks a logbook image or PDF (camera or file).
-2. File is uploaded to the existing `client-documents` storage bucket under `logbooks/{client_id}/{vehicle_id|temp}-{timestamp}` so it's retained as a KYC-style record.
-3. A new server function `extractLogbookFields` (in `src/lib/vehicles.functions.ts`, protected with `requireSupabaseAuth`) sends the file to the Lovable AI Gateway (`google/gemini-2.5-flash`, multimodal `image_url` / `file` block) with a prompt that asks for a strict JSON object with keys: `registration_no`, `make`, `model`, `year`, `body_type`, `color`, `chassis_no`, `engine_no`, `fuel_type`, `seating_capacity`, `cubic_capacity`, `usage_type`. Unknown fields → `null`.
-4. The dialog merges the returned fields into form state **only for fields the user hasn't already filled** (no overwrite of edited values), shows a toast "Logbook scanned — review highlighted fields", and visually marks auto-filled inputs (subtle ring + small "auto" badge) so staff knows what to verify.
-5. Errors (unreadable image, no JSON, gateway failure) surface as a toast; nothing is filled.
+- New server function `createKycUploadUrl({ doc_type, file_name })` in `src/lib/kyc.functions.ts`:
+  - protected by `requireSupabaseAuth`
+  - calls `getMyClient` (the same helper the page already uses)
+  - builds `path = ${client.id}/kyc/${doc_type}/${Date.now()}-${safe}`
+  - calls `supabase.storage.from('client-documents').createSignedUploadUrl(path)` and returns `{ path, token }`
+- Update `src/routes/_portal/portal/documents.tsx` `DocSlot.onFile`:
+  - call `createKycUploadUrl`, then `supabase.storage.from('client-documents').uploadToSignedUrl(path, token, file, { contentType })`
+  - then call the existing `recordKycUpload` exactly as today
+- Same treatment for `src/components/clients/client-kyc-panel.tsx` (admin "upload on behalf of client") — add a sibling `staffCreateKycUploadUrl` so admins don't depend on storage RLS either.
 
-### Out of scope
+### 2. Surface a clearer message when an account isn't linked to a client
 
-- Changing how vehicles are created from the global Vehicles list with no client context (dropdown stays there).
-- Storing the parsed logbook payload as structured KYC — just the file is stored; extracted values land directly in the vehicle form.
-- OCR for any document other than the Kenyan NTSA logbook.
+`getMyRequiredDocuments` already throws "Your account isn't linked to a client record yet". The page renders that in a red box. Keep that behaviour, but also:
 
-### Files touched
+- In the portal route guard (`src/routes/_portal/route.tsx`), if the signed-in user has the `client` role but **no** matching `clients.auth_user_id` row, redirect to a small explainer page (or show an inline message in `portal/index.tsx`) instead of letting them land on a broken Documents tab.
 
-- `src/components/vehicles/vehicle-form-dialog.tsx` — replace client Select with read-only display when `initial?.client_id` or `defaultClientId` is set; add Scan logbook button, file input, upload + extract handler, auto-fill merge, highlight ring on auto-filled fields.
-- `src/lib/vehicles.functions.ts` (new) — `extractLogbookFields` server fn: takes `{ storage_path }`, downloads via signed URL, calls Lovable AI Gateway with the logbook image, returns parsed JSON.
-- No DB migration. No new bucket.
+### 3. One-time data check (no migration)
+
+Not part of the code change, but worth flagging in the same turn so you can decide:
+- 0 of 1007 clients have a portal login attached. Any client who needs portal access has to be re-issued one from **Admin → Clients → Generate portal login** (which already correctly sets `auth_user_id` + the `client` role). I'll mention this in the final reply, not silently re-run it.
+
+## Files touched
+
+- `src/lib/kyc.functions.ts` — add `createKycUploadUrl` and `staffCreateKycUploadUrl`
+- `src/routes/_portal/portal/documents.tsx` — switch `onFile` to signed-URL flow
+- `src/components/clients/client-kyc-panel.tsx` — switch `uploadFor` to signed-URL flow
+- `src/routes/_portal/route.tsx` — friendlier handling for unlinked client accounts
+
+No database migration, no new storage bucket, no policy change.
