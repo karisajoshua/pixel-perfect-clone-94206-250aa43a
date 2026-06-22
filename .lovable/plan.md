@@ -1,43 +1,33 @@
-## What's going wrong
+# Re-use the client's KYC logbook for vehicle scan
 
-The portal page uploads files directly from the browser to the `client-documents` storage bucket. Storage allows that upload only when the first folder in the path equals the signed-in user's linked client id (the SQL policy `(storage.foldername(name))[1] = current_client_id()::text`). When that lookup returns nothing, every upload fails with **"new row violates row-level security policy"** — exactly what you're seeing.
+Today the "Scan log book" button in the vehicle dialog always opens a file picker. You want it to use the logbook the admin already uploaded under the client's KYC, so no second upload is needed (especially on Edit).
 
-I checked the database: out of **1007 clients, 0 have a portal login linked** (`auth_user_id` is empty on every row). So `current_client_id()` returns nothing for any client account that signs in today, and storage rejects the upload before the file ever lands.
+## How it will work
 
-This usually happens after a fresh client import (the new rows come in without `auth_user_id`), or because the portal accounts were created against earlier client rows that were later re-imported.
+When the vehicle dialog opens with a client selected (both New and Edit):
 
-## Plan
+1. The dialog asks the server whether that client has a usable logbook on file. We accept any of these KYC doc types, in this priority order: `log_book`, then `importation_doc`, then `search_doc`.
+2. If one exists, the Scan button becomes **"Scan client's log book"** and shows the file name underneath (e.g. "Using: KDA123A-logbook.pdf"). Clicking it runs the scanner against that stored file — no upload, no file picker.
+3. If none exists, the button stays as today: **"Scan log book"** opens the file picker. We'll add a small hint: "No log book on file for this client. Upload one under Clients → KYC to reuse it next time."
+4. After a successful scan, fields auto-fill the same way they do now (with the "auto" badges, only filling empty fields, user reviews before saving).
 
-### 1. Make uploads work through the server, not direct-from-browser
+This works for both creating a new vehicle (once a client is picked) and editing an existing vehicle (client is already known).
 
-Replace the browser → storage upload in the portal KYC page with a server-issued **signed upload URL**. The server function authenticates the user, looks up their client, builds the path itself, and hands back a one-shot upload URL. Storage RLS no longer has to evaluate against `current_client_id()` for the upload step — it only matters for read/delete, which already work for staff anyway.
+## Technical details
 
-- New server function `createKycUploadUrl({ doc_type, file_name })` in `src/lib/kyc.functions.ts`:
-  - protected by `requireSupabaseAuth`
-  - calls `getMyClient` (the same helper the page already uses)
-  - builds `path = ${client.id}/kyc/${doc_type}/${Date.now()}-${safe}`
-  - calls `supabase.storage.from('client-documents').createSignedUploadUrl(path)` and returns `{ path, token }`
-- Update `src/routes/_portal/portal/documents.tsx` `DocSlot.onFile`:
-  - call `createKycUploadUrl`, then `supabase.storage.from('client-documents').uploadToSignedUrl(path, token, file, { contentType })`
-  - then call the existing `recordKycUpload` exactly as today
-- Same treatment for `src/components/clients/client-kyc-panel.tsx` (admin "upload on behalf of client") — add a sibling `staffCreateKycUploadUrl` so admins don't depend on storage RLS either.
+- **`src/lib/vehicles.functions.ts`** — two changes:
+  - New server fn `getClientLogbookDoc({ client_id })` (protected, staff-only): looks up the most recent `client_required_documents` row for that client where `doc_type IN ('log_book','importation_doc','search_doc')` and `storage_path IS NOT NULL`, returns `{ storage_path, file_name, doc_type } | null`. Uses `supabaseAdmin` inside the handler.
+  - Extend `extractLogbookFields` input: accept either the existing `{ file_data_url, mime_type, filename }` OR a new `{ client_id, storage_path }` variant. In the storage variant the handler verifies the path begins with `${client_id}/kyc/`, downloads the file via `supabaseAdmin.storage.from("client-documents").download(path)`, infers mime from extension, converts to a data URL, then runs the same AI prompt path. No change to the returned shape.
 
-### 2. Surface a clearer message when an account isn't linked to a client
+- **`src/components/vehicles/vehicle-form-dialog.tsx`**:
+  - When `form.client_id` changes, call `getClientLogbookDoc` and store `storedLogbook` in state.
+  - If `storedLogbook` exists: render the Scan button as "Scan client's log book" with the file name beneath; clicking calls `extractFn({ data: { client_id, storage_path } })` directly — no file input. Keep a small "Upload different file" link that falls back to the existing picker flow.
+  - If not: keep today's button + add the hint text.
+  - All other logic (auto-fill, badges, toasts) unchanged.
 
-`getMyRequiredDocuments` already throws "Your account isn't linked to a client record yet". The page renders that in a red box. Keep that behaviour, but also:
+No DB migration, no new bucket, no policy change. Staff-only — the portal vehicle pages are not touched.
 
-- In the portal route guard (`src/routes/_portal/route.tsx`), if the signed-in user has the `client` role but **no** matching `clients.auth_user_id` row, redirect to a small explainer page (or show an inline message in `portal/index.tsx`) instead of letting them land on a broken Documents tab.
+## Files
 
-### 3. One-time data check (no migration)
-
-Not part of the code change, but worth flagging in the same turn so you can decide:
-- 0 of 1007 clients have a portal login attached. Any client who needs portal access has to be re-issued one from **Admin → Clients → Generate portal login** (which already correctly sets `auth_user_id` + the `client` role). I'll mention this in the final reply, not silently re-run it.
-
-## Files touched
-
-- `src/lib/kyc.functions.ts` — add `createKycUploadUrl` and `staffCreateKycUploadUrl`
-- `src/routes/_portal/portal/documents.tsx` — switch `onFile` to signed-URL flow
-- `src/components/clients/client-kyc-panel.tsx` — switch `uploadFor` to signed-URL flow
-- `src/routes/_portal/route.tsx` — friendlier handling for unlinked client accounts
-
-No database migration, no new storage bucket, no policy change.
+- edit `src/lib/vehicles.functions.ts`
+- edit `src/components/vehicles/vehicle-form-dialog.tsx`

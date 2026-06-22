@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { ScanLine, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { extractLogbookFields } from "@/lib/vehicles.functions";
+import { extractLogbookFields, getClientLogbookDoc } from "@/lib/vehicles.functions";
 
 type Props = {
   open: boolean;
@@ -28,8 +28,10 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
   const [lockedClient, setLockedClient] = useState<{ id: string; label: string } | null>(null);
   const [autoFilled, setAutoFilled] = useState<Set<string>>(new Set());
   const [scanning, setScanning] = useState(false);
+  const [storedLogbook, setStoredLogbook] = useState<{ storage_path: string; file_name: string; doc_type: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const extractFn = useServerFn(extractLogbookFields);
+  const getStoredFn = useServerFn(getClientLogbookDoc);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   useEffect(() => {
@@ -47,6 +49,17 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
     supabase.from("clients").select("id, full_name, company_name, client_type").order("full_name").limit(500).then(({ data }) => setClients(data ?? []));
     supabase.from("branches").select("id, name").order("name").then(({ data }) => setBranches(data ?? []));
   }, [open, initial, defaultClientId]);
+
+  useEffect(() => {
+    if (!open) return;
+    const cid = form.client_id;
+    if (!cid) { setStoredLogbook(null); return; }
+    let cancelled = false;
+    getStoredFn({ data: { client_id: cid } })
+      .then((res) => { if (!cancelled) setStoredLogbook(res); })
+      .catch(() => { if (!cancelled) setStoredLogbook(null); });
+    return () => { cancelled = true; };
+  }, [open, form.client_id, getStoredFn]);
 
   const submit = async () => {
     setSaving(true);
@@ -100,6 +113,31 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
     }
   };
 
+  const onScanStored = async () => {
+    if (!storedLogbook || !form.client_id) return;
+    setScanning(true);
+    try {
+      const fields = await extractFn({ data: { client_id: form.client_id, storage_path: storedLogbook.storage_path } });
+      const filledKeys: string[] = [];
+      setForm((f: any) => {
+        const next = { ...f };
+        for (const [k, v] of Object.entries(fields)) {
+          if (next[k] === undefined || next[k] === null || next[k] === "") {
+            next[k] = v;
+            filledKeys.push(k);
+          }
+        }
+        return next;
+      });
+      if (filledKeys.length === 0) toast.message("Logbook read — all matching fields were already filled.");
+      else { setAutoFilled(new Set(filledKeys)); toast.success(`Logbook scanned — filled ${filledKeys.length} field${filledKeys.length === 1 ? "" : "s"}. Please review.`); }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not read stored logbook");
+    } finally {
+      setScanning(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -107,13 +145,26 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
         <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 p-2.5">
           <div className="text-sm">
             <div className="font-medium">Scan log book</div>
-            <div className="text-xs text-muted-foreground">Auto-fill vehicle details from a photo or PDF of the log book.</div>
+            <div className="text-xs text-muted-foreground">
+              {storedLogbook
+                ? <>Using client's KYC {storedLogbook.doc_type.replace("_", " ")}: <span className="font-medium">{storedLogbook.file_name}</span></>
+                : form.client_id
+                  ? "No log book on file for this client. Upload one under Clients → KYC to reuse it, or scan a file now."
+                  : "Auto-fill vehicle details from a photo or PDF of the log book."}
+            </div>
           </div>
           <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onScanFile(f); }} />
-          <Button type="button" variant="outline" size="sm" disabled={scanning} onClick={() => fileRef.current?.click()}>
-            {scanning ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ScanLine className="h-4 w-4 mr-1" />}
-            {scanning ? "Scanning…" : "Scan log book"}
-          </Button>
+          <div className="flex flex-col items-end gap-1">
+            <Button type="button" variant="outline" size="sm" disabled={scanning} onClick={() => storedLogbook ? onScanStored() : fileRef.current?.click()}>
+              {scanning ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ScanLine className="h-4 w-4 mr-1" />}
+              {scanning ? "Scanning…" : storedLogbook ? "Scan client's log book" : "Scan log book"}
+            </Button>
+            {storedLogbook && (
+              <button type="button" className="text-[11px] text-muted-foreground hover:underline" disabled={scanning} onClick={() => fileRef.current?.click()}>
+                Upload different file
+              </button>
+            )}
+          </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="sm:col-span-2 space-y-1.5 min-w-0">
