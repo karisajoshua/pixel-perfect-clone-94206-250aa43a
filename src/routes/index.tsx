@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
+import { normalizePhone, looksLikeEmail } from "@/lib/phone";
 import bg1 from "@/assets/auth-bg-1.jpg";
 import bg2 from "@/assets/auth-bg-2.jpg";
 import bg3 from "@/assets/auth-bg-3.jpg";
@@ -32,6 +33,7 @@ const SLIDES = [
 
 function AuthPage() {
   const navigate = useNavigate();
+  const [identifier, setIdentifier] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -58,7 +60,16 @@ function AuthPage() {
   const signIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const value = identifier.trim();
+    let credentials: any;
+    if (looksLikeEmail(value)) {
+      credentials = { email: value, password };
+    } else {
+      const phone = normalizePhone(value);
+      if (!phone) { setLoading(false); return toast.error("Enter a valid email or phone number"); }
+      credentials = { phone, password };
+    }
+    const { error } = await supabase.auth.signInWithPassword(credentials);
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Welcome back");
@@ -88,8 +99,9 @@ function AuthPage() {
   };
 
   const reset = async () => {
-    if (!email) return toast.error("Enter your email first");
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const value = identifier.trim();
+    if (!value || !looksLikeEmail(value)) return toast.error("Enter your email above to reset your password");
+    const { error } = await supabase.auth.resetPasswordForEmail(value, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     if (error) return toast.error(error.message);
@@ -158,8 +170,8 @@ function AuthPage() {
               <TabsContent value="signin">
                 <form onSubmit={signIn} className="space-y-3 pt-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    <Label htmlFor="identifier">Email or phone</Label>
+                    <Input id="identifier" type="text" autoComplete="username" placeholder="you@example.com or 0712 345 678" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="password">Password</Label>
