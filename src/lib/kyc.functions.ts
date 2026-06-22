@@ -117,16 +117,17 @@ export const recordKycUpload = createServerFn({ method: "POST" })
       throw new Error("Invalid upload path");
     }
     // Remove previous file for this slot if any
-    const { data: existing } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: existing } = await supabaseAdmin
       .from("client_required_documents")
       .select("storage_path")
       .eq("client_id", client.id)
       .eq("doc_type", data.doc_type)
       .maybeSingle();
     if (existing?.storage_path && existing.storage_path !== data.storage_path) {
-      await context.supabase.storage.from("client-documents").remove([existing.storage_path]);
+      await supabaseAdmin.storage.from("client-documents").remove([existing.storage_path]);
     }
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await supabaseAdmin
       .from("client_required_documents")
       .upsert(
         {
@@ -297,16 +298,17 @@ export const staffUploadKycDocument = createServerFn({ method: "POST" })
     if (!data.storage_path.startsWith(`${data.client_id}/kyc/`)) {
       throw new Error("Invalid upload path");
     }
-    const { data: existing } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: existing } = await supabaseAdmin
       .from("client_required_documents")
       .select("storage_path")
       .eq("client_id", data.client_id)
       .eq("doc_type", data.doc_type)
       .maybeSingle();
     if (existing?.storage_path && existing.storage_path !== data.storage_path) {
-      await context.supabase.storage.from("client-documents").remove([existing.storage_path]);
+      await supabaseAdmin.storage.from("client-documents").remove([existing.storage_path]);
     }
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await supabaseAdmin
       .from("client_required_documents")
       .upsert(
         {
