@@ -1,46 +1,61 @@
-## Goals
-1. Let admins/managers upload KYC documents on behalf of a client from the staff KYC panel.
-2. Add three new optional vehicle-related slots: Log book, Importation document, Search document — client picks any (accept jpeg/jpg/png/pdf/doc/docx).
-3. When a client record is created in the system, auto-provision a portal login so they don't have to self-register.
+## Goal
 
-## Plan
+1. Let clients sign in with **either email or phone number** (both with password).
+2. On the staff "Generate portal login" button: prefer **phone** when present; if neither phone nor email exists, prompt for a phone number inline before generating.
 
-### 1. Expand KYC document types
-- Migration: add `log_book`, `importation_doc`, `search_doc` values to the `public.kyc_doc_type` enum.
-- In `src/lib/kyc.functions.ts`:
-  - Extend the `KycDocType` union and the `z.enum([...])` validators in `recordKycUpload` / `removeKycUpload` with the three new types.
-  - Add a new `VEHICLE_SLOTS` array (all optional) and append it to both `INDIVIDUAL_SLOTS` and `CORPORATE_SLOTS` so every client sees them.
-  - Accept the wider MIME list (jpeg, png, pdf, doc, docx) — current code doesn't filter, but make the file input `accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"` everywhere it's used.
+## Phone normalization
 
-### 2. Staff-side KYC uploads
-- New server fn in `kyc.functions.ts`: `staffUploadKycDocument` (admin/manager/agent only) — accepts `{ client_id, doc_type, storage_path, file_name }`, validates path prefix `${client_id}/kyc/`, upserts into `client_required_documents` exactly like `recordKycUpload`, marks status `verified` (since staff uploaded it themselves) with `verified_by = userId`.
-- Update `src/components/clients/client-kyc-panel.tsx`:
-  - For each slot, add a hidden file input + "Upload" button when `!item.row` (or "Replace" when row exists).
-  - On change: upload file to `client-documents` bucket at `${clientId}/kyc/${doc_type}-${timestamp}.${ext}`, then call `staffUploadKycDocument`.
-  - Show new Vehicle docs section (Log book / Importation doc / Search doc) below the existing slots.
+Kenyan numbers normalize to E.164 on save/login:
+- `07XXXXXXXX` → `+2547XXXXXXXX`
+- `7XXXXXXXX` → `+2547XXXXXXXX`
+- `2547XXXXXXXX` → `+2547XXXXXXXX`
+- Anything already starting with `+` is left alone.
 
-### 3. Client-side uploads for new types
-- The existing portal KYC page already iterates over `getMyRequiredDocuments` items, so once the slots are appended in step 1 they show automatically. Just confirm the upload `accept` attribute on the portal includes the wider format list.
+Helper added at `src/lib/phone.ts` and reused everywhere (sign-in, client form, server fn).
 
-### 4. Auto-create portal login when a client is added
-- New server fn `createClientPortalAccount` in `src/lib/admin-users.functions.ts` (admin/manager only):
-  - Uses `supabaseAdmin.auth.admin.createUser({ email, password: <random>, email_confirm: true, user_metadata: { full_name } })`.
-  - Links the new auth user to the existing client row (`clients.auth_user_id`).
-  - Assigns `client` role in `user_roles`.
-  - Returns `{ email, password }` for one-time display.
-- Wire into `ClientFormDialog` (after a successful create, if `email` is present): call the fn, then show a dialog/toast with the generated credentials and a "Copy" button. Also expose a "Generate portal login" button on the client detail page for existing clients without `auth_user_id`.
-- Keep the existing email-match trigger (`handle_new_user`) intact — it still works if the client later self-signs-up.
+## Changes
 
-## Technical notes
-- The `handle_new_user` trigger inserts a profile row and (for matched clients) a `client` role; calling `supabaseAdmin.auth.admin.createUser` fires it, so we only need to upsert the role if missing and ensure `clients.auth_user_id` is linked (trigger already does it when emails match).
-- Generated password: 16 random chars (`crypto.randomBytes(12).toString('base64url')`).
-- File-size/type validation stays client-side for now (existing pattern).
-- No schema change needed for the credentials feature — Supabase Auth handles it.
+### 1. Sign-in form (`src/routes/index.tsx`)
+- Replace the "Email" field on the Sign in tab with a single **"Email or phone"** field.
+- On submit:
+  - If the value contains `@`, call `signInWithPassword({ email, password })` as today.
+  - Otherwise, normalize via `phone.ts` and call `signInWithPassword({ phone, password })`.
+- Sign-up tab stays email-only (staff create accounts there).
+
+### 2. Portal account creation (`src/lib/admin-users.functions.ts`)
+Update `createClientPortalAccount`:
+- Accept optional `phone` in input (used when staff supplies a new number from the UI).
+- Pull `phone` from the client record; if missing and input has one, persist it to `clients.phone` first.
+- Branch:
+  - **Phone available** → `supabaseAdmin.auth.admin.createUser({ phone: normalized, password, phone_confirm: true })`. Returned credentials show **phone** as the login identifier.
+  - **No phone but email available** → existing email flow (unchanged).
+  - **Neither** → throw, UI handles the prompt.
+- Linking existing auth user: also look up by phone (`listUsers` filter), not just email.
+- `handle_new_user` trigger already links by email; we additionally call `update clients set auth_user_id` explicitly (already done), so phone-only accounts link correctly.
+
+### 3. Client detail page (`src/routes/_authenticated/clients.$id.tsx`)
+Replace the current "no email → toast error" behaviour:
+- Button always visible while `!client.auth_user_id`.
+- onClick logic:
+  - If `client.phone` exists → call `createClientPortalAccount({ client_id })` directly.
+  - Else if `client.email` exists → call as today (email path).
+  - Else → open a small **"Add phone number"** dialog with one input + Save. On save: normalize, call `createClientPortalAccount({ client_id, phone })`.
+- `CredentialsDialog` already exists; extend it to display "Phone" instead of "Email" when the response identifier is a phone number.
+
+### 4. Client form dialog (`src/components/clients/client-form-dialog.tsx`)
+- On save, normalize the phone field through `phone.ts` before insert/update.
+- After auto-creating the portal login for new clients, the credentials dialog will show phone-based creds when phone is provided (no extra wiring needed beyond the response shape change in step 2).
+
+### 5. No database migration
+Auth `phone` column is built-in; `clients.phone` already exists. No schema changes.
 
 ## Files touched
-- `supabase/migrations/<new>.sql` (enum values)
-- `src/lib/kyc.functions.ts`
+- `src/lib/phone.ts` *(new)*
+- `src/routes/index.tsx`
 - `src/lib/admin-users.functions.ts`
-- `src/components/clients/client-kyc-panel.tsx`
-- `src/components/clients/client-form-dialog.tsx` (post-create credential reveal)
-- `src/routes/_authenticated/clients.$id.tsx` (button for existing clients)
+- `src/routes/_authenticated/clients.$id.tsx`
+- `src/components/clients/client-form-dialog.tsx`
+
+## Out of scope
+- SMS OTP / passwordless login (not requested; would require Twilio).
+- Changing the staff sign-up tab to accept phone (staff use email).
