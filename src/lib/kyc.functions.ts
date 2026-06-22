@@ -23,9 +23,9 @@ export type KycSlot = {
 
 export const INDIVIDUAL_SLOTS: KycSlot[] = [
   { doc_type: "id_front", label: "National ID — front", description: "Clear photo of the front of your National ID or Passport bio page.", required: true },
-  { doc_type: "id_back", label: "National ID — back", description: "Back of your National ID (skip if using a passport).", required: true },
+  { doc_type: "id_back", label: "National ID — back", description: "Back of your National ID (optional; skip if using a passport).", required: false },
   { doc_type: "kra_pin", label: "KRA PIN certificate", description: "Your personal KRA PIN certificate (PDF preferred).", required: true },
-  { doc_type: "proof_of_address", label: "Proof of address", description: "Utility bill or bank statement issued in the last 3 months.", required: true },
+  { doc_type: "proof_of_address", label: "Proof of address", description: "Utility bill or bank statement issued in the last 3 months (optional).", required: false },
   { doc_type: "passport_photo", label: "Passport photo", description: "Recent passport-size photo on a plain background.", required: false },
 ];
 
