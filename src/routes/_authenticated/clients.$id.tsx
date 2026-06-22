@@ -60,8 +60,19 @@ function ClientDetail() {
         subtitle={`${client.client_type} • ${(client as any).branches?.name ?? "No branch"} • KYC ${client.kyc_status}`}
         actions={
           <div className="flex gap-2">
-            {!client.auth_user_id && client.email && (
-              <Button variant="outline" onClick={generatePortal} disabled={genBusy}>
+            {!client.auth_user_id && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (!client.email) {
+                    toast.error("Add an email to this client first, then generate the portal login.");
+                    return;
+                  }
+                  generatePortal();
+                }}
+                disabled={genBusy}
+                title={!client.email ? "Add an email first" : "Create a portal account for this client"}
+              >
                 <KeyRound className="h-4 w-4 mr-1" /> {genBusy ? "Creating…" : "Generate portal login"}
               </Button>
             )}
