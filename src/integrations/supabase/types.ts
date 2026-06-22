@@ -1249,6 +1249,9 @@ export type Database = {
         | "cert_incorporation"
         | "cr12"
         | "director_id"
+        | "log_book"
+        | "importation_doc"
+        | "search_doc"
       kyc_status: "pending" | "in_review" | "verified" | "rejected" | "expired"
     }
     CompositeTypes: {
@@ -1391,6 +1394,9 @@ export const Constants = {
         "cert_incorporation",
         "cr12",
         "director_id",
+        "log_book",
+        "importation_doc",
+        "search_doc",
       ],
       kyc_status: ["pending", "in_review", "verified", "rejected", "expired"],
     },
