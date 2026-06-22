@@ -11,6 +11,14 @@ import { sendTransactionalEmail, clientDisplayName } from "@/lib/email/send";
 import { useServerFn } from "@tanstack/react-start";
 import { createClientPortalAccount } from "@/lib/admin-users.functions";
 import { Copy } from "lucide-react";
+import { normalizePhone } from "@/lib/phone";
+
+export type PortalCreds = {
+  email: string | null;
+  phone: string | null;
+  password: string | null;
+  linked: boolean;
+};
 
 type Props = {
   open: boolean;
@@ -23,7 +31,7 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
   const [form, setForm] = useState<any>({ client_type: "individual" });
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const [saving, setSaving] = useState(false);
-  const [creds, setCreds] = useState<{ email: string; password: string | null; linked: boolean } | null>(null);
+  const [creds, setCreds] = useState<PortalCreds | null>(null);
   const portalFn = useServerFn(createClientPortalAccount);
 
   useEffect(() => {
@@ -38,14 +46,19 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
   const submit = async () => {
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
-    const payload = { ...form, created_by: u.user?.id };
+    const payload = {
+      ...form,
+      phone: normalizePhone(form.phone) ?? form.phone ?? null,
+      alt_phone: normalizePhone(form.alt_phone) ?? form.alt_phone ?? null,
+      created_by: u.user?.id,
+    };
     const op = initial?.id
       ? supabase.from("clients").update(payload).eq("id", initial.id)
       : supabase.from("clients").insert(payload).select("id").single();
     const { data: saved, error } = await op as any;
     if (error) { setSaving(false); return toast.error(error.message); }
     toast.success(initial?.id ? "Client updated" : "Client created");
-    if (!initial?.id && form.email && saved?.id) {
+    if (!initial?.id && saved?.id && (payload.email || payload.phone)) {
       sendTransactionalEmail({
         templateName: "client-welcome",
         recipientEmail: form.email,
@@ -62,9 +75,7 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
     }
     setSaving(false);
     onSaved?.();
-    if (initial?.id || !form.email) onOpenChange(false);
-    // when creds were created, keep dialog state but show creds dialog instead
-    if (!initial?.id && form.email) onOpenChange(false);
+    onOpenChange(false);
   };
 
   return (
@@ -129,21 +140,29 @@ function Field({ label, value, onChange, type = "text", required }: { label: str
   );
 }
 
-export function CredentialsDialog({ creds, onClose }: { creds: { email: string; password: string | null; linked: boolean } | null; onClose: () => void }) {
+export function CredentialsDialog({ creds, onClose }: { creds: PortalCreds | null; onClose: () => void }) {
   const copy = (text: string) => { navigator.clipboard.writeText(text); toast.success("Copied"); };
+  const identifier = creds?.phone || creds?.email || "";
+  const identifierLabel = creds?.phone ? "Phone" : "Email";
   return (
     <Dialog open={!!creds} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader><DialogTitle>Client portal login</DialogTitle></DialogHeader>
         {creds?.linked ? (
-          <p className="text-sm text-muted-foreground">An existing account with this email was found and linked to the client. They can log in with their existing password.</p>
+          <p className="text-sm text-muted-foreground">An existing account was found and linked to this client. They can log in with their existing password.</p>
         ) : (
           <div className="space-y-3 text-sm">
-            <p className="text-muted-foreground">Share these credentials with the client. The password is shown only once.</p>
+            <p className="text-muted-foreground">Share these credentials with the client. They can sign in with either their phone or email. The password is shown only once.</p>
             <div className="space-y-1.5">
-              <Label>Email</Label>
-              <div className="flex gap-2"><Input readOnly value={creds?.email ?? ""} /><Button variant="outline" size="icon" onClick={() => copy(creds!.email)}><Copy className="h-4 w-4" /></Button></div>
+              <Label>{identifierLabel}</Label>
+              <div className="flex gap-2"><Input readOnly value={identifier} /><Button variant="outline" size="icon" onClick={() => copy(identifier)}><Copy className="h-4 w-4" /></Button></div>
             </div>
+            {creds?.phone && creds?.email && (
+              <div className="space-y-1.5">
+                <Label>Email (alternate)</Label>
+                <div className="flex gap-2"><Input readOnly value={creds.email} /><Button variant="outline" size="icon" onClick={() => copy(creds.email!)}><Copy className="h-4 w-4" /></Button></div>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Temporary password</Label>
               <div className="flex gap-2"><Input readOnly value={creds?.password ?? ""} className="font-mono" /><Button variant="outline" size="icon" onClick={() => copy(creds!.password ?? "")}><Copy className="h-4 w-4" /></Button></div>
