@@ -191,21 +191,30 @@ export const listMyDocuments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const client = await getMyClient(context.supabase, context.userId);
-    const [rootRes, kycRes] = await Promise.all([
+    const [rootRes, kycRes, uploadsRes] = await Promise.all([
       context.supabase.storage.from("client-documents").list(client.id, { limit: 200, sortBy: { column: "created_at", order: "desc" } }),
       context.supabase.storage.from("client-documents").list(`${client.id}/kyc`, { limit: 200, sortBy: { column: "created_at", order: "desc" } }),
+      context.supabase.storage.from("client-documents").list(`${client.id}/uploads`, { limit: 200, sortBy: { column: "created_at", order: "desc" } }),
     ]);
     if (rootRes.error) throw rootRes.error;
-    const entries: { folder: "shared" | "kyc"; name: string; meta: any }[] = [];
+    const entries: { folder: "shared" | "kyc" | "uploads"; name: string; meta: any }[] = [];
     for (const f of rootRes.data ?? []) {
-      if (f.name && f.id && f.name !== "kyc") entries.push({ folder: "shared", name: f.name, meta: f });
+      if (f.name && f.id && f.name !== "kyc" && f.name !== "uploads") entries.push({ folder: "shared", name: f.name, meta: f });
     }
     for (const f of kycRes.data ?? []) {
       if (f.name && f.id) entries.push({ folder: "kyc", name: f.name, meta: f });
     }
+    for (const f of uploadsRes.data ?? []) {
+      if (f.name && f.id) entries.push({ folder: "uploads", name: f.name, meta: f });
+    }
     const signed = await Promise.all(
       entries.map(async (e) => {
-        const path = e.folder === "kyc" ? `${client.id}/kyc/${e.name}` : `${client.id}/${e.name}`;
+        const path =
+          e.folder === "kyc"
+            ? `${client.id}/kyc/${e.name}`
+            : e.folder === "uploads"
+              ? `${client.id}/uploads/${e.name}`
+              : `${client.id}/${e.name}`;
         const { data: s } = await context.supabase.storage.from("client-documents").createSignedUrl(path, 60 * 30);
         return {
           name: e.name,
@@ -214,11 +223,36 @@ export const listMyDocuments = createServerFn({ method: "GET" })
           size: e.meta.metadata?.size,
           created_at: e.meta.created_at,
           url: s?.signedUrl ?? null,
-          canDelete: e.folder === "kyc",
+          canDelete: e.folder === "kyc" || e.folder === "uploads",
         };
       }),
     );
     return signed;
+  });
+
+export const createMyUploadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ file_name: z.string().min(1).max(200) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const client = await getMyClient(context.supabase, context.userId);
+    const safeName = data.file_name.replace(/[^\w.\-]+/g, "_");
+    const path = `${client.id}/uploads/${Date.now()}-${safeName}`;
+    const { data: signed, error } = await context.supabase.storage
+      .from("client-documents")
+      .createSignedUploadUrl(path);
+    if (error || !signed) throw error ?? new Error("Could not create upload URL");
+    return { path: signed.path, token: signed.token };
+  });
+
+export const deleteMyUpload = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ path: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const client = await getMyClient(context.supabase, context.userId);
+    if (!data.path.startsWith(`${client.id}/uploads/`)) throw new Error("Invalid path");
+    const { error } = await context.supabase.storage.from("client-documents").remove([data.path]);
+    if (error) throw error;
+    return { ok: true };
   });
 
 export const getOnboardingStatus = createServerFn({ method: "GET" })
