@@ -52,7 +52,7 @@ const DOC_TYPE_ENUM = [
 async function getMyClient(supabase: any, userId: string) {
   const { data, error } = await supabase
     .from("clients")
-    .select("id, client_type, kyc_status, assigned_user_id, full_name, email, branch_id, auth_user_id")
+    .select("id, client_type, kyc_status, assigned_agent, full_name, email, branch_id, auth_user_id")
     .eq("auth_user_id", userId)
     .maybeSingle();
   if (error) throw error;
