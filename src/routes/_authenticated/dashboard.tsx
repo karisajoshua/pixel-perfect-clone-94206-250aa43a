@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/page-header";
 import { getDashboardSummary } from "@/lib/dashboard.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
+import { useMyRoles } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   beforeLoad: async () => {
@@ -24,6 +25,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function Dashboard() {
   const fetchSummary = useServerFn(getDashboardSummary);
+  const { data: roles } = useMyRoles();
+  const isAdmin = roles?.includes("admin");
   const { data } = useQuery({
     queryKey: ["dashboard", "summary"],
     queryFn: () => fetchSummary(),
@@ -46,20 +49,22 @@ function Dashboard() {
 
       <OnboardingChecklist />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{t ? fmt(t.revenue) : "—"}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {t ? `${fmt(t.revenueThisMonth)} this month` : "Loading…"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {isAdmin && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{t ? fmt(t.revenue) : "—"}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t ? `${fmt(t.revenueThisMonth)} this month` : "Loading…"}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map((t) => (
