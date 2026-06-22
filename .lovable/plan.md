@@ -1,33 +1,27 @@
-# Re-use the client's KYC logbook for vehicle scan
+## Problem
 
-Today the "Scan log book" button in the vehicle dialog always opens a file picker. You want it to use the logbook the admin already uploaded under the client's KYC, so no second upload is needed (especially on Edit).
+Portal logins are created with a phone number (via `createClientPortalAccount`), but Supabase Auth has the **Phone provider disabled**, so clients can't sign in with the phone + temporary password we hand them. The error "phone logins are disabled" comes straight from Auth.
 
-## How it will work
+## Fix
 
-When the vehicle dialog opens with a client selected (both New and Edit):
+Enable the Phone provider in Lovable Cloud auth settings so phone + password sign-in works for client portal accounts.
 
-1. The dialog asks the server whether that client has a usable logbook on file. We accept any of these KYC doc types, in this priority order: `log_book`, then `importation_doc`, then `search_doc`.
-2. If one exists, the Scan button becomes **"Scan client's log book"** and shows the file name underneath (e.g. "Using: KDA123A-logbook.pdf"). Clicking it runs the scanner against that stored file — no upload, no file picker.
-3. If none exists, the button stays as today: **"Scan log book"** opens the file picker. We'll add a small hint: "No log book on file for this client. Upload one under Clients → KYC to reuse it next time."
-4. After a successful scan, fields auto-fill the same way they do now (with the "auto" badges, only filling empty fields, user reviews before saving).
+Two options — pick one:
 
-This works for both creating a new vehicle (once a client is picked) and editing an existing vehicle (client is already known).
+### Option A — Enable Phone auth (recommended, matches current code)
 
-## Technical details
+You enable it from **Cloud → Users → Auth Settings → Phone provider → toggle on**. No SMS provider is needed because we set `phone_confirm: true` server-side (no OTP is sent); clients sign in with phone + the temporary password shown in the "Client portal login" dialog.
 
-- **`src/lib/vehicles.functions.ts`** — two changes:
-  - New server fn `getClientLogbookDoc({ client_id })` (protected, staff-only): looks up the most recent `client_required_documents` row for that client where `doc_type IN ('log_book','importation_doc','search_doc')` and `storage_path IS NOT NULL`, returns `{ storage_path, file_name, doc_type } | null`. Uses `supabaseAdmin` inside the handler.
-  - Extend `extractLogbookFields` input: accept either the existing `{ file_data_url, mime_type, filename }` OR a new `{ client_id, storage_path }` variant. In the storage variant the handler verifies the path begins with `${client_id}/kyc/`, downloads the file via `supabaseAdmin.storage.from("client-documents").download(path)`, infers mime from extension, converts to a data URL, then runs the same AI prompt path. No change to the returned shape.
+No code changes required. After enabling, existing generated credentials will work immediately.
 
-- **`src/components/vehicles/vehicle-form-dialog.tsx`**:
-  - When `form.client_id` changes, call `getClientLogbookDoc` and store `storedLogbook` in state.
-  - If `storedLogbook` exists: render the Scan button as "Scan client's log book" with the file name beneath; clicking calls `extractFn({ data: { client_id, storage_path } })` directly — no file input. Keep a small "Upload different file" link that falls back to the existing picker flow.
-  - If not: keep today's button + add the hint text.
-  - All other logic (auto-fill, badges, toasts) unchanged.
+### Option B — Switch portal logins to email-only
 
-No DB migration, no new bucket, no policy change. Staff-only — the portal vehicle pages are not touched.
+Change `createClientPortalAccount` to always create the auth user with `email` (never `phone`), and require an email on the client before generating a login. The "Generate portal login" button would be disabled until an email exists, and the phone-prompt dialog on the client detail page would become an email-prompt dialog.
 
-## Files
+This avoids enabling the Phone provider but means clients without an email on file can't get a portal login until you add one.
 
-- edit `src/lib/vehicles.functions.ts`
-- edit `src/components/vehicles/vehicle-form-dialog.tsx`
+## Recommendation
+
+Go with **Option A**. Your existing flow (phone-first, email fallback) and the credentials dialog already assume phone login works. Enabling the provider is a one-toggle change with zero code edits.
+
+Confirm A and I'll guide you through the toggle (it's a setting only you can flip — agents can't change provider toggles for you).
