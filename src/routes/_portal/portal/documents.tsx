@@ -11,7 +11,7 @@ import {
   createKycUploadUrl,
   type KycDocType,
 } from "@/lib/kyc.functions";
-import { listMyDocuments } from "@/lib/portal.functions";
+import { listMyDocuments, createMyUploadUrl, deleteMyUpload } from "@/lib/portal.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,10 @@ function Page() {
   const submitFn = useServerFn(submitKycForReview);
   const createUrlFn = useServerFn(createKycUploadUrl);
   const sharedFn = useServerFn(listMyDocuments);
+  const createMyUrl = useServerFn(createMyUploadUrl);
+  const deleteMine = useServerFn(deleteMyUpload);
+  const myUploadRef = useRef<HTMLInputElement>(null);
+  const [myBusy, setMyBusy] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["portal-kyc"],
@@ -70,6 +74,45 @@ function Page() {
 
   const pct = data && data.requiredTotal > 0 ? Math.round((data.requiredDone / data.requiredTotal) * 100) : 0;
   const locked = data?.kycStatus === "in_review" || data?.kycStatus === "verified";
+
+  const onMyUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("File too large (max 20 MB)");
+      if (myUploadRef.current) myUploadRef.current.value = "";
+      return;
+    }
+    setMyBusy(true);
+    try {
+      const signed = await createMyUrl({ data: { file_name: file.name } });
+      const { error: upErr } = await supabase.storage
+        .from("client-documents")
+        .uploadToSignedUrl(signed.path, signed.token, file, {
+          contentType: file.type || "application/octet-stream",
+        });
+      if (upErr) throw upErr;
+      toast.success("File uploaded");
+      qc.invalidateQueries({ queryKey: ["portal-docs"] });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Upload failed");
+    }
+    setMyBusy(false);
+    if (myUploadRef.current) myUploadRef.current.value = "";
+  };
+
+  const removeMine = async (path: string) => {
+    if (!confirm("Remove this file?")) return;
+    try {
+      await deleteMine({ data: { path } });
+      toast.success("Removed");
+      qc.invalidateQueries({ queryKey: ["portal-docs"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not remove");
+    }
+  };
+
+  const myUploads = (shared ?? []).filter((f: any) => f.folder === "uploads");
 
   return (
     <div className="max-w-4xl space-y-4">
@@ -176,6 +219,61 @@ function Page() {
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
+          <div>
+            <CardTitle className="text-base">My uploads</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Share any other documents with your agent (receipts, photos, letters).
+            </p>
+          </div>
+          <div>
+            <input
+              ref={myUploadRef}
+              type="file"
+              className="hidden"
+              onChange={onMyUpload}
+            />
+            <Button size="sm" onClick={() => myUploadRef.current?.click()} disabled={myBusy}>
+              <Upload className="h-4 w-4 mr-1.5" /> {myBusy ? "Uploading…" : "Upload file"}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {myUploads.length === 0 ? (
+            <p className="px-4 py-6 text-sm text-muted-foreground">No uploads yet.</p>
+          ) : (
+            <ul className="divide-y">
+              {myUploads.map((f: any) => (
+                <li key={f.path} className="p-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate">{f.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {f.created_at ? new Date(f.created_at).toLocaleDateString() : ""}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    {f.url && (
+                      <Button asChild size="sm" variant="outline">
+                        <a href={f.url} target="_blank" rel="noreferrer">
+                          <Download className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
+                    <Button size="sm" variant="ghost" onClick={() => removeMine(f.path)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
