@@ -255,6 +255,53 @@ export const deleteMyUpload = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const updateProfileSchema = z.object({
+  phone: z.string().trim().max(40).optional().nullable(),
+  alt_phone: z.string().trim().max(40).optional().nullable(),
+  address: z.string().trim().max(500).optional().nullable(),
+  city: z.string().trim().max(120).optional().nullable(),
+  date_of_birth: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+    .optional()
+    .nullable()
+    .or(z.literal("")),
+  id_number: z.string().trim().max(40).optional().nullable(),
+  kra_pin: z.string().trim().max(40).optional().nullable(),
+});
+
+export const updateMyProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => updateProfileSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const client = await getMyClient(context.supabase, context.userId);
+    const norm = (v: string | null | undefined) => {
+      if (v === undefined) return undefined;
+      const t = (v ?? "").trim();
+      return t === "" ? null : t;
+    };
+    const payload: Record<string, any> = {
+      phone: norm(data.phone),
+      alt_phone: norm(data.alt_phone),
+      address: norm(data.address),
+      city: norm(data.city),
+      date_of_birth: norm(data.date_of_birth),
+    };
+    if (client.kyc_status !== "verified") {
+      payload.id_number = norm(data.id_number);
+      payload.kra_pin = norm(data.kra_pin);
+    }
+    const { data: updated, error } = await context.supabase
+      .from("clients")
+      .update(payload as any)
+      .eq("id", client.id)
+      .select("*, branches(name)")
+      .single();
+    if (error) throw error;
+    return updated;
+  });
+
 export const getOnboardingStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
