@@ -97,6 +97,9 @@ export const createClientPortalAccount = createServerFn({ method: "POST" })
     if (aErr || !created.user) throw new Error(aErr?.message ?? "Could not create user");
 
     await supabaseAdmin.from("clients").update({ auth_user_id: created.user.id }).eq("id", client.id);
+    // The handle_new_user trigger inserts a default role (often 'agent') for new auth users.
+    // Portal-created clients must only have the 'client' role, so strip any others first.
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", created.user.id).neq("role", "client" as any);
     await supabaseAdmin
       .from("user_roles")
       .upsert({ user_id: created.user.id, role: "client" as any }, { onConflict: "user_id,role" });
