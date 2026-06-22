@@ -8,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { sendTransactionalEmail, clientDisplayName } from "@/lib/email/send";
+import { useServerFn } from "@tanstack/react-start";
+import { createClientPortalAccount } from "@/lib/admin-users.functions";
+import { Copy } from "lucide-react";
 
 type Props = {
   open: boolean;
@@ -20,6 +23,8 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
   const [form, setForm] = useState<any>({ client_type: "individual" });
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const [saving, setSaving] = useState(false);
+  const [creds, setCreds] = useState<{ email: string; password: string | null; linked: boolean } | null>(null);
+  const portalFn = useServerFn(createClientPortalAccount);
 
   useEffect(() => {
     if (open) {
@@ -38,8 +43,7 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
       ? supabase.from("clients").update(payload).eq("id", initial.id)
       : supabase.from("clients").insert(payload).select("id").single();
     const { data: saved, error } = await op as any;
-    setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) { setSaving(false); return toast.error(error.message); }
     toast.success(initial?.id ? "Client updated" : "Client created");
     if (!initial?.id && form.email && saved?.id) {
       sendTransactionalEmail({
@@ -48,9 +52,19 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
         idempotencyKey: `client-welcome-${saved.id}`,
         templateData: { clientName: clientDisplayName(form) },
       });
+      // Auto-create portal login so the client doesn't need to self-register
+      try {
+        const res = await portalFn({ data: { client_id: saved.id } });
+        setCreds(res);
+      } catch (e: any) {
+        toast.error(e?.message ?? "Could not create portal login");
+      }
     }
+    setSaving(false);
     onSaved?.();
-    onOpenChange(false);
+    if (initial?.id || !form.email) onOpenChange(false);
+    // when creds were created, keep dialog state but show creds dialog instead
+    if (!initial?.id && form.email) onOpenChange(false);
   };
 
   return (
@@ -100,6 +114,8 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <CredentialsDialog creds={creds} onClose={() => setCreds(null)} />
+    </>
   );
 }
 
@@ -109,5 +125,32 @@ function Field({ label, value, onChange, type = "text", required }: { label: str
       <Label>{label}{required && <span className="text-destructive ml-0.5">*</span>}</Label>
       <Input type={type} value={value ?? ""} onChange={(e) => onChange(e.target.value)} required={required} />
     </div>
+  );
+}
+
+export function CredentialsDialog({ creds, onClose }: { creds: { email: string; password: string | null; linked: boolean } | null; onClose: () => void }) {
+  const copy = (text: string) => { navigator.clipboard.writeText(text); toast.success("Copied"); };
+  return (
+    <Dialog open={!!creds} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Client portal login</DialogTitle></DialogHeader>
+        {creds?.linked ? (
+          <p className="text-sm text-muted-foreground">An existing account with this email was found and linked to the client. They can log in with their existing password.</p>
+        ) : (
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">Share these credentials with the client. The password is shown only once.</p>
+            <div className="space-y-1.5">
+              <Label>Email</Label>
+              <div className="flex gap-2"><Input readOnly value={creds?.email ?? ""} /><Button variant="outline" size="icon" onClick={() => copy(creds!.email)}><Copy className="h-4 w-4" /></Button></div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Temporary password</Label>
+              <div className="flex gap-2"><Input readOnly value={creds?.password ?? ""} className="font-mono" /><Button variant="outline" size="icon" onClick={() => copy(creds!.password ?? "")}><Copy className="h-4 w-4" /></Button></div>
+            </div>
+          </div>
+        )}
+        <DialogFooter><Button onClick={onClose}>Done</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
