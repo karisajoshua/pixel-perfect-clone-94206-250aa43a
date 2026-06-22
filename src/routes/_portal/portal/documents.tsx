@@ -8,6 +8,7 @@ import {
   recordKycUpload,
   removeKycUpload,
   submitKycForReview,
+  createKycUploadUrl,
   type KycDocType,
 } from "@/lib/kyc.functions";
 import { listMyDocuments } from "@/lib/portal.functions";
@@ -42,6 +43,7 @@ function Page() {
   const recordFn = useServerFn(recordKycUpload);
   const removeFn = useServerFn(removeKycUpload);
   const submitFn = useServerFn(submitKycForReview);
+  const createUrlFn = useServerFn(createKycUploadUrl);
   const sharedFn = useServerFn(listMyDocuments);
 
   const { data, isLoading, error } = useQuery({
