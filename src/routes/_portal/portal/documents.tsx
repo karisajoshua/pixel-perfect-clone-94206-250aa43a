@@ -275,7 +275,7 @@ function DocSlot({ clientId, docType, label, description, required, row, url, lo
           </div>
         )}
 
-        <input ref={fileRef} type="file" className="hidden" accept="image/*,application/pdf" onChange={onFile} />
+        <input ref={fileRef} type="file" className="hidden" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,image/jpeg,image/png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={onFile} />
         <div className="flex gap-2">
           {!locked && (
             <Button size="sm" variant={row ? "outline" : "default"} onClick={pick} disabled={busy}>

@@ -8,10 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Pencil, Upload, MessageSquarePlus } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { ClientFormDialog } from "@/components/clients/client-form-dialog";
+import { ClientFormDialog, CredentialsDialog } from "@/components/clients/client-form-dialog";
 import { ClientDocuments } from "@/components/clients/client-documents";
 import { ClientCommunications } from "@/components/clients/client-communications";
 import { ClientKycPanel } from "@/components/clients/client-kyc-panel";
+import { useServerFn } from "@tanstack/react-start";
+import { createClientPortalAccount } from "@/lib/admin-users.functions";
+import { KeyRound } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]),
   component: ClientDetail,
@@ -21,6 +25,9 @@ function ClientDetail() {
   const { id } = useParams({ from: "/_authenticated/clients/$id" });
   const qc = useQueryClient();
   const [edit, setEdit] = useState(false);
+  const [creds, setCreds] = useState<{ email: string; password: string | null; linked: boolean } | null>(null);
+  const [genBusy, setGenBusy] = useState(false);
+  const portalFn = useServerFn(createClientPortalAccount);
 
   const { data: client, isLoading } = useQuery({
     queryKey: ["client", id],
@@ -34,13 +41,33 @@ function ClientDetail() {
   if (isLoading) return <div className="p-8 text-muted-foreground">Loading…</div>;
   if (!client) return <div className="p-8">Not found</div>;
 
+  const generatePortal = async () => {
+    setGenBusy(true);
+    try {
+      const res = await portalFn({ data: { client_id: id } });
+      setCreds(res);
+      qc.invalidateQueries({ queryKey: ["client", id] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not create portal login");
+    } finally { setGenBusy(false); }
+  };
+
   return (
     <div className="p-8 space-y-6">
       <Button asChild variant="ghost" size="sm"><Link to="/clients"><ArrowLeft className="h-4 w-4 mr-1" /> All clients</Link></Button>
       <PageHeader
         title={client.client_type === "corporate" ? client.company_name ?? client.full_name : client.full_name}
         subtitle={`${client.client_type} • ${(client as any).branches?.name ?? "No branch"} • KYC ${client.kyc_status}`}
-        actions={<Button onClick={() => setEdit(true)}><Pencil className="h-4 w-4 mr-1" /> Edit</Button>}
+        actions={
+          <div className="flex gap-2">
+            {!client.auth_user_id && client.email && (
+              <Button variant="outline" onClick={generatePortal} disabled={genBusy}>
+                <KeyRound className="h-4 w-4 mr-1" /> {genBusy ? "Creating…" : "Generate portal login"}
+              </Button>
+            )}
+            <Button onClick={() => setEdit(true)}><Pencil className="h-4 w-4 mr-1" /> Edit</Button>
+          </div>
+        }
       />
 
       <Tabs defaultValue="overview">
@@ -82,6 +109,7 @@ function ClientDetail() {
       </Tabs>
 
       <ClientFormDialog open={edit} onOpenChange={setEdit} initial={client} onSaved={() => qc.invalidateQueries({ queryKey: ["client", id] })} />
+      <CredentialsDialog creds={creds} onClose={() => setCreds(null)} />
     </div>
   );
 }
