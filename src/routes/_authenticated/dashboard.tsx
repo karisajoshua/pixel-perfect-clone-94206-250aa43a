@@ -82,43 +82,45 @@ function Dashboard() {
         ))}
       </div>
 
-      <Card>
-        <CardHeader><CardTitle>Revenue by branch</CardTitle></CardHeader>
-        <CardContent>
-          {!data?.byBranch?.length ? (
-            <p className="text-sm text-muted-foreground">No revenue recorded yet.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Branch</TableHead>
-                  <TableHead className="text-right">Policies</TableHead>
-                  <TableHead className="text-right">Revenue</TableHead>
-                  <TableHead className="text-right">Share</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.byBranch.map((b) => (
-                  <TableRow key={b.branchId ?? "unassigned"}>
-                    <TableCell className="font-medium">{b.branchName}</TableCell>
-                    <TableCell className="text-right">{b.policies}</TableCell>
-                    <TableCell className="text-right">{fmt(b.revenue)}</TableCell>
-                    <TableCell className="text-right">{(b.share * 100).toFixed(1)}%</TableCell>
+      {isAdmin && (
+        <Card>
+          <CardHeader><CardTitle>Revenue by branch</CardTitle></CardHeader>
+          <CardContent>
+            {!data?.byBranch?.length ? (
+              <p className="text-sm text-muted-foreground">No revenue recorded yet.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Branch</TableHead>
+                    <TableHead className="text-right">Policies</TableHead>
+                    <TableHead className="text-right">Revenue</TableHead>
+                    <TableHead className="text-right">Share</TableHead>
                   </TableRow>
-                ))}
-                <TableRow className="font-semibold border-t-2">
-                  <TableCell>All branches</TableCell>
-                  <TableCell className="text-right">
-                    {data.byBranch.reduce((s, b) => s + b.policies, 0)}
-                  </TableCell>
-                  <TableCell className="text-right">{fmt(t?.revenue ?? 0)}</TableCell>
-                  <TableCell className="text-right">100%</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {data.byBranch.map((b) => (
+                    <TableRow key={b.branchId ?? "unassigned"}>
+                      <TableCell className="font-medium">{b.branchName}</TableCell>
+                      <TableCell className="text-right">{b.policies}</TableCell>
+                      <TableCell className="text-right">{fmt(b.revenue)}</TableCell>
+                      <TableCell className="text-right">{(b.share * 100).toFixed(1)}%</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="font-semibold border-t-2">
+                    <TableCell>All branches</TableCell>
+                    <TableCell className="text-right">
+                      {data.byBranch.reduce((s, b) => s + b.policies, 0)}
+                    </TableCell>
+                    <TableCell className="text-right">{fmt(t?.revenue ?? 0)}</TableCell>
+                    <TableCell className="text-right">100%</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader><CardTitle>Getting started</CardTitle></CardHeader>
