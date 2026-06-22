@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { normalizePhone } from "@/lib/phone";
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
@@ -32,7 +33,9 @@ function generatePassword(len = 14): string {
 
 export const createClientPortalAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ client_id: z.string().uuid() }).parse(d))
+  .inputValidator((d) =>
+    z.object({ client_id: z.string().uuid(), phone: z.string().trim().min(1).optional() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdminOrManager(supabase, userId);
@@ -40,38 +43,65 @@ export const createClientPortalAccount = createServerFn({ method: "POST" })
 
     const { data: client, error: cErr } = await supabaseAdmin
       .from("clients")
-      .select("id, email, full_name, auth_user_id")
+      .select("id, email, phone, full_name, auth_user_id")
       .eq("id", data.client_id)
       .maybeSingle();
     if (cErr) throw new Error(cErr.message);
     if (!client) throw new Error("Client not found");
-    if (!client.email) throw new Error("Client has no email — add one before creating a portal login");
     if (client.auth_user_id) throw new Error("This client already has a portal login");
 
-    // If an auth user already exists with this email, link it instead of creating
+    // Prefer phone (from client or supplied by staff); fall back to email
+    const suppliedPhone = normalizePhone(data.phone ?? null);
+    const storedPhone = normalizePhone(client.phone ?? null);
+    const phone = suppliedPhone ?? storedPhone;
+    const email = client.email ?? null;
+
+    if (!phone && !email) {
+      throw new Error("Add a phone number or email for this client before creating a portal login");
+    }
+
+    // If staff supplied a new phone, persist it on the client record
+    if (suppliedPhone && suppliedPhone !== storedPhone) {
+      await supabaseAdmin.from("clients").update({ phone: suppliedPhone }).eq("id", client.id);
+    }
+
+    // Look for an existing auth user by phone first, then email
     const { data: existing } = await supabaseAdmin.auth.admin.listUsers();
-    const found = existing?.users?.find((u: any) => (u.email ?? "").toLowerCase() === client.email!.toLowerCase());
+    const found = existing?.users?.find((u: any) => {
+      if (phone && u.phone && ("+" + String(u.phone).replace(/\D/g, "")) === phone) return true;
+      if (email && (u.email ?? "").toLowerCase() === email.toLowerCase()) return true;
+      return false;
+    });
     if (found) {
       await supabaseAdmin.from("clients").update({ auth_user_id: found.id }).eq("id", client.id);
-      await supabaseAdmin.from("user_roles").upsert({ user_id: found.id, role: "client" as any }, { onConflict: "user_id,role" });
-      return { email: client.email, password: null as string | null, linked: true };
+      await supabaseAdmin
+        .from("user_roles")
+        .upsert({ user_id: found.id, role: "client" as any }, { onConflict: "user_id,role" });
+      return { email, phone, password: null as string | null, linked: true };
     }
 
     const password = generatePassword(14);
-    const { data: created, error: aErr } = await supabaseAdmin.auth.admin.createUser({
-      email: client.email,
+    const createPayload: any = {
       password,
-      email_confirm: true,
       user_metadata: { full_name: client.full_name ?? "" },
-    });
+    };
+    if (phone) {
+      createPayload.phone = phone;
+      createPayload.phone_confirm = true;
+    }
+    if (email) {
+      createPayload.email = email;
+      createPayload.email_confirm = true;
+    }
+    const { data: created, error: aErr } = await supabaseAdmin.auth.admin.createUser(createPayload);
     if (aErr || !created.user) throw new Error(aErr?.message ?? "Could not create user");
 
-    // handle_new_user trigger should link clients.auth_user_id by email & insert client role.
-    // Ensure both are set in case timing/email-casing edges:
     await supabaseAdmin.from("clients").update({ auth_user_id: created.user.id }).eq("id", client.id);
-    await supabaseAdmin.from("user_roles").upsert({ user_id: created.user.id, role: "client" as any }, { onConflict: "user_id,role" });
+    await supabaseAdmin
+      .from("user_roles")
+      .upsert({ user_id: created.user.id, role: "client" as any }, { onConflict: "user_id,role" });
 
-    return { email: client.email, password, linked: false };
+    return { email, phone, password, linked: false };
   });
 
 export const updateUserProfile = createServerFn({ method: "POST" })
