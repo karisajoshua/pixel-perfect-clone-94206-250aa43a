@@ -1,0 +1,1 @@
+CREATE POLICY "Client can update own client row" ON public.clients FOR UPDATE TO authenticated USING (auth_user_id = auth.uid()) WITH CHECK (auth_user_id = auth.uid());
