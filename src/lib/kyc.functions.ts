@@ -34,7 +34,7 @@ export const CORPORATE_SLOTS: KycSlot[] = [
   { doc_type: "cr12", label: "CR12 / company registry extract", description: "Issued by the Business Registration Service.", required: true },
   { doc_type: "kra_pin", label: "Company KRA PIN certificate", description: "Company KRA PIN.", required: true },
   { doc_type: "director_id", label: "Director's ID", description: "ID copy of the principal director or authorized signatory.", required: true },
-  { doc_type: "proof_of_address", label: "Proof of address", description: "Recent utility bill or bank statement for the business address.", required: true },
+  { doc_type: "proof_of_address", label: "Proof of address", description: "Recent utility bill or bank statement for the business address (optional).", required: false },
 ];
 
 export const VEHICLE_SLOTS: KycSlot[] = [
