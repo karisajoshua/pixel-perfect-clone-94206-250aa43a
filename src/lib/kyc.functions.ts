@@ -11,6 +11,8 @@ export type KycDocType =
   | "cert_incorporation"
   | "cr12"
   | "director_id";
+  // Vehicle documents (any one or more)
+export type KycDocTypeAll = KycDocType | "log_book" | "importation_doc" | "search_doc";
 
 export type KycSlot = {
   doc_type: KycDocType;
@@ -35,6 +37,18 @@ export const CORPORATE_SLOTS: KycSlot[] = [
   { doc_type: "proof_of_address", label: "Proof of address", description: "Recent utility bill or bank statement for the business address.", required: true },
 ];
 
+export const VEHICLE_SLOTS: KycSlot[] = [
+  { doc_type: "log_book" as KycDocType, label: "Log book", description: "Vehicle log book (any of log book, importation document, or search document is acceptable).", required: false },
+  { doc_type: "importation_doc" as KycDocType, label: "Importation document", description: "Vehicle importation document (IDF / bill of entry).", required: false },
+  { doc_type: "search_doc" as KycDocType, label: "Search document", description: "NTSA search / records confirmation document.", required: false },
+];
+
+const DOC_TYPE_ENUM = [
+  "id_front","id_back","kra_pin","proof_of_address","passport_photo",
+  "cert_incorporation","cr12","director_id",
+  "log_book","importation_doc","search_doc",
+] as const;
+
 async function getMyClient(supabase: any, userId: string) {
   const { data, error } = await supabase
     .from("clients")
@@ -50,7 +64,8 @@ export const getMyRequiredDocuments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const client = await getMyClient(context.supabase, context.userId);
-    const slots = client.client_type === "corporate" ? CORPORATE_SLOTS : INDIVIDUAL_SLOTS;
+    const baseSlots = client.client_type === "corporate" ? CORPORATE_SLOTS : INDIVIDUAL_SLOTS;
+    const slots = [...baseSlots, ...VEHICLE_SLOTS];
     const { data: rows, error } = await context.supabase
       .from("client_required_documents")
       .select("id, doc_type, storage_path, file_name, status, rejection_reason, verified_at, created_at, expires_at")
@@ -92,10 +107,7 @@ export const getMyRequiredDocuments = createServerFn({ method: "GET" })
 export const recordKycUpload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({
-    doc_type: z.enum([
-      "id_front","id_back","kra_pin","proof_of_address","passport_photo",
-      "cert_incorporation","cr12","director_id",
-    ]),
+    doc_type: z.enum(DOC_TYPE_ENUM),
     storage_path: z.string().min(1),
     file_name: z.string().min(1),
   }).parse(d))
@@ -142,10 +154,7 @@ export const recordKycUpload = createServerFn({ method: "POST" })
 export const removeKycUpload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({
-    doc_type: z.enum([
-      "id_front","id_back","kra_pin","proof_of_address","passport_photo",
-      "cert_incorporation","cr12","director_id",
-    ]),
+    doc_type: z.enum(DOC_TYPE_ENUM),
   }).parse(d))
   .handler(async ({ data, context }) => {
     const client = await getMyClient(context.supabase, context.userId);
@@ -203,7 +212,10 @@ export const listClientKycDocuments = createServerFn({ method: "GET" })
       .maybeSingle();
     if (cErr) throw cErr;
     if (!client) throw new Error("Client not found");
-    const slots = client.client_type === "corporate" ? CORPORATE_SLOTS : INDIVIDUAL_SLOTS;
+    const slots = [
+      ...(client.client_type === "corporate" ? CORPORATE_SLOTS : INDIVIDUAL_SLOTS),
+      ...VEHICLE_SLOTS,
+    ];
     const { data: rows, error } = await context.supabase
       .from("client_required_documents")
       .select("*")
@@ -224,6 +236,58 @@ export const listClientKycDocuments = createServerFn({ method: "GET" })
       }),
     );
     return { kycStatus: client.kyc_status as string, items };
+  });
+
+async function assertStaff(supabase: any, userId: string) {
+  const roles = ["admin", "manager", "agent"] as const;
+  for (const r of roles) {
+    const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: r });
+    if (data) return;
+  }
+  throw new Error("Forbidden: staff role required");
+}
+
+export const staffUploadKycDocument = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    client_id: z.string().uuid(),
+    doc_type: z.enum(DOC_TYPE_ENUM),
+    storage_path: z.string().min(1),
+    file_name: z.string().min(1),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context.supabase, context.userId);
+    if (!data.storage_path.startsWith(`${data.client_id}/kyc/`)) {
+      throw new Error("Invalid upload path");
+    }
+    const { data: existing } = await context.supabase
+      .from("client_required_documents")
+      .select("storage_path")
+      .eq("client_id", data.client_id)
+      .eq("doc_type", data.doc_type)
+      .maybeSingle();
+    if (existing?.storage_path && existing.storage_path !== data.storage_path) {
+      await context.supabase.storage.from("client-documents").remove([existing.storage_path]);
+    }
+    const { data: row, error } = await context.supabase
+      .from("client_required_documents")
+      .upsert(
+        {
+          client_id: data.client_id,
+          doc_type: data.doc_type,
+          storage_path: data.storage_path,
+          file_name: data.file_name,
+          status: "verified" as const,
+          rejection_reason: null,
+          verified_at: new Date().toISOString(),
+          verified_by: context.userId,
+        },
+        { onConflict: "client_id,doc_type" },
+      )
+      .select()
+      .single();
+    if (error) throw error;
+    return row;
   });
 
 export const verifyKycDocument = createServerFn({ method: "POST" })
