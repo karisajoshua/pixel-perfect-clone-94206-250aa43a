@@ -1,27 +1,38 @@
-## Problem
+## Root cause
 
-Portal logins are created with a phone number (via `createClientPortalAccount`), but Supabase Auth has the **Phone provider disabled**, so clients can't sign in with the phone + temporary password we hand them. The error "phone logins are disabled" comes straight from Auth.
+When `createClientPortalAccount` creates the auth user, the database trigger `handle_new_user` runs first. Because the new portal user is created via **phone** (no matching email on the `clients` table), the trigger falls through to its default branch and inserts the **`agent`** role.
+
+The server function then upserts the **`client`** role — so the user ends up with **both** `agent` and `client` roles.
+
+The `_authenticated` route gate only redirects to `/portal` when `roles.every(r => r === "client")`. With an extra `agent` row, the client lands on the staff dashboard.
 
 ## Fix
 
-Enable the Phone provider in Lovable Cloud auth settings so phone + password sign-in works for client portal accounts.
+In `src/lib/admin-users.functions.ts`, inside `createClientPortalAccount`, after `auth.admin.createUser` succeeds:
 
-Two options — pick one:
+1. **Delete any non-client roles** the trigger may have inserted for the new user:
+   ```ts
+   await supabaseAdmin.from("user_roles").delete().eq("user_id", created.user.id).neq("role", "client");
+   ```
+2. Then upsert the `client` role (existing code).
 
-### Option A — Enable Phone auth (recommended, matches current code)
+Also apply the same cleanup in the "linked existing user" branch only if that existing user has no staff intent — skip it there to avoid demoting real staff who happen to share contact info. The branch already just adds `client` alongside existing roles; leave it alone.
 
-You enable it from **Cloud → Users → Auth Settings → Phone provider → toggle on**. No SMS provider is needed because we set `phone_confirm: true` server-side (no OTP is sent); clients sign in with phone + the temporary password shown in the "Client portal login" dialog.
+## One-time data fix for the already-created portal user
 
-No code changes required. After enabling, existing generated credentials will work immediately.
+The client you already generated (`254729442321`, user `af0fda07-…`) currently has both roles. A migration cleans it up safely:
 
-### Option B — Switch portal logins to email-only
+```sql
+DELETE FROM public.user_roles
+WHERE role <> 'client'
+  AND user_id IN (SELECT auth_user_id FROM public.clients WHERE auth_user_id IS NOT NULL);
+```
 
-Change `createClientPortalAccount` to always create the auth user with `email` (never `phone`), and require an email on the client before generating a login. The "Generate portal login" button would be disabled until an email exists, and the phone-prompt dialog on the client detail page would become an email-prompt dialog.
+This only affects auth users that are linked to a `clients` row, so staff accounts are untouched.
 
-This avoids enabling the Phone provider but means clients without an email on file can't get a portal login until you add one.
+## Files
 
-## Recommendation
+- `src/lib/admin-users.functions.ts` — add the delete-extra-roles step in the create branch.
+- `supabase/migrations/<new>.sql` — the one-time cleanup above.
 
-Go with **Option A**. Your existing flow (phone-first, email fallback) and the credentials dialog already assume phone login works. Enabling the provider is a one-toggle change with zero code edits.
-
-Confirm A and I'll guide you through the toggle (it's a setting only you can flip — agents can't change provider toggles for you).
+No UI changes; the existing `_authenticated` and `/portal` gates already do the right thing once roles are correct.
