@@ -1,61 +1,32 @@
-## Goal
+## Vehicle edit: lock client + logbook auto-fill
 
-1. Let clients sign in with **either email or phone number** (both with password).
-2. On the staff "Generate portal login" button: prefer **phone** when present; if neither phone nor email exists, prompt for a phone number inline before generating.
+Two changes to the vehicle form (`src/components/vehicles/vehicle-form-dialog.tsx`).
 
-## Phone normalization
+### 1. Client field on edit — no dropdown, just the name
 
-Kenyan numbers normalize to E.164 on save/login:
-- `07XXXXXXXX` → `+2547XXXXXXXX`
-- `7XXXXXXXX` → `+2547XXXXXXXX`
-- `2547XXXXXXXX` → `+2547XXXXXXXX`
-- Anything already starting with `+` is left alone.
+When editing an existing vehicle (or when `defaultClientId` is passed in from a client page), replace the Client `<Select>` with a read-only display showing the client's name. The dropdown stays only for the "New vehicle" case opened from the global Vehicles list with no pre-selected client.
 
-Helper added at `src/lib/phone.ts` and reused everywhere (sign-in, client form, server fn).
+- Fetch the single client by `initial.client_id` (or `defaultClientId`) and render its name in a disabled input / muted text row labelled "Client".
+- The client cannot be reassigned from this dialog — matches the rest of the app where vehicles belong to one client.
 
-## Changes
+### 2. "Scan logbook" to auto-fill vehicle fields
 
-### 1. Sign-in form (`src/routes/index.tsx`)
-- Replace the "Email" field on the Sign in tab with a single **"Email or phone"** field.
-- On submit:
-  - If the value contains `@`, call `signInWithPassword({ email, password })` as today.
-  - Otherwise, normalize via `phone.ts` and call `signInWithPassword({ phone, password })`.
-- Sign-up tab stays email-only (staff create accounts there).
+Add a **Scan logbook** button at the top of the dialog. Flow:
 
-### 2. Portal account creation (`src/lib/admin-users.functions.ts`)
-Update `createClientPortalAccount`:
-- Accept optional `phone` in input (used when staff supplies a new number from the UI).
-- Pull `phone` from the client record; if missing and input has one, persist it to `clients.phone` first.
-- Branch:
-  - **Phone available** → `supabaseAdmin.auth.admin.createUser({ phone: normalized, password, phone_confirm: true })`. Returned credentials show **phone** as the login identifier.
-  - **No phone but email available** → existing email flow (unchanged).
-  - **Neither** → throw, UI handles the prompt.
-- Linking existing auth user: also look up by phone (`listUsers` filter), not just email.
-- `handle_new_user` trigger already links by email; we additionally call `update clients set auth_user_id` explicitly (already done), so phone-only accounts link correctly.
+1. User picks a logbook image or PDF (camera or file).
+2. File is uploaded to the existing `client-documents` storage bucket under `logbooks/{client_id}/{vehicle_id|temp}-{timestamp}` so it's retained as a KYC-style record.
+3. A new server function `extractLogbookFields` (in `src/lib/vehicles.functions.ts`, protected with `requireSupabaseAuth`) sends the file to the Lovable AI Gateway (`google/gemini-2.5-flash`, multimodal `image_url` / `file` block) with a prompt that asks for a strict JSON object with keys: `registration_no`, `make`, `model`, `year`, `body_type`, `color`, `chassis_no`, `engine_no`, `fuel_type`, `seating_capacity`, `cubic_capacity`, `usage_type`. Unknown fields → `null`.
+4. The dialog merges the returned fields into form state **only for fields the user hasn't already filled** (no overwrite of edited values), shows a toast "Logbook scanned — review highlighted fields", and visually marks auto-filled inputs (subtle ring + small "auto" badge) so staff knows what to verify.
+5. Errors (unreadable image, no JSON, gateway failure) surface as a toast; nothing is filled.
 
-### 3. Client detail page (`src/routes/_authenticated/clients.$id.tsx`)
-Replace the current "no email → toast error" behaviour:
-- Button always visible while `!client.auth_user_id`.
-- onClick logic:
-  - If `client.phone` exists → call `createClientPortalAccount({ client_id })` directly.
-  - Else if `client.email` exists → call as today (email path).
-  - Else → open a small **"Add phone number"** dialog with one input + Save. On save: normalize, call `createClientPortalAccount({ client_id, phone })`.
-- `CredentialsDialog` already exists; extend it to display "Phone" instead of "Email" when the response identifier is a phone number.
+### Out of scope
 
-### 4. Client form dialog (`src/components/clients/client-form-dialog.tsx`)
-- On save, normalize the phone field through `phone.ts` before insert/update.
-- After auto-creating the portal login for new clients, the credentials dialog will show phone-based creds when phone is provided (no extra wiring needed beyond the response shape change in step 2).
+- Changing how vehicles are created from the global Vehicles list with no client context (dropdown stays there).
+- Storing the parsed logbook payload as structured KYC — just the file is stored; extracted values land directly in the vehicle form.
+- OCR for any document other than the Kenyan NTSA logbook.
 
-### 5. No database migration
-Auth `phone` column is built-in; `clients.phone` already exists. No schema changes.
+### Files touched
 
-## Files touched
-- `src/lib/phone.ts` *(new)*
-- `src/routes/index.tsx`
-- `src/lib/admin-users.functions.ts`
-- `src/routes/_authenticated/clients.$id.tsx`
-- `src/components/clients/client-form-dialog.tsx`
-
-## Out of scope
-- SMS OTP / passwordless login (not requested; would require Twilio).
-- Changing the staff sign-up tab to accept phone (staff use email).
+- `src/components/vehicles/vehicle-form-dialog.tsx` — replace client Select with read-only display when `initial?.client_id` or `defaultClientId` is set; add Scan logbook button, file input, upload + extract handler, auto-fill merge, highlight ring on auto-filled fields.
+- `src/lib/vehicles.functions.ts` (new) — `extractLogbookFields` server fn: takes `{ storage_path }`, downloads via signed URL, calls Lovable AI Gateway with the logbook image, returns parsed JSON.
+- No DB migration. No new bucket.
