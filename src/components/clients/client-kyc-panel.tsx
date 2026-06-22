@@ -105,13 +105,29 @@ export function ClientKycPanel({ clientId }: { clientId: string }) {
           <Card key={item.doc_type} className={item.row?.status === "rejected" ? "border-destructive/60" : undefined}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center justify-between gap-2">
-                <span>{item.label} {item.required && <span className="text-destructive">*</span>}</span>
+                <span>{item.label} {item.required ? <span className="text-destructive">*</span> : <span className="text-muted-foreground text-xs ml-1">(optional)</span>}</span>
                 {badge(item.row?.status)}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              <input
+                ref={(el) => { inputRefs.current[item.doc_type] = el; }}
+                type="file"
+                className="hidden"
+                accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,image/jpeg,image/png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) uploadFor(item.doc_type, f);
+                  if (inputRefs.current[item.doc_type]) inputRefs.current[item.doc_type]!.value = "";
+                }}
+              />
               {!item.row ? (
-                <p className="text-xs text-muted-foreground">Not uploaded yet.</p>
+                <>
+                  <p className="text-xs text-muted-foreground">{item.description}</p>
+                  <Button size="sm" variant="outline" onClick={() => inputRefs.current[item.doc_type]?.click()} disabled={busy[item.doc_type]}>
+                    <Upload className="h-4 w-4 mr-1" /> {busy[item.doc_type] ? "Uploading…" : "Upload on behalf of client"}
+                  </Button>
+                </>
               ) : (
                 <>
                   <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 p-2 text-xs">
@@ -129,7 +145,7 @@ export function ClientKycPanel({ clientId }: { clientId: string }) {
                     </div>
                   )}
                   <div className="flex flex-col gap-2">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <Button size="sm" onClick={() => verify.mutate(item.row.id)} disabled={item.row.status === "verified"}>
                         <CheckCircle2 className="h-4 w-4 mr-1" /> Verify
                       </Button>
@@ -141,6 +157,9 @@ export function ClientKycPanel({ clientId }: { clientId: string }) {
                         }}
                       >
                         <XCircle className="h-4 w-4 mr-1" /> Reject
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => inputRefs.current[item.doc_type]?.click()} disabled={busy[item.doc_type]}>
+                        <Upload className="h-4 w-4 mr-1" /> {busy[item.doc_type] ? "Uploading…" : "Replace"}
                       </Button>
                     </div>
                     <Textarea
