@@ -67,10 +67,7 @@ export function useSessionTracker() {
     const onUnload = () => {
       const id = idRef.current;
       if (!id) return;
-      try {
-        const url = "/_serverFn/" + (endMySession as any).functionId; // best-effort; fallback below
-        navigator.sendBeacon?.(url, JSON.stringify({ data: { id } }));
-      } catch {}
+      endFn({ data: { id } }).catch(() => {});
     };
     window.addEventListener("beforeunload", onUnload);
 
