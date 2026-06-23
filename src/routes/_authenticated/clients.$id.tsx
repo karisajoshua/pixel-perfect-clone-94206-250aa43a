@@ -14,6 +14,9 @@ import { ClientCommunications } from "@/components/clients/client-communications
 import { ClientKycPanel } from "@/components/clients/client-kyc-panel";
 import { useServerFn } from "@tanstack/react-start";
 import { createClientPortalAccount } from "@/lib/admin-users.functions";
+import { updateClientBranch } from "@/lib/clients.functions";
+import { useMyRoles } from "@/hooks/use-auth";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -34,6 +37,22 @@ function ClientDetail() {
   const [phonePrompt, setPhonePrompt] = useState(false);
   const [phoneInput, setPhoneInput] = useState("");
   const portalFn = useServerFn(createClientPortalAccount);
+  const updateBranchFn = useServerFn(updateClientBranch);
+  const { data: roles } = useMyRoles();
+  const isAdmin = (roles ?? []).includes("admin");
+  const [branchOpen, setBranchOpen] = useState(false);
+  const [branchSel, setBranchSel] = useState<string>("");
+  const [branchBusy, setBranchBusy] = useState(false);
+
+  const { data: branches } = useQuery({
+    queryKey: ["branches-list"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("branches").select("id, name").order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   const { data: client, isLoading } = useQuery({
     queryKey: ["client", id],
@@ -68,6 +87,14 @@ function ClientDetail() {
         subtitle={`${client.client_type} • ${(client as any).branches?.name ?? "No branch"} • KYC ${client.kyc_status}`}
         actions={
           <div className="flex gap-2">
+            {isAdmin && (
+              <Button
+                variant="outline"
+                onClick={() => { setBranchSel(client.branch_id ?? ""); setBranchOpen(true); }}
+              >
+                Change branch
+              </Button>
+            )}
             {!client.auth_user_id && (
               <Button
                 variant="outline"
@@ -112,6 +139,7 @@ function ClientDetail() {
                 <Item label="City" value={client.city} />
                 <Item label="Address" value={client.address} />
                 <Item label="Occupation" value={client.occupation} />
+                <Item label="Branch" value={(client as any).branches?.name ?? "—"} />
                 <Item label="Notes" value={client.notes} />
               </dl>
             </CardContent>
@@ -130,6 +158,41 @@ function ClientDetail() {
 
       <ClientFormDialog open={edit} onOpenChange={setEdit} initial={client} onSaved={() => qc.invalidateQueries({ queryKey: ["client", id] })} />
       <CredentialsDialog creds={creds} onClose={() => setCreds(null)} />
+      <Dialog open={branchOpen} onOpenChange={(o) => { if (!o) setBranchOpen(false); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Assign client to branch</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Move this client (and their records) under a different branch. Branch managers see only clients in their own branch.</p>
+          <div className="space-y-1.5">
+            <Label>Branch</Label>
+            <Select value={branchSel} onValueChange={setBranchSel}>
+              <SelectTrigger><SelectValue placeholder="Select branch" /></SelectTrigger>
+              <SelectContent>
+                {(branches ?? []).map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setBranchOpen(false)}>Cancel</Button>
+            <Button
+              disabled={branchBusy || !branchSel || branchSel === (client.branch_id ?? "")}
+              onClick={async () => {
+                setBranchBusy(true);
+                try {
+                  await updateBranchFn({ data: { clientId: id, branchId: branchSel } });
+                  toast.success("Client moved to new branch");
+                  setBranchOpen(false);
+                  qc.invalidateQueries({ queryKey: ["client", id] });
+                  qc.invalidateQueries({ queryKey: ["clients"] });
+                } catch (e: any) {
+                  toast.error(e?.message ?? "Could not move client");
+                } finally {
+                  setBranchBusy(false);
+                }
+              }}
+            >{branchBusy ? "Saving…" : "Save"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={phonePrompt} onOpenChange={(o) => { if (!o) { setPhonePrompt(false); setPhoneInput(""); } }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Add a phone number</DialogTitle></DialogHeader>
