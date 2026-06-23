@@ -53,7 +53,7 @@ function ReportsPage() {
     queryFn: () => fetchReport({ data: { from, to, branchId: branchId === "all" ? null : branchId } }),
   });
 
-  const csv = useMemo(() => (report.data ? buildCsv(report.data) : ""), [report.data]);
+  const csv = useMemo(() => (report.data ? buildCsv(report.data, isAdmin) : ""), [report.data, isAdmin]);
 
   if (roles && !allowed) {
     return (
