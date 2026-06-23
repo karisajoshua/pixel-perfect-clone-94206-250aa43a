@@ -45,24 +45,26 @@ function Insurers() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/40 text-left">
-              <tr><th className="px-4 py-3 w-16">Logo</th><th className="px-4 py-3">Name</th><th className="px-4 py-3">Code</th><th className="px-4 py-3">Contact</th><th className="px-4 py-3">Status</th><th></th></tr>
+              <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Code</th><th className="px-4 py-3">Contact</th><th className="px-4 py-3">Status</th><th></th></tr>
             </thead>
             <tbody>
-              {data?.length === 0 && <tr><td colSpan={6} className="p-12 text-center text-muted-foreground">No insurers yet.</td></tr>}
+              {data?.length === 0 && <tr><td colSpan={5} className="p-12 text-center text-muted-foreground">No insurers yet.</td></tr>}
               {data?.map((i) => (
                 <tr key={i.id} className="border-b last:border-0">
-                  <td className="px-4 py-3">
-                    {i.logo_url ? (
-                      <div className="h-10 w-10 rounded-md border bg-white flex items-center justify-center overflow-hidden">
-                        <img src={i.logo_url} alt={`${i.name} logo`} className="max-h-full max-w-full object-contain" />
-                      </div>
-                    ) : (
-                      <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
-                        {i.name?.slice(0, 2).toUpperCase()}
-                      </div>
-                    )}
+                  <td className="px-4 py-3 font-medium">
+                    <div className="flex items-center gap-3">
+                      {i.logo_url ? (
+                        <div className="h-10 w-10 shrink-0 rounded-md border bg-white flex items-center justify-center overflow-hidden">
+                          <img src={i.logo_url} alt={`${i.name} logo`} className="max-h-full max-w-full object-contain" />
+                        </div>
+                      ) : (
+                        <div className="h-10 w-10 shrink-0 rounded-md bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
+                          {i.name?.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <span>{i.name}</span>
+                    </div>
                   </td>
-                  <td className="px-4 py-3 font-medium">{i.name}</td>
                   <td className="px-4 py-3">{i.short_code ?? "—"}</td>
                   <td className="px-4 py-3">
                     <div>{i.contact_email ?? "—"}</div>
