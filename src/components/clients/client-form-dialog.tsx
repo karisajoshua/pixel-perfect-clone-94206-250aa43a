@@ -12,6 +12,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { createClientPortalAccount } from "@/lib/admin-users.functions";
 import { Copy } from "lucide-react";
 import { normalizePhone } from "@/lib/phone";
+import { useMyRoles } from "@/hooks/use-auth";
 
 export type PortalCreds = {
   email: string | null;
@@ -33,6 +34,8 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
   const [saving, setSaving] = useState(false);
   const [creds, setCreds] = useState<PortalCreds | null>(null);
   const portalFn = useServerFn(createClientPortalAccount);
+  const { data: roles } = useMyRoles();
+  const isAdmin = (roles ?? []).includes("admin");
 
   useEffect(() => {
     if (open) {
@@ -94,15 +97,22 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5 min-w-0">
-            <Label>Branch</Label>
-            <Select value={form.branch_id ?? ""} onValueChange={(v) => set("branch_id", v || null)}>
-              <SelectTrigger><SelectValue placeholder="Select branch" /></SelectTrigger>
-              <SelectContent>
-                {branches.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          {isAdmin ? (
+            <div className="space-y-1.5 min-w-0">
+              <Label>Branch</Label>
+              <Select value={form.branch_id ?? ""} onValueChange={(v) => set("branch_id", v || null)}>
+                <SelectTrigger><SelectValue placeholder="Select branch" /></SelectTrigger>
+                <SelectContent>
+                  {branches.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="space-y-1.5 min-w-0">
+              <Label>Branch</Label>
+              <p className="text-sm text-muted-foreground pt-2">Automatically assigned to your branch.</p>
+            </div>
+          )}
           <Field label="Full name" value={form.full_name} onChange={(v) => set("full_name", v)} required />
           {form.client_type === "corporate" && <Field label="Company name" value={form.company_name} onChange={(v) => set("company_name", v)} />}
           <Field label="ID / Registration number" value={form.id_number} onChange={(v) => set("id_number", v)} />
