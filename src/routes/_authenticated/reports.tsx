@@ -53,7 +53,7 @@ function ReportsPage() {
     queryFn: () => fetchReport({ data: { from, to, branchId: branchId === "all" ? null : branchId } }),
   });
 
-  const csv = useMemo(() => (report.data ? buildCsv(report.data) : ""), [report.data]);
+  const csv = useMemo(() => (report.data ? buildCsv(report.data, isAdmin) : ""), [report.data, isAdmin]);
 
   if (roles && !allowed) {
     return (
@@ -190,7 +190,11 @@ function ReportsPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <DataTable title="Branch performance" head={["Branch", "Policies", "Premium", "Claims"]} rows={report.data.branchPerformance.map((b) => [b.branch, b.policies, fmtKES(b.premium), b.claims])} />
+            {isAdmin ? (
+              <DataTable title="Branch performance" head={["Branch", "Policies", "Premium", "Claims"]} rows={report.data.branchPerformance.map((b) => [b.branch, b.policies, fmtKES(b.premium), b.claims])} />
+            ) : (
+              <DataTable title="Branch performance" head={["Branch", "Policies", "Claims"]} rows={(report.data.branchPerformanceAll ?? []).map((b) => [b.branch, b.policies, b.claims])} />
+            )}
             <DataTable title="Top agents" head={["Agent", "Policies", "Premium"]} rows={report.data.topAgents.map((a) => [a.agent, a.policies, fmtKES(a.premium)])} />
           </div>
         </>
@@ -248,7 +252,7 @@ function DataTable({ title, head, rows }: { title: string; head: string[]; rows:
   );
 }
 
-function buildCsv(d: ReportsSummary): string {
+function buildCsv(d: ReportsSummary, isAdmin: boolean): string {
   const lines: string[] = [];
   const esc = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   lines.push("Zest Insurance Agency — Report");
@@ -267,8 +271,13 @@ function buildCsv(d: ReportsSummary): string {
   lines.push("Insurer,Premium written");
   d.insurerShare.forEach((r) => lines.push(`${esc(r.insurer)},${r.premium}`));
   lines.push("");
-  lines.push("Branch,Policies,Premium,Claims");
-  d.branchPerformance.forEach((b) => lines.push(`${esc(b.branch)},${b.policies},${b.premium},${b.claims}`));
+  if (isAdmin) {
+    lines.push("Branch,Policies,Premium,Claims");
+    d.branchPerformance.forEach((b) => lines.push(`${esc(b.branch)},${b.policies},${b.premium},${b.claims}`));
+  } else {
+    lines.push("Branch,Policies,Claims");
+    (d.branchPerformanceAll ?? []).forEach((b) => lines.push(`${esc(b.branch)},${b.policies},${b.claims}`));
+  }
   lines.push("");
   lines.push("Agent,Policies,Premium");
   d.topAgents.forEach((a) => lines.push(`${esc(a.agent)},${a.policies},${a.premium}`));

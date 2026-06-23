@@ -22,6 +22,7 @@ export type ReportsSummary = {
   insurerShare: { insurer: string; premium: number }[];
   claimsFunnel: { stage: string; count: number }[];
   branchPerformance: { branch: string; policies: number; premium: number; claims: number }[];
+  branchPerformanceAll: { branch: string; policies: number; claims: number }[];
   topAgents: { agent: string; policies: number; premium: number }[];
 };
 
@@ -114,6 +115,24 @@ export const getReportsSummary = createServerFn({ method: "POST" })
       };
     });
 
+    // Counts-only branch performance for managers: aggregate across ALL branches,
+    // no premium values. Uses admin client to bypass branch-scoped RLS.
+    let branchPerformanceAll: { branch: string; policies: number; claims: number }[] = [];
+    if (!isAdmin) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const [allPolRes, allClaimsRes] = await Promise.all([
+        supabaseAdmin.from("policies").select("id, branch_id"),
+        supabaseAdmin.from("claims").select("id, branch_id"),
+      ]);
+      const allPol = allPolRes.data ?? [];
+      const allClaims = allClaimsRes.data ?? [];
+      branchPerformanceAll = branches.map((b: any) => ({
+        branch: b.name,
+        policies: allPol.filter((p: any) => p.branch_id === b.id).length,
+        claims: allClaims.filter((c: any) => c.branch_id === b.id).length,
+      }));
+    }
+
     // Top agents
     const agentMap = new Map<string, { policies: number; premium: number }>();
     for (const p of policies) {
@@ -139,6 +158,7 @@ export const getReportsSummary = createServerFn({ method: "POST" })
       insurerShare,
       claimsFunnel,
       branchPerformance,
+      branchPerformanceAll,
       topAgents,
     };
   });
