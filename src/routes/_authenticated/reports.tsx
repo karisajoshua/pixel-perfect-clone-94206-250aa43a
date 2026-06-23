@@ -190,7 +190,11 @@ function ReportsPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <DataTable title="Branch performance" head={["Branch", "Policies", "Premium", "Claims"]} rows={report.data.branchPerformance.map((b) => [b.branch, b.policies, fmtKES(b.premium), b.claims])} />
+            {isAdmin ? (
+              <DataTable title="Branch performance" head={["Branch", "Policies", "Premium", "Claims"]} rows={report.data.branchPerformance.map((b) => [b.branch, b.policies, fmtKES(b.premium), b.claims])} />
+            ) : (
+              <DataTable title="Branch performance" head={["Branch", "Policies", "Claims"]} rows={(report.data.branchPerformanceAll ?? []).map((b) => [b.branch, b.policies, b.claims])} />
+            )}
             <DataTable title="Top agents" head={["Agent", "Policies", "Premium"]} rows={report.data.topAgents.map((a) => [a.agent, a.policies, fmtKES(a.premium)])} />
           </div>
         </>
