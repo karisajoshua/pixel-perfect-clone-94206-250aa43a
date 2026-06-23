@@ -32,11 +32,11 @@ export const updateClientBranch = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     await (supabaseAdmin.from("audit_log") as any).insert({
-      actor_id: userId,
+      user_id: userId,
       action: "client.branch_changed",
       entity_type: "clients",
       entity_id: data.clientId,
-      details: { from: prev.branch_id, to: data.branchId },
+      metadata: { from: prev.branch_id, to: data.branchId },
     });
 
     return { ok: true };
