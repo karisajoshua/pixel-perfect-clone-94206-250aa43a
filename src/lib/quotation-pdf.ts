@@ -45,136 +45,175 @@ async function loadLogo(): Promise<string | null> {
 }
 
 const money = (n: any) => `KES ${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const num = (n: any, d = 0) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
 const titleCase = (s: any) => String(s ?? "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 export async function downloadQuotationPdf({ quotation, client, branch, insurer, vehicle }: QuotationPdfInput) {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
   const pageW = doc.internal.pageSize.getWidth();
-  const margin = 40;
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 24;
 
+  // ===== Header band =====
   doc.setFillColor(BRAND);
-  doc.rect(0, 0, pageW, 90, "F");
+  doc.rect(0, 0, pageW, 110, "F");
 
   const logo = await loadLogo();
   if (logo) {
-    try { doc.addImage(logo, "PNG", margin, 18, 54, 54); } catch { /* ignore */ }
+    try { doc.addImage(logo, "PNG", margin, 18, 70, 70); } catch { /* ignore */ }
   }
-  doc.setTextColor("#ffffff");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
-  doc.text("Zest Insurance Agency", margin + (logo ? 66 : 0), 42);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text("Insurance brokerage & advisory", margin + (logo ? 66 : 0), 60);
-
-  doc.setFontSize(22);
-  doc.setFont("helvetica", "bold");
-  doc.text("QUOTATION", pageW - margin, 42, { align: "right" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text(quotation.quote_no ?? "", pageW - margin, 60, { align: "right" });
-
-  let y = 120;
-  doc.setTextColor("#111827");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("FROM", margin, y);
-  doc.text("PREPARED FOR", pageW / 2, y);
-  y += 14;
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(MUTED);
-
-  const fromLines = [
-    branch?.name ?? AGENCY_CONTACT.name,
-    branch?.address ?? AGENCY_CONTACT.address,
-    [branch?.phone ?? AGENCY_CONTACT.phone, branch?.email ?? AGENCY_CONTACT.email].filter(Boolean).join(" • "),
-  ].filter(Boolean);
-  fromLines.forEach((l, i) => doc.text(String(l), margin, y + i * 12));
 
   const clientName = client?.client_type === "corporate" ? (client?.company_name ?? client?.full_name ?? "") : (client?.full_name ?? "");
-  const toLines = [clientName || "—", client?.email ?? "", client?.phone ?? ""].filter(Boolean);
-  toLines.forEach((l, i) => doc.text(String(l), pageW / 2, y + i * 12));
+  doc.setTextColor("#ffffff");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  const headerX = margin + 110;
+  doc.text(`Quotation provided by: ${insurer?.name ?? "—"}`, headerX, 38);
+  doc.text(`CLIENT NAME: ${(clientName || "—").toUpperCase()}`, headerX, 62);
+  doc.text(`AGENT NAME: ZEST INSURANCE AGENT`, headerX, 86);
 
-  y += Math.max(fromLines.length, toLines.length) * 12 + 16;
+  // ===== Build table data =====
+  const li = (quotation.line_items ?? {}) as any;
+  const ratePct = Number(li.rate_pct ?? 0);
+  const levies = Number(li.levies ?? 0);
+  const benefits: string[] = Array.isArray(li.benefits) ? li.benefits : [];
+  const sumInsured = Number(quotation.sum_insured ?? 0);
+  const basePremium = +(sumInsured * (ratePct / 100)).toFixed(2);
+  const benefitUnit = +(sumInsured * 0.0025).toFixed(2);
+  const benefitsTotal = +(benefitUnit * benefits.length).toFixed(2);
+  const grossPremium = +(basePremium + benefitsTotal).toFixed(2);
+  const total = +(grossPremium + levies).toFixed(2);
 
-  doc.setDrawColor("#e5e7eb");
-  doc.setFillColor("#f9fafb");
-  doc.roundedRect(margin, y, pageW - margin * 2, 46, 4, 4, "FD");
-  const cols: [string, string][] = [
-    ["QUOTE DATE", String(quotation.created_at ?? "").slice(0, 10) || "—"],
-    ["VALID UNTIL", quotation.valid_until ?? "—"],
-    ["STATUS", String(quotation.status ?? "—").toUpperCase()],
-    ["INSURER", insurer?.name ?? "—"],
+  const coverLabel = `${titleCase(quotation.product_class)}\n${titleCase(quotation.cover_type)}`;
+
+  const remarks = [
+    { title: "What you get in the policy", lines: [
+      "Third party persons injury: As per statute",
+      "Third party property damage: KES. 5,000,000",
+      "Passenger legal liability per person: KES. 3,000,000",
+      "Total passenger legal liability: KES. 20,000,000",
+      "Windscreen free limit: KES. 50,000",
+      "Towing charges: KES. 30,000",
+      "Repair authority: KES. 50,000",
+      "Medical expenses: KES. 30,000",
+      "Entertainment free limit: KES. 50,000",
+      "Riot and strike: Free",
+    ]},
+    { title: "Additional policy details", lines: [
+      "For Audi, Mazda, Subaru and Volkswagen — basic rate loaded 30% on onboarding.",
+      "Own damage claims: 2.5% of value min. KES. 15,000",
+      "Theft (with ATD): 10% of value min. KES. 20,000",
+      "Theft (without ATD): 20% of value min. KES. 20,000",
+      "Theft (with tracking device): 2.5% of value min. KES. 20,000",
+      "Third party injury claims: Nil.",
+      "Third party property damage: KES. 10,000",
+      "New and young drivers: KES. 7,500 additional",
+    ]},
   ];
-  const colW = (pageW - margin * 2) / cols.length;
-  cols.forEach(([label, val], i) => {
-    const cx = margin + i * colW + 12;
-    doc.setTextColor(MUTED); doc.setFontSize(8); doc.setFont("helvetica", "normal");
-    doc.text(label, cx, y + 16);
-    doc.setTextColor("#111827"); doc.setFontSize(11); doc.setFont("helvetica", "bold");
-    doc.text(String(val), cx, y + 34);
-  });
-  y += 60;
 
-  const rows: [string, string][] = [
-    ["Product class", titleCase(quotation.product_class)],
-    ["Cover type", titleCase(quotation.cover_type)],
-  ];
-  if (vehicle?.registration_no) {
-    const veh = [vehicle.registration_no, [vehicle.make, vehicle.model, vehicle.year].filter(Boolean).join(" ")].filter(Boolean).join(" — ");
-    rows.push(["Vehicle", veh]);
+  // Build body rows; first row uses rowSpan for cover + remarks
+  const benefitRows = benefits.length === 0
+    ? [["", "", "", "", "", "", ""]] // keep at least one spacer row
+    : benefits.map((b, idx) => [
+        idx === 0 ? null : "", // class column handled below via rowSpan
+        b,
+        num(sumInsured),
+        "0.25",
+        num(benefitUnit),
+        "",
+        "",
+      ]);
+
+  // We render the table manually-ish via autoTable with rowSpans.
+  const totalRows = Math.max(benefits.length, 1) + 1; // +1 for base row
+
+  const body: any[] = [];
+  // Base cover row spans the Class & Remarks columns down all rows
+  body.push([
+    { content: coverLabel, rowSpan: totalRows, styles: { fontStyle: "bold", valign: "top", fillColor: "#eaf2ff" } },
+    "", // Additional benefits (base has none)
+    num(sumInsured),
+    String(ratePct),
+    num(basePremium),
+    "",
+    "",
+    { content: "", rowSpan: totalRows, styles: { fillColor: "#eaf2ff", cellPadding: 6, valign: "top" } },
+  ]);
+  if (benefits.length === 0) {
+    body.push(["", "", "", "", "", ""]);
+  } else {
+    benefits.forEach((b) => {
+      body.push([b, num(sumInsured), "0.25", num(benefitUnit), "", ""]);
+    });
   }
-  if (quotation.sum_insured != null) rows.push(["Sum insured", money(quotation.sum_insured)]);
+  // Totals row
+  body.push([
+    { content: "Total premium payable", colSpan: 3, styles: { fontStyle: "italic", halign: "right", fillColor: "#f3f6fb" } },
+    { content: num(grossPremium), styles: { fontStyle: "bold", fillColor: "#f3f6fb" } },
+    { content: num(levies), styles: { fontStyle: "bold", fillColor: "#f3f6fb" } },
+    { content: num(total), styles: { fontStyle: "bold", fillColor: "#f3f6fb" } },
+  ]);
 
   autoTable(doc, {
-    startY: y,
-    head: [["Detail", "Value"]],
-    body: rows,
-    styles: { fontSize: 10, cellPadding: 8 },
-    headStyles: { fillColor: BRAND, textColor: "#ffffff", fontStyle: "bold" },
-    alternateRowStyles: { fillColor: "#fafafa" },
-    columnStyles: { 0: { cellWidth: 160, fontStyle: "bold" } },
+    startY: 120,
     margin: { left: margin, right: margin },
+    head: [["Class of insurance", "Additional benefits", "Sum insured", "Rate %", "Premium", "Levies", "Total", "Remarks"]],
+    body,
+    theme: "grid",
+    styles: { fontSize: 9, cellPadding: 5, lineColor: "#d7e1ee", lineWidth: 0.5, textColor: "#111827", overflow: "linebreak" },
+    headStyles: { fillColor: BRAND, textColor: "#ffffff", fontStyle: "bold", halign: "center", valign: "middle" },
+    columnStyles: {
+      0: { cellWidth: 90 },
+      1: { cellWidth: 130 },
+      2: { cellWidth: 70, halign: "right" },
+      3: { cellWidth: 45, halign: "right" },
+      4: { cellWidth: 65, halign: "right" },
+      5: { cellWidth: 50, halign: "right" },
+      6: { cellWidth: 60, halign: "right" },
+      7: { cellWidth: "auto" },
+    },
+    didDrawCell: (data: any) => {
+      // Render the merged Remarks block once on the first row
+      if (data.column.index === 7 && data.row.index === 0 && data.cell.raw && data.cell.raw.rowSpan) {
+        const { x, y, width } = data.cell;
+        let cy = y + 12;
+        doc.setFontSize(8);
+        remarks.forEach((section) => {
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(BRAND_DARK);
+          doc.text(section.title, x + width / 2, cy, { align: "center" });
+          cy += 11;
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor("#1f3a68");
+          section.lines.forEach((line) => {
+            const wrapped = doc.splitTextToSize(line, width - 10);
+            doc.text(wrapped, x + 5, cy);
+            cy += wrapped.length * 9;
+          });
+          cy += 4;
+        });
+      }
+    },
   });
-  y = (doc as any).lastAutoTable.finalY + 14;
 
-  const totalsX = pageW - margin - 220;
-  const row = (label: string, val: string, opts: { bold?: boolean; color?: string } = {}) => {
-    doc.setFont("helvetica", opts.bold ? "bold" : "normal");
-    doc.setTextColor(opts.color ?? "#111827");
-    doc.setFontSize(10);
-    doc.text(label, totalsX, y);
-    doc.text(val, pageW - margin, y, { align: "right" });
-    y += 16;
-  };
-  if (quotation.premium_net != null) row("Net premium", money(quotation.premium_net));
-  doc.setDrawColor("#e5e7eb"); doc.line(totalsX, y - 8, pageW - margin, y - 8);
-  row("Gross premium", money(quotation.premium_gross), { bold: true, color: BRAND_DARK });
-
-  if (quotation.notes) {
-    y += 6;
-    doc.setFont("helvetica", "bold"); doc.setTextColor("#111827"); doc.setFontSize(11);
-    doc.text("Notes", margin, y); y += 14;
-    doc.setFont("helvetica", "normal"); doc.setTextColor(MUTED); doc.setFontSize(10);
-    const wrapped = doc.splitTextToSize(String(quotation.notes), pageW - margin * 2);
-    doc.text(wrapped, margin, y);
-    y += wrapped.length * 12;
-  }
-
-  const pageH = doc.internal.pageSize.getHeight();
-  doc.setDrawColor(BRAND); doc.setLineWidth(2);
-  doc.line(margin, pageH - 50, pageW - margin, pageH - 50);
-  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(MUTED);
-  doc.text("This quotation is indicative and subject to underwriter approval.", margin, pageH - 32);
-  doc.text(`Generated ${new Date().toLocaleDateString()}`, pageW - margin, pageH - 32, { align: "right" });
+  // ===== Footer band =====
+  const footerH = 95;
+  const footerY = pageH - footerH;
+  doc.setFillColor(BRAND);
+  doc.rect(0, footerY, pageW, footerH, "F");
+  doc.setTextColor("#ffffff");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("** Subject to our standard policy terms, conditions and exceptions", margin, footerY + 20);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Email: ${branch?.email ?? AGENCY_CONTACT.email}`, margin, footerY + 36);
+  doc.text(`Contacts: ${branch?.phone ?? AGENCY_CONTACT.phone}`, margin, footerY + 50);
+  doc.setFont("helvetica", "bold");
+  doc.text("This quotation is valid for 30 days", margin, footerY + 70);
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.text(
-    `${AGENCY_CONTACT.address}  •  ${AGENCY_CONTACT.phone}  •  ${AGENCY_CONTACT.email}`,
-    pageW / 2,
-    pageH - 22,
-    { align: "center" },
-  );
-  doc.text("Powered by Texcortech Systems", pageW / 2, pageH - 10, { align: "center" });
+  doc.text(`This is a system generated document on ${new Date().toISOString()}`, margin, footerY + 84);
+  doc.text("Powered by Texcortech Systems", pageW - margin, footerY + 84, { align: "right" });
 
   const filename = `Quotation-${quotation.quote_no ?? quotation.id}.pdf`;
   const blob = doc.output("blob");
