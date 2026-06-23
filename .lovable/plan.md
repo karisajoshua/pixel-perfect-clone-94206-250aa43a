@@ -1,35 +1,29 @@
 ## Goal
-Let clients edit and save their own profile details from `/portal/profile`.
+Show each underwriter's logo on the admin Insurers page (`/admin/insurers`), matched to the insurer row, using the 14 logos already hosted in the Zest Insurance website project.
 
-## Editable fields
-Safe self-service fields (identity/financial fields stay read-only and managed by agents):
-- Phone, Alternate phone
-- Postal/Physical address, City
-- Date of birth (individual clients)
-- KRA PIN, ID number — editable only while KYC is not yet `verified`
+## Steps
 
-Read-only on the portal: full name, company name, client type, email, branch, assigned agent, KYC status.
+1. **Add `logo_url` column to `insurers` table** (migration)
+   - `ALTER TABLE public.insurers ADD COLUMN logo_url text;`
+   - No new GRANTs needed (existing table grants cover it).
 
-## Backend
-Add `updateMyProfile` server function in `src/lib/portal.functions.ts`:
-- `requireSupabaseAuth` middleware
-- Zod-validate the editable fields (length limits, phone format via existing `src/lib/phone.ts`, ISO date)
-- Resolve client via `getMyClient(supabase, userId)` (RLS already scopes by `auth_user_id`)
-- `UPDATE public.clients SET ... WHERE id = client.id` — never accept `id`, `auth_user_id`, `branch_id`, `assigned_agent`, `kyc_status`, `client_type`, `full_name`, `company_name`, `email` from the client
-- If KYC is `verified`, strip `id_number` and `kra_pin` from the update payload server-side
-- Return the refreshed client row
+2. **Copy logo asset pointers from the Zest website project** into `src/assets/insurers/` using `cross_project--copy_project_asset`. Files to copy:
+   - AMACO, APA, Britam, CIC, Definite Assurance, Directline, Heritage, ICEA Lion, Kenindia, Kenyan Alliance, Old Mutual, Pacis, Pioneer, The Monarch (14 logos available).
+   - The other 7 insurers (Cannon General, Corporate Insurance, Lami, Occidental, Saham, TEBS, Trident) have no logo on the source site — they'll show an initials placeholder.
 
-No schema/RLS migration needed — existing `clients` policy already permits the client to update their own row via `auth_user_id = auth.uid()` (verify during build; add a narrow policy only if missing).
+3. **Seed `logo_url` via migration** — `UPDATE public.insurers SET logo_url = '<cdn-url>' WHERE name = '...'` for each of the 14 matched insurers (using the stable `/__l5e/assets-v1/...` URLs from the copied `.asset.json` files).
 
-## Frontend
-Rewrite `src/routes/_portal/portal/profile.tsx`:
-- Replace the static `<Row>` grid with a `react-hook-form` + `zod` form using existing `Form`, `Input`, `Label` components
-- Group: Contact info, Address, Identification (locked once KYC verified, with a hint)
-- "Save changes" button using `useMutation` → `updateMyProfile`, toast on success, invalidate `portal-overview`
-- "Cancel" resets the form to server values
-- Keep the existing "contact your agent to change locked fields" note for read-only fields
+4. **Update `src/routes/_authenticated/admin.insurers.tsx`**
+   - Add a logo cell (first column) with `<img>` showing `logo_url`, falling back to an `Avatar` with the insurer's initials when null.
+   - Add a "Logo URL" field to the `InsurerDialog` so admins can paste/replace logos for the insurers without one (or override later).
+   - Include `logo_url` in select / insert / update payloads.
+
+5. **Regenerate Supabase types** — `src/integrations/supabase/types.ts` will be auto-updated by the migration tooling to include the new column.
 
 ## Out of scope
-- Editing email (auth-managed; would need re-verification flow)
-- Avatar upload
-- Any admin-side changes
+- Uploading logos to a storage bucket (we reuse the existing CDN-hosted assets from the website project).
+- Showing logos elsewhere (policies list, client portal, etc.) — can be a follow-up once the column exists.
+
+## Technical notes
+- Asset pointers live in `src/assets/insurers/*.asset.json`; their `url` field (`/__l5e/assets-v1/{asset_id}/{filename}`) is stable and used directly in the seed migration so the DB doesn't depend on bundler imports.
+- Fallback avatar uses the first 2 letters of `name` on a muted background to keep the table tidy when `logo_url IS NULL`.
