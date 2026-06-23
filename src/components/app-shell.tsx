@@ -52,10 +52,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const visibleNav = nav.filter((n) => (roles ?? []).some((r) => n.roles.includes(r as Role)));
 
   const signOut = async () => {
-    await qc.cancelQueries();
-    qc.clear();
-    await supabase.auth.signOut();
     navigate({ to: "/", replace: true });
+    await qc.cancelQueries();
+    await supabase.auth.signOut();
+    qc.clear();
   };
 
   const sidebarContent = (
