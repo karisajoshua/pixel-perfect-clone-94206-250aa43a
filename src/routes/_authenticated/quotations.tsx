@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PageHeader } from "@/components/page-header";
 import { Plus, Pencil, ArrowRight, Download, Check, X, Send, Search } from "lucide-react";
 import { toast } from "sonner";
@@ -202,21 +203,90 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
   const [insurers, setInsurers] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
+  const [clientText, setClientText] = useState("");
+  const [showClientList, setShowClientList] = useState(false);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
+
+  const BENEFIT_OPTIONS = [
+    "Excess Protector Own Damage",
+    "Excess Protector Theft",
+    "Political Violence and Terrorism",
+    "Loss of Use",
+  ];
 
   useEffect(() => {
     if (!open) return;
     const v = new Date(); v.setDate(v.getDate() + 14);
-    setForm(initial ?? { quote_no: `Q-${Date.now()}`, status: "draft", product_class: "motor_private", cover_type: "comprehensive", valid_until: v.toISOString().slice(0,10) });
+    const init = initial ?? { quote_no: `Q-${Date.now()}`, status: "draft", product_class: "motor_private", cover_type: "comprehensive", valid_until: v.toISOString().slice(0,10), line_items: { rate_pct: 0, levies: 0, benefits: [] } };
+    if (!init.line_items) init.line_items = { rate_pct: 0, levies: 0, benefits: [] };
+    setForm(init);
+    setClientText("");
     supabase.from("clients").select("id, full_name, company_name, client_type").order("full_name").then(({ data }) => setClients(data ?? []));
     supabase.from("insurers").select("id, name").eq("active", true).order("name").then(({ data }) => setInsurers(data ?? []));
     supabase.from("vehicles").select("id, registration_no, client_id").then(({ data }) => setVehicles(data ?? []));
   }, [open, initial]);
 
+  // When editing, hydrate clientText from selected client
+  useEffect(() => {
+    if (!form.client_id || clientText) return;
+    const c = clients.find((c) => c.id === form.client_id);
+    if (c) setClientText(c.client_type === "corporate" ? c.company_name ?? c.full_name : c.full_name);
+  }, [clients, form.client_id]);
+
+  const li = form.line_items ?? {};
+  const ratePct = Number(li.rate_pct ?? 0);
+  const levies = Number(li.levies ?? 0);
+  const benefits: string[] = Array.isArray(li.benefits) ? li.benefits : [];
+  const sumInsured = Number(form.sum_insured ?? 0);
+  const basePremium = +(sumInsured * (ratePct / 100)).toFixed(2);
+  const benefitPremium = +(sumInsured * 0.0025 * benefits.length).toFixed(2);
+  const premiumGross = +(basePremium + benefitPremium).toFixed(2);
+  const total = +(premiumGross + levies).toFixed(2);
+
+  const setLi = (k: string, v: any) => set("line_items", { ...li, [k]: v });
+  const toggleBenefit = (name: string) => {
+    const next = benefits.includes(name) ? benefits.filter((b) => b !== name) : [...benefits, name];
+    setLi("benefits", next);
+  };
+
+  const filteredClients = (() => {
+    const t = clientText.trim().toLowerCase();
+    if (!t) return clients.slice(0, 8);
+    return clients.filter((c) => {
+      const name = c.client_type === "corporate" ? c.company_name ?? c.full_name : c.full_name;
+      return name?.toLowerCase().includes(t);
+    }).slice(0, 8);
+  })();
+
+  const matchedClient = clients.find((c) => {
+    const name = c.client_type === "corporate" ? c.company_name ?? c.full_name : c.full_name;
+    return name?.toLowerCase() === clientText.trim().toLowerCase();
+  });
+
   const submit = async () => {
+    const typed = clientText.trim();
+    if (!typed) return toast.error("Client name is required");
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
-    const payload = { ...form, created_by: u.user?.id };
+
+    // Resolve or create client
+    let clientId = matchedClient?.id ?? form.client_id ?? null;
+    if (!matchedClient) {
+      const { data: newClient, error: cErr } = await supabase.from("clients")
+        .insert({ full_name: typed, client_type: "individual", created_by: u.user?.id })
+        .select("id").single();
+      if (cErr) { setSaving(false); return toast.error(cErr.message); }
+      clientId = newClient!.id;
+    }
+
+    const payload = {
+      ...form,
+      client_id: clientId,
+      premium_gross: premiumGross,
+      premium_net: basePremium,
+      line_items: { rate_pct: ratePct, levies, benefits },
+      created_by: u.user?.id,
+    };
     const op = initial?.id
       ? supabase.from("quotations").update(payload).eq("id", initial.id).select("id").single()
       : supabase.from("quotations").insert(payload).select("id").single();
@@ -224,9 +294,9 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Saved");
-    if (saved?.id && form.client_id) {
+    if (saved?.id && clientId) {
       const { sendTransactionalEmail, clientDisplayName, formatKES } = await import("@/lib/email/send");
-      const { data: c } = await supabase.from("clients").select("email, full_name, company_name, client_type").eq("id", form.client_id).maybeSingle();
+      const { data: c } = await supabase.from("clients").select("email, full_name, company_name, client_type").eq("id", clientId).maybeSingle();
       if (c?.email) {
         const insurer = insurers.find((i: any) => i.id === form.insurer_id);
         sendTransactionalEmail({
@@ -237,8 +307,8 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
             clientName: clientDisplayName(c),
             quoteNo: form.quote_no,
             insurerName: insurer?.name ?? '',
-            premium: form.premium_gross ? formatKES(form.premium_gross) : '',
-            sumInsured: form.sum_insured ? formatKES(form.sum_insured) : '',
+            premium: premiumGross ? formatKES(premiumGross) : '',
+            sumInsured: sumInsured ? formatKES(sumInsured) : '',
             validUntil: form.valid_until ?? '',
             productClass: form.product_class ?? '',
             coverType: form.cover_type ?? '',
@@ -249,7 +319,7 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
     onSaved?.(); onOpenChange(false);
   };
 
-  const vForClient = form.client_id ? vehicles.filter((v) => v.client_id === form.client_id) : vehicles;
+  const vForClient = matchedClient ? vehicles.filter((v) => v.client_id === matchedClient.id) : vehicles;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -258,12 +328,32 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5"><Label>Quote #</Label><Input value={form.quote_no ?? ""} onChange={(e) => set("quote_no", e.target.value)} /></div>
           <div className="space-y-1.5"><Label>Valid until</Label><Input type="date" value={form.valid_until ?? ""} onChange={(e) => set("valid_until", e.target.value)} /></div>
-          <div className="sm:col-span-2 space-y-1.5">
+          <div className="sm:col-span-2 space-y-1.5 relative">
             <Label>Client *</Label>
-            <Select value={form.client_id ?? ""} onValueChange={(v) => set("client_id", v)}>
-              <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
-              <SelectContent>{clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.client_type === "corporate" ? c.company_name ?? c.full_name : c.full_name}</SelectItem>)}</SelectContent>
-            </Select>
+            <Input
+              placeholder="Type client name (creates a new client if it doesn't exist)"
+              value={clientText}
+              onChange={(e) => { setClientText(e.target.value); setShowClientList(true); set("client_id", null); }}
+              onFocus={() => setShowClientList(true)}
+              onBlur={() => setTimeout(() => setShowClientList(false), 150)}
+            />
+            {showClientList && filteredClients.length > 0 && (
+              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-56 overflow-auto">
+                {filteredClients.map((c) => {
+                  const name = c.client_type === "corporate" ? c.company_name ?? c.full_name : c.full_name;
+                  return (
+                    <button key={c.id} type="button"
+                      className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { setClientText(name ?? ""); set("client_id", c.id); setShowClientList(false); }}
+                    >{name}</button>
+                  );
+                })}
+              </div>
+            )}
+            {clientText.trim() && !matchedClient && (
+              <p className="text-xs text-muted-foreground">New client "{clientText.trim()}" will be created on save.</p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label>Vehicle</Label>
@@ -307,13 +397,34 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
             </Select>
           </div>
           <div className="space-y-1.5"><Label>Sum insured</Label><Input type="number" value={form.sum_insured ?? ""} onChange={(e) => set("sum_insured", e.target.value ? Number(e.target.value) : null)} /></div>
-          <div className="space-y-1.5"><Label>Gross premium</Label><Input type="number" value={form.premium_gross ?? ""} onChange={(e) => set("premium_gross", e.target.value ? Number(e.target.value) : null)} /></div>
-          <div className="space-y-1.5"><Label>Net premium</Label><Input type="number" value={form.premium_net ?? ""} onChange={(e) => set("premium_net", e.target.value ? Number(e.target.value) : null)} /></div>
+          <div className="space-y-1.5"><Label>Rate %</Label><Input type="number" step="0.01" value={li.rate_pct ?? ""} onChange={(e) => setLi("rate_pct", e.target.value ? Number(e.target.value) : 0)} /></div>
+          <div className="space-y-1.5"><Label>Levies</Label><Input type="number" step="0.01" value={li.levies ?? ""} onChange={(e) => setLi("levies", e.target.value ? Number(e.target.value) : 0)} /></div>
+          <div className="sm:col-span-2 space-y-2">
+            <Label>Additional Benefits</Label>
+            <p className="text-xs text-muted-foreground">Each selected benefit is priced at 0.25% of the sum insured.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {BENEFIT_OPTIONS.map((b) => {
+                const checked = benefits.includes(b);
+                return (
+                  <label key={b} className={`flex items-center gap-3 rounded-md border px-3 py-2.5 cursor-pointer transition-colors ${checked ? "border-primary bg-primary/5" : "hover:bg-muted/40"}`}>
+                    <Checkbox checked={checked} onCheckedChange={() => toggleBenefit(b)} />
+                    <span className="text-sm">{b}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+          <div className="sm:col-span-2 rounded-md border bg-muted/30 p-3 text-sm space-y-1">
+            <div className="flex justify-between"><span className="text-muted-foreground">Base premium</span><span>KES {basePremium.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Additional benefits ({benefits.length})</span><span>KES {benefitPremium.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Levies</span><span>KES {levies.toLocaleString()}</span></div>
+            <div className="flex justify-between font-semibold border-t pt-1 mt-1"><span>Total premium payable</span><span>KES {total.toLocaleString()}</span></div>
+          </div>
           <div className="sm:col-span-2 space-y-1.5"><Label>Notes</Label><Textarea rows={2} value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value)} /></div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit} disabled={saving || !form.quote_no || !form.client_id}>Save</Button>
+          <Button onClick={submit} disabled={saving || !form.quote_no || !clientText.trim()}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

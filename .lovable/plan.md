@@ -1,29 +1,44 @@
-# Branch performance visibility for managers
+## Quotation module updates
 
-## Goal
+### 1. New-quote dialog (`src/routes/_authenticated/quotations.tsx`)
 
-On the Reports page, the **Branch performance** table should:
+**Client field — typeable combobox**
+- Replace the `<Select>` with an `<Input>` + suggestion list (filters loaded clients as you type).
+- If the typed name matches an existing client → use that `client_id`.
+- If no match → on Save, create a new `clients` row first (`full_name` = typed text, `client_type = "individual"`), then use the returned id. The existing branch-trigger automatically assigns it to the creator's branch.
 
-- **Admin** — unchanged: see every branch with Policies, **Premium**, Claims.
-- **Manager** — see every branch with Policies and Claims (counts only). The **Premium** column is hidden so managers can't see other branches' revenue.
+**Remove Gross premium and Net premium inputs.** Both fields stay in the DB but are computed, not edited.
 
-Every other section on Reports (KPIs, Revenue over time, Insurer portfolio, Claims funnel, Top agents) stays scoped to the manager's own branch as it is today. Only the Branch performance table widens for managers.
+**Add new inputs**
+- `Rate %` (number) — e.g. 3.9
+- `Levies` (number, optional) — stored in `line_items.levies`
+- `Additional Benefits` — 4 checkbox cards laid out like the second screenshot:
+  - Excess Protector Own Damage
+  - Excess Protector Theft
+  - Political Violence and Terrorism
+  - Loss of Use
+- Each selected benefit auto-prices at **0.25% × sum_insured**.
 
-## Changes
+**Auto-calculation (live)**
+- Base premium = `sum_insured × rate%`
+- Benefit premium (each) = `sum_insured × 0.25%`
+- `premium_gross` saved = base + sum(benefits)
+- `Total` shown = `premium_gross + levies`
+- Selected benefits + rate + levies persisted to `quotations.line_items` (jsonb column already exists).
 
-### 1. `src/lib/reports.functions.ts`
-- Add a new field on the response: `branchPerformanceAll: { branch, policies, claims }[]` — counts across all branches, no premium.
-- Compute it by querying `policies` and `claims` without the branch filter (just `id, branch_id` for policies; `id, branch_id` for claims) when the caller is a manager. Admins don't need this extra payload — they already get full `branchPerformance` with premium.
-- Existing `branchPerformance` (with premium) stays admin-only data; for managers it will contain only their own branch row as it does today.
+### 2. Quotation PDF (`src/lib/quotation-pdf.ts`)
 
-### 2. `src/routes/_authenticated/reports.tsx`
-- In the Branch performance `DataTable`:
-  - If `isAdmin`: render as today — `["Branch", "Policies", "Premium", "Claims"]` from `branchPerformance`.
-  - If manager: render `["Branch", "Policies", "Claims"]` from `branchPerformanceAll`.
-- Update `buildCsv` to match: managers' CSV omits the Premium column in the branch section.
+Rebuild the layout to match the attached ICEA LION format:
 
-## Out of scope
+- Blue header band: insurer logo/name left, `Quotation provided by: <Insurer>`, `CLIENT NAME: <name>`, `AGENT NAME: ZEST INSURANCE AGENT`.
+- Main table with columns: **Class of insurance | Additional benefits | Sum insured | Rate % | Premium | Levies | Total | Remarks**.
+  - First row: base cover (e.g. "Motor private Comprehensive") with sum insured, rate, premium.
+  - One row per selected additional benefit (name, sum insured, 0.25%, computed premium).
+  - Remarks column merges down the right side with the standard cover inclusions (third-party limits, windscreen, towing, medical, etc.) + additional policy details, identical to the screenshot.
+  - Bottom row: **Total premium payable** with summed Premium, Levies, Total.
+- Blue footer band: policy terms note, contact email/phone, validity ("This quotation is valid for 30 days"), generation timestamp, "Powered by Texcortech Systems".
 
-- No changes to other charts/KPIs or to the manager-scope RLS that hides client/policy/claim rows from other branches.
-- No changes to the Top agents table (still scoped to manager's own branch).
-- No changes to the Dashboard's "Revenue by branch" card (admin-only already).
+### 3. Out of scope
+- No DB migration (using existing `line_items` jsonb).
+- No changes to approval workflow, conversion to policy, or list view.
+- Portal-side quotation views untouched.
