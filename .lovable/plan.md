@@ -1,29 +1,23 @@
 ## Goal
-Show each underwriter's logo on the admin Insurers page (`/admin/insurers`), matched to the insurer row, using the 14 logos already hosted in the Zest Insurance website project.
+
+On the Admin → Insurers page, update logos so:
+1. Add/replace logos for Kenindia, Old Mutual, Heritage, and ICEA Lion using the 4 newly uploaded images.
+2. All insurer logos display below the insurer name (not inline).
+3. Remove the bordered container/box around logos — render as bare images.
 
 ## Steps
 
-1. **Add `logo_url` column to `insurers` table** (migration)
-   - `ALTER TABLE public.insurers ADD COLUMN logo_url text;`
-   - No new GRANTs needed (existing table grants cover it).
+1. Upload the 4 attached images via `lovable-assets create` from `/mnt/user-uploads/` and write `.asset.json` pointers to `src/assets/insurers/`:
+   - `kenindia.png.asset.json`
+   - `old-mutual.png.asset.json`
+   - `heritage.png.asset.json`
+   - `icea-lion.png.asset.json`
 
-2. **Copy logo asset pointers from the Zest website project** into `src/assets/insurers/` using `cross_project--copy_project_asset`. Files to copy:
-   - AMACO, APA, Britam, CIC, Definite Assurance, Directline, Heritage, ICEA Lion, Kenindia, Kenyan Alliance, Old Mutual, Pacis, Pioneer, The Monarch (14 logos available).
-   - The other 7 insurers (Cannon General, Corporate Insurance, Lami, Occidental, Saham, TEBS, Trident) have no logo on the source site — they'll show an initials placeholder.
+2. Run a data update (insert tool) on `public.insurers` to set `logo_url` for those 4 insurers to the new CDN URLs (replacing existing values).
 
-3. **Seed `logo_url` via migration** — `UPDATE public.insurers SET logo_url = '<cdn-url>' WHERE name = '...'` for each of the 14 matched insurers (using the stable `/__l5e/assets-v1/...` URLs from the copied `.asset.json` files).
+3. Edit `src/routes/_authenticated/admin.insurers.tsx`:
+   - Change the Name cell from a horizontal `flex items-center gap-3` (logo + name) to a vertical `flex flex-col gap-2` with name on top and logo below.
+   - Remove any border/background/rounded container around the `<img>`; render a plain `<img>` with constrained height (e.g. `h-10 w-auto object-contain`) and no wrapper styling.
+   - Keep the initials fallback when `logo_url` is null, also unstyled (plain text, no boxed badge).
 
-4. **Update `src/routes/_authenticated/admin.insurers.tsx`**
-   - Add a logo cell (first column) with `<img>` showing `logo_url`, falling back to an `Avatar` with the insurer's initials when null.
-   - Add a "Logo URL" field to the `InsurerDialog` so admins can paste/replace logos for the insurers without one (or override later).
-   - Include `logo_url` in select / insert / update payloads.
-
-5. **Regenerate Supabase types** — `src/integrations/supabase/types.ts` will be auto-updated by the migration tooling to include the new column.
-
-## Out of scope
-- Uploading logos to a storage bucket (we reuse the existing CDN-hosted assets from the website project).
-- Showing logos elsewhere (policies list, client portal, etc.) — can be a follow-up once the column exists.
-
-## Technical notes
-- Asset pointers live in `src/assets/insurers/*.asset.json`; their `url` field (`/__l5e/assets-v1/{asset_id}/{filename}`) is stable and used directly in the seed migration so the DB doesn't depend on bundler imports.
-- Fallback avatar uses the first 2 letters of `name` on a muted background to keep the table tidy when `logo_url IS NULL`.
+No other UI or business logic changes.
