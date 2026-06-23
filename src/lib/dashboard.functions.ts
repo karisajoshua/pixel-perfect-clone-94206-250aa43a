@@ -22,19 +22,32 @@ export type DashboardSummary = {
 export const getDashboardSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<DashboardSummary> => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    const [{ data: rolesData }, { data: profile }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+      supabase.from("profiles").select("branch_id").eq("id", userId).maybeSingle(),
+    ]);
+    const roles = (rolesData ?? []).map((r: any) => r.role as string);
+    const isAdmin = roles.includes("admin");
+    const scopeBranchId: string | null = isAdmin ? null : (profile?.branch_id ?? null);
+    const scope = <T extends { eq: (col: string, val: any) => T }>(q: T, col = "branch_id"): T =>
+      scopeBranchId ? q.eq(col, scopeBranchId) : q;
     const now = new Date();
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
     const in30 = new Date(Date.now() + 30 * 86400_000).toISOString().slice(0, 10);
     const today = new Date().toISOString().slice(0, 10);
 
     const [paymentsRes, policiesRes, claimsRes, renewalsRes, clientsRes, branchesRes] = await Promise.all([
-      supabase.from("payments").select("amount, paid_at, invoices!inner(branch_id)"),
-      supabase.from("policies").select("id, status, branch_id"),
-      supabase.from("claims").select("id, status"),
-      supabase.from("policies").select("id", { count: "exact", head: true }).gte("end_date", today).lte("end_date", in30).eq("status", "active"),
-      supabase.from("clients").select("id", { count: "exact", head: true }),
-      supabase.from("branches").select("id, name"),
+      scopeBranchId
+        ? supabase.from("payments").select("amount, paid_at, invoices!inner(branch_id)").eq("invoices.branch_id", scopeBranchId)
+        : supabase.from("payments").select("amount, paid_at, invoices!inner(branch_id)"),
+      scope(supabase.from("policies").select("id, status, branch_id")),
+      scope(supabase.from("claims").select("id, status, branch_id")),
+      scope(supabase.from("policies").select("id", { count: "exact", head: true }).gte("end_date", today).lte("end_date", in30).eq("status", "active")),
+      scope(supabase.from("clients").select("id", { count: "exact", head: true })),
+      scopeBranchId
+        ? supabase.from("branches").select("id, name").eq("id", scopeBranchId)
+        : supabase.from("branches").select("id, name"),
     ]);
 
     const payments = (paymentsRes.data ?? []) as any[];
