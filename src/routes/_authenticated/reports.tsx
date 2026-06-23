@@ -36,6 +36,7 @@ function defaultRange() {
 function ReportsPage() {
   const { data: roles } = useMyRoles();
   const allowed = roles?.some((r) => r === "admin" || r === "manager") ?? false;
+  const isAdmin = roles?.includes("admin") ?? false;
 
   const [{ from, to }, setRange] = useState(defaultRange());
   const [branchId, setBranchId] = useState<string>("all");
@@ -102,13 +103,19 @@ function ReportsPage() {
           <div className="space-y-1.5"><Label>To</Label><Input type="date" value={to} onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))} /></div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Branch</Label>
-            <Select value={branchId} onValueChange={setBranchId}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All branches</SelectItem>
-                {(branchesQ.data ?? []).map((b: any) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            {isAdmin ? (
+              <Select value={branchId} onValueChange={setBranchId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All branches</SelectItem>
+                  {(branchesQ.data ?? []).map((b: any) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="h-10 flex items-center px-3 rounded-md border bg-muted/40 text-sm text-muted-foreground">
+                {report.data?.branchPerformance?.[0]?.branch ?? "Your branch"}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
