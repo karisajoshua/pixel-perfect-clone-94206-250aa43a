@@ -111,33 +111,16 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
     ]},
   ];
 
-  // Build body rows; first row uses rowSpan for cover + remarks
-  const benefitRows = benefits.length === 0
-    ? [["", "", "", "", "", "", ""]] // keep at least one spacer row
-    : benefits.map((b, idx) => [
-        idx === 0 ? null : "", // class column handled below via rowSpan
-        b,
-        num(sumInsured),
-        "0.25",
-        num(benefitUnit),
-        "",
-        "",
-      ]);
-
-  // We render the table manually-ish via autoTable with rowSpans.
-  const totalRows = Math.max(benefits.length, 1) + 1; // +1 for base row
-
   const body: any[] = [];
-  // Base cover row spans the Class & Remarks columns down all rows
+  const totalRows = Math.max(benefits.length, 1) + 1;
   body.push([
     { content: coverLabel, rowSpan: totalRows, styles: { fontStyle: "bold", valign: "top", fillColor: "#eaf2ff" } },
-    "", // Additional benefits (base has none)
+    "",
     num(sumInsured),
     String(ratePct),
     num(basePremium),
     "",
     "",
-    { content: "", rowSpan: totalRows, styles: { fillColor: "#eaf2ff", cellPadding: 6, valign: "top" } },
   ]);
   if (benefits.length === 0) {
     body.push(["", "", "", "", "", ""]);
@@ -157,43 +140,44 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   autoTable(doc, {
     startY: 120,
     margin: { left: margin, right: margin },
-    head: [["Class of insurance", "Additional benefits", "Sum insured", "Rate %", "Premium", "Levies", "Total", "Remarks"]],
+    head: [["Class of insurance", "Additional benefits", "Sum insured", "Rate %", "Premium", "Levies", "Total"]],
     body,
     theme: "grid",
     styles: { fontSize: 9, cellPadding: 5, lineColor: "#d7e1ee", lineWidth: 0.5, textColor: "#111827", overflow: "linebreak" },
     headStyles: { fillColor: BRAND, textColor: "#ffffff", fontStyle: "bold", halign: "center", valign: "middle" },
     columnStyles: {
-      0: { cellWidth: 90 },
-      1: { cellWidth: 130 },
-      2: { cellWidth: 70, halign: "right" },
-      3: { cellWidth: 45, halign: "right" },
-      4: { cellWidth: 65, halign: "right" },
-      5: { cellWidth: 50, halign: "right" },
-      6: { cellWidth: 60, halign: "right" },
-      7: { cellWidth: "auto" },
+      0: { cellWidth: 130 },
+      1: { cellWidth: 180 },
+      2: { cellWidth: 100, halign: "right" },
+      3: { cellWidth: 60, halign: "right" },
+      4: { cellWidth: 90, halign: "right" },
+      5: { cellWidth: 80, halign: "right" },
+      6: { cellWidth: "auto", halign: "right" },
     },
-    didDrawCell: (data: any) => {
-      // Render the merged Remarks block once on the first row
-      if (data.column.index === 7 && data.row.index === 0 && data.cell.raw && data.cell.raw.rowSpan) {
-        const { x, y, width } = data.cell;
-        let cy = y + 12;
-        doc.setFontSize(8);
-        remarks.forEach((section) => {
-          doc.setFont("helvetica", "bold");
-          doc.setTextColor(BRAND_DARK);
-          doc.text(section.title, x + width / 2, cy, { align: "center" });
-          cy += 11;
-          doc.setFont("helvetica", "normal");
-          doc.setTextColor("#1f3a68");
-          section.lines.forEach((line) => {
-            const wrapped = doc.splitTextToSize(line, width - 10);
-            doc.text(wrapped, x + 5, cy);
-            cy += wrapped.length * 9;
-          });
-          cy += 4;
-        });
-      }
-    },
+  });
+
+  // ===== Remarks section (rendered below the table) =====
+  let ry = (doc as any).lastAutoTable.finalY + 16;
+  const colW = (pageW - margin * 2 - 16) / 2;
+  const startY = ry;
+  let maxBottom = ry;
+  remarks.forEach((section, idx) => {
+    const cx = margin + idx * (colW + 16);
+    let cy = startY;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(BRAND_DARK);
+    doc.text(section.title, cx, cy);
+    cy += 14;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor("#1f3a68");
+    section.lines.forEach((line) => {
+      const wrapped = doc.splitTextToSize(`• ${line}`, colW);
+      doc.text(wrapped, cx, cy);
+      cy += wrapped.length * 11;
+    });
+    if (cy > maxBottom) maxBottom = cy;
   });
 
   // ===== Footer band =====

@@ -235,12 +235,12 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
 
   const li = form.line_items ?? {};
   const ratePct = Number(li.rate_pct ?? 0);
-  const levies = Number(li.levies ?? 0);
   const benefits: string[] = Array.isArray(li.benefits) ? li.benefits : [];
   const sumInsured = Number(form.sum_insured ?? 0);
   const basePremium = +(sumInsured * (ratePct / 100)).toFixed(2);
   const benefitPremium = +(sumInsured * 0.0025 * benefits.length).toFixed(2);
   const premiumGross = +(basePremium + benefitPremium).toFixed(2);
+  const levies = +(premiumGross * 0.0045 + 40).toFixed(2);
   const total = +(premiumGross + levies).toFixed(2);
 
   const setLi = (k: string, v: any) => set("line_items", { ...li, [k]: v });
@@ -398,7 +398,6 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
           </div>
           <div className="space-y-1.5"><Label>Sum insured</Label><Input type="number" value={form.sum_insured ?? ""} onChange={(e) => set("sum_insured", e.target.value ? Number(e.target.value) : null)} /></div>
           <div className="space-y-1.5"><Label>Rate %</Label><Input type="number" step="0.01" value={li.rate_pct ?? ""} onChange={(e) => setLi("rate_pct", e.target.value ? Number(e.target.value) : 0)} /></div>
-          <div className="space-y-1.5"><Label>Levies</Label><Input type="number" step="0.01" value={li.levies ?? ""} onChange={(e) => setLi("levies", e.target.value ? Number(e.target.value) : 0)} /></div>
           <div className="sm:col-span-2 space-y-2">
             <Label>Additional Benefits</Label>
             <p className="text-xs text-muted-foreground">Each selected benefit is priced at 0.25% of the sum insured.</p>
@@ -417,7 +416,7 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
           <div className="sm:col-span-2 rounded-md border bg-muted/30 p-3 text-sm space-y-1">
             <div className="flex justify-between"><span className="text-muted-foreground">Base premium</span><span>KES {basePremium.toLocaleString()}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Additional benefits ({benefits.length})</span><span>KES {benefitPremium.toLocaleString()}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Levies</span><span>KES {levies.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Levies (0.45% + KES 40)</span><span>KES {levies.toLocaleString()}</span></div>
             <div className="flex justify-between font-semibold border-t pt-1 mt-1"><span>Total premium payable</span><span>KES {total.toLocaleString()}</span></div>
           </div>
           <div className="sm:col-span-2 space-y-1.5"><Label>Notes</Label><Textarea rows={2} value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value)} /></div>
