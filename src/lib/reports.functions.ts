@@ -29,8 +29,17 @@ export const getReportsSummary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v) => Input.parse(v))
   .handler(async ({ data, context }): Promise<ReportsSummary> => {
-    const { supabase } = context;
-    const { from, to, branchId } = data;
+    const { supabase, userId } = context;
+    const { from, to } = data;
+
+    // Enforce branch scope for non-admins: ignore client-supplied branchId
+    const [{ data: rolesData }, { data: profile }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+      supabase.from("profiles").select("branch_id").eq("id", userId).maybeSingle(),
+    ]);
+    const roles = (rolesData ?? []).map((r: any) => r.role as string);
+    const isAdmin = roles.includes("admin");
+    const branchId: string | null = isAdmin ? (data.branchId ?? null) : (profile?.branch_id ?? null);
 
     const branchFilter = (q: any) => (branchId ? q.eq("branch_id", branchId) : q);
 
