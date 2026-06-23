@@ -52,17 +52,13 @@ function Insurers() {
               {data?.map((i) => (
                 <tr key={i.id} className="border-b last:border-0">
                   <td className="px-4 py-3 font-medium">
-                    <div className="flex items-center gap-3">
-                      {i.logo_url ? (
-                        <div className="h-10 w-10 shrink-0 rounded-md border bg-white flex items-center justify-center overflow-hidden">
-                          <img src={i.logo_url} alt={`${i.name} logo`} className="max-h-full max-w-full object-contain" />
-                        </div>
-                      ) : (
-                        <div className="h-10 w-10 shrink-0 rounded-md bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
-                          {i.name?.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
+                    <div className="flex flex-col gap-2">
                       <span>{i.name}</span>
+                      {i.logo_url ? (
+                        <img src={i.logo_url} alt={`${i.name} logo`} className="h-10 w-auto object-contain" />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">{i.name?.slice(0, 2).toUpperCase()}</span>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3">{i.short_code ?? "—"}</td>
@@ -116,9 +112,7 @@ function InsurerDialog({ open, onOpenChange, initial, onSaved }: any) {
             <Label>Logo URL</Label>
             <Input value={form.logo_url ?? ""} onChange={(e) => set("logo_url", e.target.value)} placeholder="https://… or /__l5e/assets-v1/…" />
             {form.logo_url && (
-              <div className="mt-2 h-12 w-12 rounded-md border bg-white flex items-center justify-center overflow-hidden">
-                <img src={form.logo_url} alt="Logo preview" className="max-h-full max-w-full object-contain" />
-              </div>
+              <img src={form.logo_url} alt="Logo preview" className="mt-2 h-12 w-auto object-contain" />
             )}
           </div>
           <div className="flex items-center gap-3"><Switch checked={!!form.active} onCheckedChange={(v) => set("active", v)} /><Label>Active</Label></div>
