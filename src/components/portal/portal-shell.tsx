@@ -57,10 +57,12 @@ export function PortalShell({ children }: { children: ReactNode }) {
   });
 
   const signOut = async () => {
-    await qc.cancelQueries();
-    qc.clear();
-    await supabase.auth.signOut();
+    // Navigate away first so authenticated components unmount and don't
+    // resubscribe to cleared queries (which would refetch without a token).
     navigate({ to: "/", replace: true });
+    await qc.cancelQueries();
+    await supabase.auth.signOut();
+    qc.clear();
   };
 
   const initial = (profile?.full_name ?? "?").trim().charAt(0).toUpperCase();
