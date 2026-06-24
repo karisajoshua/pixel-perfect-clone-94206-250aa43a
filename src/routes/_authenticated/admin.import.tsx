@@ -18,6 +18,11 @@ type Row = Record<string, any>;
 
 const norm = (s: any) => (s ?? "").toString().trim();
 const upper = (s: any) => norm(s).toUpperCase();
+const nameKey = (s: any) => {
+  const t = upper(s).replace(/[^A-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  if (!t) return "";
+  return t.split(" ").sort().join(" ");
+};
 const num = (s: any) => { const n = Number(norm(s).replace(/[^0-9.\-]/g, "")); return Number.isFinite(n) && n !== 0 ? n : null; };
 const normPhone = (s: any) => {
   const t = norm(s);
