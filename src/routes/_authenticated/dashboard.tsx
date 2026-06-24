@@ -50,10 +50,10 @@ function Dashboard() {
       <OnboardingChecklist />
 
       {isAdmin && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total revenue</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total revenue (paid)</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -61,6 +61,16 @@ function Dashboard() {
               <p className="text-xs text-muted-foreground mt-1">
                 {t ? `${fmt(t.revenueThisMonth)} this month` : "Loading…"}
               </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Active cover premium</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{t ? fmt(t.activeCoverPremium) : "—"}</div>
+              <p className="text-xs text-muted-foreground mt-1">Gross premium on all active policies.</p>
             </CardContent>
           </Card>
         </div>
@@ -94,7 +104,8 @@ function Dashboard() {
                   <TableRow>
                     <TableHead>Branch</TableHead>
                     <TableHead className="text-right">Policies</TableHead>
-                    <TableHead className="text-right">Revenue</TableHead>
+                    <TableHead className="text-right">Active cover</TableHead>
+                    <TableHead className="text-right">Revenue (paid)</TableHead>
                     <TableHead className="text-right">Share</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -103,6 +114,7 @@ function Dashboard() {
                     <TableRow key={b.branchId ?? "unassigned"}>
                       <TableCell className="font-medium">{b.branchName}</TableCell>
                       <TableCell className="text-right">{b.policies}</TableCell>
+                      <TableCell className="text-right">{fmt(b.activeCoverPremium)}</TableCell>
                       <TableCell className="text-right">{fmt(b.revenue)}</TableCell>
                       <TableCell className="text-right">{(b.share * 100).toFixed(1)}%</TableCell>
                     </TableRow>
@@ -112,6 +124,7 @@ function Dashboard() {
                     <TableCell className="text-right">
                       {data.byBranch.reduce((s, b) => s + b.policies, 0)}
                     </TableCell>
+                    <TableCell className="text-right">{fmt(t?.activeCoverPremium ?? 0)}</TableCell>
                     <TableCell className="text-right">{fmt(t?.revenue ?? 0)}</TableCell>
                     <TableCell className="text-right">100%</TableCell>
                   </TableRow>
