@@ -13,7 +13,8 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
-import logoRed from "@/assets/zia-logo-red.png.asset.json";
+import iconAsset from "@/assets/zest-icon-192.png.asset.json";
+import appleIconAsset from "@/assets/zest-icon-180.png.asset.json";
 
 function NotFoundComponent() {
   return (
@@ -92,14 +93,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: "Zest Insurance Agency — in-house management system for clients, policies, claims, billing and renewals." },
       { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/e4d7a33f-9ff4-4281-9026-fe8512245a79" },
       { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/e4d7a33f-9ff4-4281-9026-fe8512245a79" },
+      { name: "theme-color", content: "#1d4ed8" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "Zest" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", type: "image/png", href: logoRed.url },
-      { rel: "apple-touch-icon", href: logoRed.url },
+      { rel: "icon", type: "image/png", href: iconAsset.url },
+      { rel: "apple-touch-icon", sizes: "180x180", href: appleIconAsset.url },
+      { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),
   shellComponent: RootShell,
