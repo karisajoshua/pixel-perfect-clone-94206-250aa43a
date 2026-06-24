@@ -103,7 +103,7 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
     ]},
     { title: "Additional policy details", lines: [
       "For Audi, Mazda, Subaru and Volkswagen — basic rate loaded 30% on onboarding.",
-      "Own damage claims: 2.5% of value min. KES. 15,000",
+      "Own damage claims: 2.5% of value min. KES. 5,000",
       "Theft (with ATD): 10% of value min. KES. 20,000",
       "Theft (without ATD): 20% of value min. KES. 20,000",
       "Theft (with tracking device): 2.5% of value min. KES. 20,000",
@@ -133,7 +133,7 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   }
   // Totals row
   body.push([
-    { content: "Total premium payable", colSpan: 3, styles: { fontStyle: "italic", halign: "right", fillColor: "#f3f6fb" } },
+    { content: "Total premium payable", colSpan: 4, styles: { fontStyle: "bold", halign: "right", fillColor: "#f3f6fb" } },
     { content: num(grossPremium), styles: { fontStyle: "bold", fillColor: "#f3f6fb" } },
     { content: num(levies), styles: { fontStyle: "bold", fillColor: "#f3f6fb" } },
     { content: num(total), styles: { fontStyle: "bold", fillColor: "#f3f6fb" } },
