@@ -1,28 +1,38 @@
-## Changes to `src/lib/quotation-pdf.ts`
+# Installable App with Zest Logo
 
-### 1. Fix totals row alignment
-Current totals row uses `colSpan: 3` then 3 value cells — that shifts Premium/Levies/Total into the wrong columns (Rate %/Premium/Levies). Change to `colSpan: 4` covering Class + Benefits + Sum insured + Rate %, then the 3 value cells land correctly under Premium, Levies, Total. Also right-align the "Total premium payable" label.
+Enable "Add to Home Screen" (Android/iOS) and "Install app" (Chrome/Edge desktop) so the app saves as a shortcut using the uploaded Zest Insurance logo. No offline mode — just installability.
 
-### 2. Minimum excess update
-In the Remarks section, change "Own damage claims: 2.5% of value min. KES. 15,000" → "Own damage claims: 2.5% of value min. KES. 5,000".
+## Steps
 
-### 3. Payment details block
-Add a new section between the remarks and the footer titled "Payment Details":
-- M-PESA Till Number (Safaricom): 603830
-- KCB Paybill: 522533, Account: 1211118266
+1. **Upload the logo as a CDN asset** via `lovable-assets` from the uploaded `mobile_short_cut.png`, generating two icon sizes (192×192 and 512×512 PNGs) plus an Apple touch icon (180×180). Store pointer files under `src/assets/`.
 
-Rendered as a bordered light-blue panel spanning the page width, with bold labels.
+2. **Create `public/manifest.webmanifest`** with:
+   - `name`: "Zest Insurance Agency"
+   - `short_name`: "Zest"
+   - `start_url`: "/"
+   - `display`: "standalone"
+   - `background_color`: "#1d4ed8" (brand blue from logo)
+   - `theme_color`: "#1d4ed8"
+   - `icons`: 192, 512 (with `purpose: "any maskable"`)
 
-### 4. Stamp with current date
-Upload `user-uploads://zest_trans_logo.png` via `lovable-assets` to get a CDN URL and import it as `stampAsset` alongside the existing logo asset. In the PDF:
-- Place the stamp in the bottom-right area, above the footer (≈110 pt wide).
-- Overlay today's date (formatted `DD/MM/YYYY`) in a small handwriting-style font centered on the stamp's signature line.
+3. **Wire head tags in `src/routes/__root.tsx`**:
+   - `<link rel="manifest" href="/manifest.webmanifest">`
+   - `<meta name="theme-color" content="#1d4ed8">`
+   - `<link rel="apple-touch-icon" href="...180.png">`
+   - `<link rel="icon" ...>` updated to the new logo
 
-Use the existing `loadLogo` pattern (rename helper to `loadImage(url)`) to fetch the stamp as a data URL once per render.
+4. **No service worker, no `vite-plugin-pwa`** — Lovable's preview guidance forbids app-shell SWs for manifest-only installability.
 
-### Layout adjustments
-Reserve vertical space so payment details + stamp don't collide with the blue footer band. If content overflows page, add `doc.addPage()` before payment details.
+## How users install
 
-### Out of scope
-- No DB or business-logic changes.
-- No changes to quote dialog form or PDF header.
+- **Android (Chrome)**: browser shows an "Install app" / "Add to Home Screen" prompt, or via the ⋮ menu → "Install app". Icon appears as the Zest logo.
+- **iOS (Safari)**: Share → "Add to Home Screen". Uses the apple-touch-icon.
+- **Desktop (Chrome/Edge)**: install icon appears in the address bar; installs as a windowed app with the Zest logo.
+
+Note: install prompts only appear on the **published** site (https://app.zestinsurance.co.ke or the lovable.app domain), not inside the Lovable editor preview.
+
+## Files to change
+
+- New: `src/assets/zest-icon-192.png.asset.json`, `zest-icon-512.png.asset.json`, `zest-icon-180.png.asset.json`
+- New: `public/manifest.webmanifest`
+- Edit: `src/routes/__root.tsx` (head links/meta)
