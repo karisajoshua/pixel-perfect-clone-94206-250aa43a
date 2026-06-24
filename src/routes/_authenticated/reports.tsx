@@ -205,14 +205,15 @@ function ReportsPage() {
 
 function Kpis({ data }: { data: ReportsSummary }) {
   const items = [
-    { label: "Active cover premium", value: fmtKES(data.kpis.revenue) },
+    { label: "Revenue (paid)", value: fmtKES(data.kpis.revenue) },
+    { label: "Active cover premium", value: fmtKES(data.kpis.activeCoverPremium) },
     { label: "Active policies", value: data.kpis.activePolicies.toLocaleString() },
     { label: "New clients", value: data.kpis.newClients.toLocaleString() },
     { label: "Open claims", value: data.kpis.openClaims.toLocaleString() },
     { label: "Renewal hit rate", value: `${Math.round(data.kpis.renewalHitRate * 100)}%` },
   ];
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
       {items.map((k) => (
         <Card key={k.label}><CardContent className="pt-5">
           <div className="text-xs uppercase tracking-wider text-muted-foreground">{k.label}</div>
@@ -259,7 +260,8 @@ function buildCsv(d: ReportsSummary, isAdmin: boolean): string {
   lines.push(`Period,${d.range.from},${d.range.to}`);
   lines.push("");
   lines.push("KPI,Value");
-  lines.push(`Revenue,${d.kpis.revenue}`);
+  lines.push(`Revenue (paid),${d.kpis.revenue}`);
+  lines.push(`Active cover premium,${d.kpis.activeCoverPremium}`);
   lines.push(`Active policies,${d.kpis.activePolicies}`);
   lines.push(`New clients,${d.kpis.newClients}`);
   lines.push(`Open claims,${d.kpis.openClaims}`);
