@@ -127,7 +127,7 @@ function ReportsPage() {
           <Kpis data={report.data} />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Panel className="lg:col-span-2" title="Revenue over time">
-              {report.data.revenueOverTime.length === 0 ? <Empty msg="No payments recorded in this period." /> : (
+              {report.data.revenueOverTime.length === 0 ? <Empty msg="No active covers starting in this period." /> : (
                 <ResponsiveContainer width="100%" height={280}>
                   <AreaChart data={report.data.revenueOverTime} margin={{ left: 10, right: 10, top: 10 }}>
                     <defs>
@@ -205,7 +205,7 @@ function ReportsPage() {
 
 function Kpis({ data }: { data: ReportsSummary }) {
   const items = [
-    { label: "Revenue", value: fmtKES(data.kpis.revenue) },
+    { label: "Active cover premium", value: fmtKES(data.kpis.revenue) },
     { label: "Active policies", value: data.kpis.activePolicies.toLocaleString() },
     { label: "New clients", value: data.kpis.newClients.toLocaleString() },
     { label: "Open claims", value: data.kpis.openClaims.toLocaleString() },
