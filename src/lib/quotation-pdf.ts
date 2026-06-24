@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import logoAsset from "@/assets/zia-logo-white.png.asset.json";
+import stampAsset from "@/assets/zest-stamp.png.asset.json";
 
 type Branch = { name?: string | null; address?: string | null; phone?: string | null; email?: string | null } | null | undefined;
 type Client = { full_name?: string | null; company_name?: string | null; client_type?: string | null; email?: string | null; phone?: string | null } | null | undefined;
@@ -26,19 +27,20 @@ const AGENCY_CONTACT = {
   email: "info@zestinsurance.co.ke",
 };
 
-let cachedLogo: string | null = null;
-async function loadLogo(): Promise<string | null> {
-  if (cachedLogo) return cachedLogo;
+const imageCache = new Map<string, string>();
+async function loadImage(url: string): Promise<string | null> {
+  if (imageCache.has(url)) return imageCache.get(url)!;
   try {
-    const res = await fetch(logoAsset.url);
+    const res = await fetch(url);
     const blob = await res.blob();
-    cachedLogo = await new Promise<string>((resolve, reject) => {
+    const data = await new Promise<string>((resolve, reject) => {
       const r = new FileReader();
       r.onload = () => resolve(r.result as string);
       r.onerror = reject;
       r.readAsDataURL(blob);
     });
-    return cachedLogo;
+    imageCache.set(url, data);
+    return data;
   } catch {
     return null;
   }
@@ -58,7 +60,7 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   doc.setFillColor(BRAND);
   doc.rect(0, 0, pageW, 110, "F");
 
-  const logo = await loadLogo();
+  const logo = await loadImage(logoAsset.url);
   if (logo) {
     try { doc.addImage(logo, "PNG", margin, 18, 70, 70); } catch { /* ignore */ }
   }
@@ -101,7 +103,7 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
     ]},
     { title: "Additional policy details", lines: [
       "For Audi, Mazda, Subaru and Volkswagen — basic rate loaded 30% on onboarding.",
-      "Own damage claims: 2.5% of value min. KES. 15,000",
+      "Own damage claims: 2.5% of value min. KES. 5,000",
       "Theft (with ATD): 10% of value min. KES. 20,000",
       "Theft (without ATD): 20% of value min. KES. 20,000",
       "Theft (with tracking device): 2.5% of value min. KES. 20,000",
@@ -131,7 +133,7 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   }
   // Totals row
   body.push([
-    { content: "Total premium payable", colSpan: 3, styles: { fontStyle: "italic", halign: "right", fillColor: "#f3f6fb" } },
+    { content: "Total premium payable", colSpan: 4, styles: { fontStyle: "bold", halign: "right", fillColor: "#f3f6fb" } },
     { content: num(grossPremium), styles: { fontStyle: "bold", fillColor: "#f3f6fb" } },
     { content: num(levies), styles: { fontStyle: "bold", fillColor: "#f3f6fb" } },
     { content: num(total), styles: { fontStyle: "bold", fillColor: "#f3f6fb" } },
@@ -180,9 +182,61 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
     if (cy > maxBottom) maxBottom = cy;
   });
 
-  // ===== Footer band =====
+  // ===== Payment details + stamp =====
   const footerH = 95;
   const footerY = pageH - footerH;
+
+  let payY = maxBottom + 16;
+  const payH = 70;
+  // If not enough room above footer, push to new page
+  if (payY + payH > footerY - 10) {
+    doc.addPage();
+    payY = margin + 10;
+  }
+  const payW = pageW - margin * 2 - 160; // leave space for stamp on the right
+  // Payment panel
+  doc.setDrawColor(BRAND);
+  doc.setLineWidth(0.8);
+  doc.setFillColor("#eaf2ff");
+  doc.roundedRect(margin, payY, payW, payH, 4, 4, "FD");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(BRAND_DARK);
+  doc.text("Payment Details", margin + 12, payY + 18);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.text("Safaricom Till Number:", margin + 12, payY + 36);
+  doc.setFont("helvetica", "normal");
+  doc.text("603830", margin + 145, payY + 36);
+  doc.setFont("helvetica", "bold");
+  doc.text("KCB Paybill:", margin + 12, payY + 52);
+  doc.setFont("helvetica", "normal");
+  doc.text("522533", margin + 145, payY + 52);
+  doc.setFont("helvetica", "bold");
+  doc.text("Account Number:", margin + 230, payY + 52);
+  doc.setFont("helvetica", "normal");
+  doc.text("1211118266", margin + 330, payY + 52);
+
+  // Stamp (right side) with today's date over the signature line
+  const stamp = await loadImage(stampAsset.url);
+  const stampSize = 110;
+  const stampX = pageW - margin - stampSize;
+  const stampY = payY + (payH / 2) - (stampSize / 2);
+  if (stamp) {
+    try { doc.addImage(stamp, "PNG", stampX, stampY, stampSize, stampSize); } catch { /* ignore */ }
+  }
+  // Overlay date
+  const today = new Date();
+  const dd = String(today.getDate()).padStart(2, "0");
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const yyyy = today.getFullYear();
+  const dateStr = `${dd}/${mm}/${yyyy}`;
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(9);
+  doc.setTextColor(BRAND_DARK);
+  doc.text(dateStr, stampX + stampSize / 2 + 8, stampY + stampSize * 0.66, { align: "center" });
+
+  // ===== Footer band =====
   doc.setFillColor(BRAND);
   doc.rect(0, footerY, pageW, footerH, "F");
   doc.setTextColor("#ffffff");
