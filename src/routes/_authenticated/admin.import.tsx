@@ -350,10 +350,27 @@ function ImportPage() {
       const endDate = parseEndDate(month) ?? addYears(today, 1);
       const startDate = addYears(endDate, -1);
       const installment = num(pick(r, "INSTALLM", "INSTALLMENT", "INSTALMENT"));
-      const sumInsured = num(pick(r, "S/INS", "SUM INSURED", "SINS"));
+      const installmentRaw = norm(pick(r, "INSTALLM", "INSTALLMENT", "INSTALMENT"));
+      const premium = parseSinsToKES(pick(r, "S/INS", "SUM INSURED", "SINS"));
+      const sumInsured = premium;
+      const isPaid = installmentPaid(installmentRaw);
 
       const key = polKey(veh.client_id, veh.id, insurerId, endDate);
-      if (existingPolKeys.has(key) || seenThisRun.has(key)) continue;
+      if (seenThisRun.has(key)) continue;
+      if (existingPolKeys.has(key)) {
+        if (mode === "backfill" && premium) {
+          // Update the existing policy with the freshly parsed premium.
+          await supabase
+            .from("policies")
+            .update({ premium_gross: premium, premium_net: premium, sum_insured: sumInsured })
+            .eq("client_id", veh.client_id)
+            .eq("vehicle_id", veh.id)
+            .eq("insurer_id", insurerId)
+            .eq("end_date", endDate)
+            .is("premium_gross", null);
+        }
+        continue;
+      }
       seenThisRun.add(key);
 
       const now = new Date();
@@ -370,17 +387,18 @@ function ImportPage() {
           start_date: startDate,
           end_date: endDate,
           status,
-          payment_status: installment ? "paid" : "unpaid",
+          payment_status: isPaid ? "paid" : "unpaid",
           sum_insured: sumInsured,
-          premium_gross: installment,
-          premium_net: installment,
+          premium_gross: premium,
+          premium_net: premium,
           created_by: createdBy,
         },
-        installment,
+        installment: isPaid && premium ? premium : null,
         vehicleId: veh.id,
         noteFragmentsToStrip: true,
       });
       void now;
+      void installment;
     }
 
     // Insert policies and capture ids
