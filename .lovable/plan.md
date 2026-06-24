@@ -1,42 +1,85 @@
-## 1. Importer: fix dropped vehicles like "JOSHUA KARISA / KCF 604S"
+## Goal
 
-Confirmed in DB: client `Joshua Karisa` exists, but vehicle `KCF 604S` is missing. The importer silently skips a vehicle row when it can't match the client (`if (!clientId) { skippedVeh++; continue; }`). Name matching today is exact case-insensitive only, so any whitespace/punctuation/word-order difference between the sheet's NAME column and the existing client's `full_name` causes the vehicle to be orphaned. There is also no log of which rows were skipped.
+1. Get "active cover premium" actually showing on the dashboard and reports by populating the missing premium values, then switch revenue to be driven by paid invoices/payments (what the company has *made*).
+2. Merge duplicate clients and remove duplicate policies/vehicles created by repeated imports.
 
-### Importer fixes (`src/routes/_authenticated/admin.import.tsx`)
-- Add a name-key normalizer (uppercase, collapse spaces, strip punctuation, sort words) and build a `byNormName` map alongside `byName`/`byPin`. Use it as the second-chance lookup before giving up.
-- Also try matching by phone (`normPhone`) and email (`normEmail`) when name lookup fails.
-- When a vehicle row is skipped, push a detailed line into the `log` state (row #, reg, name, reason) so the admin sees exactly what didn't land.
-- After client inserts, rebuild the lookup maps from the newly inserted rows (already done) plus the normalized map.
+---
 
-### Backfill across all imports
-Add a "Re-link orphan vehicles & re-import missing rows" button on the same Import page:
-- Server function `relinkOrphanVehicles` (admin-only, in `src/lib/admin-users.functions.ts` or a new `src/lib/import.functions.ts`) that:
-  1. Loads all vehicles with `client_id IS NULL` (none today — kept for safety) and any vehicle whose client linkage looks suspect (skip if covered).
-  2. More importantly: re-scans the most recent uploaded sheet stored in component state by re-running the same import pass — but since the sheet only lives in memory, the practical backfill is: after the user re-uploads the same file, the new fuzzy matcher will pick up `JOSHUA KARISA` → existing `Joshua Karisa` and create `KCF 604S` without duplicating clients (existing pin/name match still wins).
-- Document in the on-screen help text that the recommended backfill is: re-upload the same sheet — duplicates are skipped, and the new fuzzy matcher will now create the previously-missed vehicles/policies.
+## 1. Fix premium values (data + importer)
 
-For the specific reported record, after the fix is deployed I'll also run a one-off insert via the data-change tool to create `KCF 604S` linked to client `612b362f-026d-4084-8e34-3fed412283a4` (Joshua Karisa) with the usage type the admin specifies on re-upload — or simply ask the admin to re-upload the sheet.
+The importer was reading the `INSTALLMENT` sheet column as the premium amount, but that column holds text like "1ST", "ANNUAL", "1,2,CANCELLED". Real premium comes from the `S/INS` (sum insured) column, in thousands; when two numbers are present in one cell (e.g. "150 + 50"), they sum.
 
-## 2. Revenue = sum of active-policy premiums
+### Importer fix — `src/routes/_authenticated/admin.import.tsx`
+- New helper `parseSinsToKES(raw)`:
+  - Splits the cell on `+`, `,`, `&`, `/` and `\n`, parses each part to a number, sums them, multiplies by 1,000.
+  - Ignores non-numeric tokens (e.g. "CANCELLED").
+- In the policy draft pass:
+  - `sum_insured` = `parseSinsToKES(S/INS)` (was being treated as a flat number).
+  - `premium_gross` = `parseSinsToKES(S/INS)` (replaces the wrong `installment` value).
+  - Keep `installment` text in `notes` so payment status info isn't lost.
+  - `payment_status` derived from whether the installment text contains "PAID", "ANNUAL", or a digit like "1ST/2ND" (best-effort), defaulting to `unpaid`.
+- Invoice creation:
+  - Issue one invoice per policy for the full `premium_gross`.
+  - Mark `amount_paid = total` and `status = 'paid'` only when the installment text contains "PAID" or "ANNUAL"; otherwise leave `amount_paid = 0` and `status = 'sent'`.
 
-Replace the payments-derived revenue everywhere with `SUM(premium_gross)` over policies where `status = 'active'`, respecting branch scoping (admin sees all branches; manager sees their branch only).
+### Backfill existing rows (one-off `supabase--insert` SQL)
+Re-derive premium/sum-insured for the already-imported `IMP-*` policies from their `notes` field is unreliable because notes only contain the installment text, not S/INS. Instead, after the importer is fixed, the user re-uploads the same sheet — the dedupe key `(client, vehicle, insurer, end_date)` skips re-inserts, so a new "Backfill premium from sheet" mode is added to the importer that:
+- For matching `(client, vehicle, insurer, end_date)` policies with NULL `premium_gross`, UPDATE the row with the freshly parsed value instead of skipping.
+- Same logic creates invoices for those previously-missed policies.
 
-### Server changes
-- `src/lib/dashboard.functions.ts` (`getDashboardSummary`):
-  - Compute `revenue` = sum of `premium_gross` from the already-fetched `policies` where `status === 'active'`.
-  - Compute `revenueThisMonth` = same sum filtered by policies whose `start_date` falls in the current month (so the "this month" sub-line stays meaningful).
-  - Drop the payments query (or keep it unused — prefer removing for clarity).
-  - `byBranch.revenue` becomes sum of active-policy `premium_gross` per branch instead of payments.
-- `src/lib/reports.functions.ts` (`getReportsSummary`):
-  - `kpis.revenue` = sum of `premium_gross` for active policies in range (policies whose `start_date` overlaps `[from, to]`).
-  - `revenueOverTime` bucketed by policy `start_date` month using `premium_gross` of active policies.
-  - Branch performance `premium` column already uses `premium_gross` — leave as-is.
+A toggle on the Import page (`Mode: Insert new` / `Backfill missing values`) controls which branch runs.
+
+---
+
+## 2. Revenue = money received (paid invoices/payments)
+
+The user prefers revenue to reflect actual income. Switch the metric back to payments-based, but keep "active cover premium" as a separate informational metric so both numbers are visible.
+
+### `src/lib/dashboard.functions.ts`
+- Add `paymentsRes = scope(supabase.from("payments").select("amount, paid_at, branch_id"))`.
+- `totals.revenue` = sum of `payments.amount`.
+- `totals.revenueThisMonth` = sum where `paid_at >= monthStart`.
+- Add `totals.activeCoverPremium` = current sum of active-policy `premium_gross` (kept for the secondary line).
+- `byBranch.revenue` = payments per branch; add `byBranch.activeCoverPremium` for the branch table.
+
+### `src/lib/reports.functions.ts`
+- `kpis.revenue` = payments in `[from,to]`.
+- Add `kpis.activeCoverPremium` for the new tile.
+- `revenueOverTime` bucketed by `paid_at` month.
 
 ### UI
-- Dashboard "Total revenue" card label stays the same; sub-line reads "X active covers" instead of "this month" (optional polish — kept simple: still show "Active cover premium this month").
-- Reports page: KPI tile label changes from "Revenue" to "Active cover premium". CSV header updated to match.
+- `src/routes/_authenticated/dashboard.tsx`: keep the existing "Total revenue" card (now payments-driven), add a second tile under it for admins: "Active cover premium" with the gross figure. Update the branch table to add an "Active cover" column.
+- `src/routes/_authenticated/reports.tsx`: change KPI label back to "Revenue (paid)" and add an "Active cover premium" tile next to it. Update CSV headers.
+
+---
+
+## 3. Merge duplicate clients & dedupe policies
+
+Run as a one-off `supabase--insert` script (no schema change). Steps, in order:
+
+### a. Pick a survivor per duplicate group
+- Group `public.clients` by `nameKey(full_name)` (uppercase, punctuation-stripped, sorted-words) AND/OR matching `phone`/`email`/`kra_pin`.
+- Survivor = row with the most non-null contact fields, tiebreaker = oldest `created_at`.
+
+### b. Re-point children to the survivor
+For each non-survivor `id` in a group, `UPDATE` foreign keys to point at the survivor across:
+`vehicles`, `policies`, `quotations`, `invoices`, `payments`, `claims`, `client_communications`, `service_requests`, `client_required_documents`.
+
+### c. Backfill survivor with merged contact info
+`UPDATE clients` survivor with COALESCE of non-survivor phone/alt_phone/email/kra_pin/id_number/address/etc., then `DELETE` the non-survivors.
+
+### d. Dedupe policies
+`DELETE` policies where `(client_id, vehicle_id, insurer_id, end_date)` is duplicated, keeping the earliest row. Repoint dependent invoices/payments/claims to the kept policy first.
+
+### e. Dedupe vehicles
+A unique index on `lower(registration_no)` already blocks new dupes; any historical orphan with a different reg is left alone unless it's an exact match to another row (none expected — confirmed by the unique index).
+
+Each step prints affected row counts so the user can sanity-check.
+
+---
 
 ## Technical notes
-- All branch scoping logic is preserved (admin sees all, manager scoped to `user_branch(uid)`).
-- No schema changes required.
-- No new tables, no new RLS.
+- No new tables, no schema migrations — only data updates (`supabase--insert`) and code edits.
+- Branch scoping in dashboard/reports is preserved.
+- The importer's existing dedupe key still applies, so re-uploading is safe.
+- After the cleanup + re-upload, dashboard "Total revenue" reflects actual paid amounts and "Active cover premium" shows the gross exposure.

@@ -24,6 +24,19 @@ const nameKey = (s: any) => {
   return t.split(" ").sort().join(" ");
 };
 const num = (s: any) => { const n = Number(norm(s).replace(/[^0-9.\-]/g, "")); return Number.isFinite(n) && n !== 0 ? n : null; };
+// S/INS column: amount in thousands; cells may contain multiple numbers
+// separated by + , & / or newline (e.g. "150+50") — sum them and ×1000.
+const parseSinsToKES = (raw: any): number | null => {
+  const t = norm(raw);
+  if (!t) return null;
+  const parts = t.split(/[+,&\/\n]/).map((p: string) => Number(p.replace(/[^0-9.]/g, "")));
+  const total = parts.filter((n: number) => Number.isFinite(n) && n > 0).reduce((s: number, n: number) => s + n, 0);
+  return total > 0 ? total * 1000 : null;
+};
+const installmentPaid = (raw: any): boolean => {
+  const t = upper(raw);
+  return /(PAID|ANNUAL|FULL)/.test(t);
+};
 const normPhone = (s: any) => {
   const t = norm(s);
   if (!t) return null;
@@ -84,6 +97,7 @@ function ImportPage() {
   const [sheets, setSheets] = useState<{ name: string; rows: Row[] }[]>([]);
   const [activeSheet, setActiveSheet] = useState<string>("");
   const [usage, setUsage] = useState<"private" | "commercial" | "psv" | "hire">("private");
+  const [mode, setMode] = useState<"insert" | "backfill">("insert");
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
 
@@ -336,10 +350,27 @@ function ImportPage() {
       const endDate = parseEndDate(month) ?? addYears(today, 1);
       const startDate = addYears(endDate, -1);
       const installment = num(pick(r, "INSTALLM", "INSTALLMENT", "INSTALMENT"));
-      const sumInsured = num(pick(r, "S/INS", "SUM INSURED", "SINS"));
+      const installmentRaw = norm(pick(r, "INSTALLM", "INSTALLMENT", "INSTALMENT"));
+      const premium = parseSinsToKES(pick(r, "S/INS", "SUM INSURED", "SINS"));
+      const sumInsured = premium;
+      const isPaid = installmentPaid(installmentRaw);
 
       const key = polKey(veh.client_id, veh.id, insurerId, endDate);
-      if (existingPolKeys.has(key) || seenThisRun.has(key)) continue;
+      if (seenThisRun.has(key)) continue;
+      if (existingPolKeys.has(key)) {
+        if (mode === "backfill" && premium) {
+          // Update the existing policy with the freshly parsed premium.
+          await supabase
+            .from("policies")
+            .update({ premium_gross: premium, premium_net: premium, sum_insured: sumInsured })
+            .eq("client_id", veh.client_id)
+            .eq("vehicle_id", veh.id)
+            .eq("insurer_id", insurerId)
+            .eq("end_date", endDate)
+            .is("premium_gross", null);
+        }
+        continue;
+      }
       seenThisRun.add(key);
 
       const now = new Date();
@@ -356,17 +387,18 @@ function ImportPage() {
           start_date: startDate,
           end_date: endDate,
           status,
-          payment_status: installment ? "paid" : "unpaid",
+          payment_status: isPaid ? "paid" : "unpaid",
           sum_insured: sumInsured,
-          premium_gross: installment,
-          premium_net: installment,
+          premium_gross: premium,
+          premium_net: premium,
           created_by: createdBy,
         },
-        installment,
+        installment: isPaid && premium ? premium : null,
         vehicleId: veh.id,
         noteFragmentsToStrip: true,
       });
       void now;
+      void installment;
     }
 
     // Insert policies and capture ids
@@ -478,6 +510,17 @@ function ImportPage() {
                   <SelectItem value="hire">Hire</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Mode</Label>
+              <Select value={mode} onValueChange={(v) => setMode(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="insert">Insert new (skip existing)</SelectItem>
+                  <SelectItem value="backfill">Backfill missing premium on existing policies</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Backfill mode updates premium/sum insured on previously-imported policies that are missing those values (parsed from the S/INS column × 1000).</p>
             </div>
           </div>
         )}

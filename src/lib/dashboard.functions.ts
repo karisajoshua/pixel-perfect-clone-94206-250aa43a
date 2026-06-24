@@ -9,6 +9,7 @@ export type DashboardSummary = {
     dueRenewals: number;
     revenue: number;
     revenueThisMonth: number;
+    activeCoverPremium: number;
   };
   byBranch: {
     branchId: string | null;
@@ -16,6 +17,7 @@ export type DashboardSummary = {
     revenue: number;
     share: number;
     policies: number;
+    activeCoverPremium: number;
   }[];
 };
 
@@ -37,7 +39,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
     const in30 = new Date(Date.now() + 30 * 86400_000).toISOString().slice(0, 10);
     const today = new Date().toISOString().slice(0, 10);
 
-    const [policiesRes, claimsRes, renewalsRes, clientsRes, branchesRes] = await Promise.all([
+    const [policiesRes, claimsRes, renewalsRes, clientsRes, branchesRes, paymentsRes] = await Promise.all([
       scope(supabase.from("policies").select("id, status, branch_id, premium_gross, start_date")),
       scope(supabase.from("claims").select("id, status, branch_id")),
       scope(supabase.from("policies").select("id", { count: "exact", head: true }).gte("end_date", today).lte("end_date", in30).eq("status", "active")),
@@ -45,29 +47,40 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       scopeBranchId
         ? supabase.from("branches").select("id, name").eq("id", scopeBranchId)
         : supabase.from("branches").select("id, name"),
+      supabase.from("payments").select("amount, paid_date, invoices!inner(branch_id)"),
     ]);
 
     const policies = (policiesRes.data ?? []) as any[];
     const claims = (claimsRes.data ?? []) as any[];
     const branches = (branchesRes.data ?? []) as any[];
+    const paymentsRaw = (paymentsRes.data ?? []) as any[];
+    const payments = scopeBranchId
+      ? paymentsRaw.filter((p) => p.invoices?.branch_id === scopeBranchId)
+      : paymentsRaw;
 
     const activePolicies = policies.filter((p) => p.status === "active");
-    const revenue = activePolicies.reduce((s, p) => s + Number(p.premium_gross ?? 0), 0);
-    const revenueThisMonth = activePolicies
-      .filter((p) => p.start_date && p.start_date >= monthStart)
-      .reduce((s, p) => s + Number(p.premium_gross ?? 0), 0);
+    const activeCoverPremium = activePolicies.reduce((s, p) => s + Number(p.premium_gross ?? 0), 0);
+    const revenue = payments.reduce((s, p) => s + Number(p.amount ?? 0), 0);
+    const revenueThisMonth = payments
+      .filter((p) => p.paid_date && p.paid_date >= monthStart)
+      .reduce((s, p) => s + Number(p.amount ?? 0), 0);
 
     const revByBranch = new Map<string | null, number>();
+    for (const p of payments) {
+      const bid = p.invoices?.branch_id ?? null;
+      revByBranch.set(bid, (revByBranch.get(bid) ?? 0) + Number(p.amount ?? 0));
+    }
+    const acpByBranch = new Map<string | null, number>();
     for (const p of activePolicies) {
       const bid = p.branch_id ?? null;
-      revByBranch.set(bid, (revByBranch.get(bid) ?? 0) + Number(p.premium_gross ?? 0));
+      acpByBranch.set(bid, (acpByBranch.get(bid) ?? 0) + Number(p.premium_gross ?? 0));
     }
     const polByBranch = new Map<string | null, number>();
     for (const p of policies) {
       polByBranch.set(p.branch_id ?? null, (polByBranch.get(p.branch_id ?? null) ?? 0) + 1);
     }
 
-    const branchIds = new Set<string | null>([...revByBranch.keys(), ...polByBranch.keys(), ...branches.map((b) => b.id)]);
+    const branchIds = new Set<string | null>([...revByBranch.keys(), ...acpByBranch.keys(), ...polByBranch.keys(), ...branches.map((b) => b.id)]);
     const byBranch = [...branchIds].map((id) => {
       const name = branches.find((b) => b.id === id)?.name ?? (id ? "Unknown branch" : "Unassigned");
       const r = revByBranch.get(id) ?? 0;
@@ -77,8 +90,9 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
         revenue: r,
         share: revenue ? r / revenue : 0,
         policies: polByBranch.get(id) ?? 0,
+        activeCoverPremium: acpByBranch.get(id) ?? 0,
       };
-    }).sort((a, b) => b.revenue - a.revenue);
+    }).sort((a, b) => b.activeCoverPremium - a.activeCoverPremium);
 
     return {
       totals: {
@@ -88,6 +102,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
         dueRenewals: renewalsRes.count ?? 0,
         revenue,
         revenueThisMonth,
+        activeCoverPremium,
       },
       byBranch,
     };
