@@ -44,8 +44,7 @@ export const getReportsSummary = createServerFn({ method: "POST" })
 
     const branchFilter = (q: any) => (branchId ? q.eq("branch_id", branchId) : q);
 
-    const [paymentsRes, policiesRes, clientsRes, claimsRes, branchesRes, profilesRes, insurersRes] = await Promise.all([
-      branchFilter(supabase.from("payments").select("amount, paid_at, invoice_id, invoices!inner(branch_id)").gte("paid_at", from).lte("paid_at", to)),
+    const [policiesRes, clientsRes, claimsRes, branchesRes, profilesRes, insurersRes] = await Promise.all([
       branchFilter(supabase.from("policies").select("id, status, premium_gross, insurer_id, branch_id, created_by, start_date, end_date, insurers(name)")),
       branchFilter(supabase.from("clients").select("id, created_at, branch_id").gte("created_at", from).lte("created_at", to)),
       branchFilter(supabase.from("claims").select("id, status, branch_id")),
@@ -54,15 +53,16 @@ export const getReportsSummary = createServerFn({ method: "POST" })
       supabase.from("insurers").select("id, name"),
     ]);
 
-    const payments = paymentsRes.data ?? [];
     const policies = policiesRes.data ?? [];
     const clients = clientsRes.data ?? [];
     const claims = claimsRes.data ?? [];
     const branches = branchesRes.data ?? [];
     const profiles = profilesRes.data ?? [];
 
-    const revenue = payments.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
-    const activePolicies = policies.filter((p: any) => p.status === "active").length;
+    const activePoliciesList = policies.filter((p: any) => p.status === "active");
+    const activePoliciesInRange = activePoliciesList.filter((p: any) => p.start_date >= from && p.start_date <= to);
+    const revenue = activePoliciesInRange.reduce((s: number, p: any) => s + Number(p.premium_gross ?? 0), 0);
+    const activePolicies = activePoliciesList.length;
     const newClients = clients.length;
     const openClaims = claims.filter((c: any) => !["paid", "closed", "rejected"].includes(c.status)).length;
 
@@ -71,12 +71,12 @@ export const getReportsSummary = createServerFn({ method: "POST" })
     const renewed = endedInRange.filter((p: any) => p.status === "active" || p.status === "renewed").length;
     const renewalHitRate = endedInRange.length ? renewed / endedInRange.length : 0;
 
-    // Revenue over time — monthly buckets
+    // Revenue over time — monthly buckets by active policy start_date
     const monthly = new Map<string, number>();
-    for (const p of payments) {
-      if (!p.paid_at) continue;
-      const m = String(p.paid_at).slice(0, 7);
-      monthly.set(m, (monthly.get(m) ?? 0) + Number(p.amount ?? 0));
+    for (const p of activePoliciesInRange) {
+      if (!p.start_date) continue;
+      const m = String(p.start_date).slice(0, 7);
+      monthly.set(m, (monthly.get(m) ?? 0) + Number(p.premium_gross ?? 0));
     }
     const revenueOverTime = [...monthly.entries()].sort().map(([month, revenue]) => ({ month, revenue }));
 
