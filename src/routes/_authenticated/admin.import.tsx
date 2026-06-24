@@ -24,6 +24,19 @@ const nameKey = (s: any) => {
   return t.split(" ").sort().join(" ");
 };
 const num = (s: any) => { const n = Number(norm(s).replace(/[^0-9.\-]/g, "")); return Number.isFinite(n) && n !== 0 ? n : null; };
+// S/INS column: amount in thousands; cells may contain multiple numbers
+// separated by + , & / or newline (e.g. "150+50") — sum them and ×1000.
+const parseSinsToKES = (raw: any): number | null => {
+  const t = norm(raw);
+  if (!t) return null;
+  const parts = t.split(/[+,&\/\n]/).map((p) => Number(p.replace(/[^0-9.]/g, "")));
+  const total = parts.filter((n) => Number.isFinite(n) && n > 0).reduce((s, n) => s + n, 0);
+  return total > 0 ? total * 1000 : null;
+};
+const installmentPaid = (raw: any): boolean => {
+  const t = upper(raw);
+  return /(PAID|ANNUAL|FULL)/.test(t);
+};
 const normPhone = (s: any) => {
   const t = norm(s);
   if (!t) return null;
@@ -84,6 +97,7 @@ function ImportPage() {
   const [sheets, setSheets] = useState<{ name: string; rows: Row[] }[]>([]);
   const [activeSheet, setActiveSheet] = useState<string>("");
   const [usage, setUsage] = useState<"private" | "commercial" | "psv" | "hire">("private");
+  const [mode, setMode] = useState<"insert" | "backfill">("insert");
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
 
