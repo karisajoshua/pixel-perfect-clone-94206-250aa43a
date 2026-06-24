@@ -224,16 +224,6 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   if (stamp) {
     try { doc.addImage(stamp, "PNG", stampX, stampY, stampSize, stampSize); } catch { /* ignore */ }
   }
-  // Overlay date
-  const today = new Date();
-  const dd = String(today.getDate()).padStart(2, "0");
-  const mm = String(today.getMonth() + 1).padStart(2, "0");
-  const yyyy = today.getFullYear();
-  const dateStr = `${dd}/${mm}/${yyyy}`;
-  doc.setFont("helvetica", "italic");
-  doc.setFontSize(9);
-  doc.setTextColor(BRAND_DARK);
-  doc.text(dateStr, stampX + stampSize / 2 + 8, stampY + stampSize * 0.66, { align: "center" });
 
   // ===== Footer band =====
   doc.setFillColor(BRAND);
