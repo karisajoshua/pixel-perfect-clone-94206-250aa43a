@@ -182,9 +182,61 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
     if (cy > maxBottom) maxBottom = cy;
   });
 
-  // ===== Footer band =====
+  // ===== Payment details + stamp =====
   const footerH = 95;
   const footerY = pageH - footerH;
+
+  let payY = maxBottom + 16;
+  const payH = 70;
+  // If not enough room above footer, push to new page
+  if (payY + payH > footerY - 10) {
+    doc.addPage();
+    payY = margin + 10;
+  }
+  const payW = pageW - margin * 2 - 160; // leave space for stamp on the right
+  // Payment panel
+  doc.setDrawColor(BRAND);
+  doc.setLineWidth(0.8);
+  doc.setFillColor("#eaf2ff");
+  doc.roundedRect(margin, payY, payW, payH, 4, 4, "FD");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(BRAND_DARK);
+  doc.text("Payment Details", margin + 12, payY + 18);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.text("Safaricom Till Number:", margin + 12, payY + 36);
+  doc.setFont("helvetica", "normal");
+  doc.text("603830", margin + 145, payY + 36);
+  doc.setFont("helvetica", "bold");
+  doc.text("KCB Paybill:", margin + 12, payY + 52);
+  doc.setFont("helvetica", "normal");
+  doc.text("522533", margin + 145, payY + 52);
+  doc.setFont("helvetica", "bold");
+  doc.text("Account Number:", margin + 230, payY + 52);
+  doc.setFont("helvetica", "normal");
+  doc.text("1211118266", margin + 330, payY + 52);
+
+  // Stamp (right side) with today's date over the signature line
+  const stamp = await loadImage(stampAsset.url);
+  const stampSize = 110;
+  const stampX = pageW - margin - stampSize;
+  const stampY = payY + (payH / 2) - (stampSize / 2);
+  if (stamp) {
+    try { doc.addImage(stamp, "PNG", stampX, stampY, stampSize, stampSize); } catch { /* ignore */ }
+  }
+  // Overlay date
+  const today = new Date();
+  const dd = String(today.getDate()).padStart(2, "0");
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const yyyy = today.getFullYear();
+  const dateStr = `${dd}/${mm}/${yyyy}`;
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(9);
+  doc.setTextColor(BRAND_DARK);
+  doc.text(dateStr, stampX + stampSize / 2 + 8, stampY + stampSize * 0.66, { align: "center" });
+
+  // ===== Footer band =====
   doc.setFillColor(BRAND);
   doc.rect(0, footerY, pageW, footerH, "F");
   doc.setTextColor("#ffffff");
