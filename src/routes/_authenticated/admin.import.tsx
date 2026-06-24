@@ -249,9 +249,14 @@ function ImportPage() {
 
     for (let i = 0; i < newVehicles.length; i += 200) {
       const batch = newVehicles.slice(i, i + 200);
-      const { error, count } = await supabase.from("vehicles").insert(batch, { count: "exact" });
+      const { data, error } = await supabase
+        .from("vehicles")
+        .upsert(batch, { onConflict: "registration_no", ignoreDuplicates: true })
+        .select("registration_no");
       if (error) { errors++; setLog((l) => [...l, `Vehicle batch error: ${error.message}`]); continue; }
-      vehiclesAdded += count ?? batch.length;
+      vehiclesAdded += data?.length ?? 0;
+      const dupCount = batch.length - (data?.length ?? 0);
+      if (dupCount > 0) skippedVeh += dupCount;
     }
 
     // ============================================================
