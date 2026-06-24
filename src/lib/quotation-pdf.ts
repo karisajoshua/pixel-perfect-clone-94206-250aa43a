@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import logoAsset from "@/assets/zia-logo-white.png.asset.json";
+import stampAsset from "@/assets/zest-stamp.png.asset.json";
 
 type Branch = { name?: string | null; address?: string | null; phone?: string | null; email?: string | null } | null | undefined;
 type Client = { full_name?: string | null; company_name?: string | null; client_type?: string | null; email?: string | null; phone?: string | null } | null | undefined;
@@ -26,19 +27,20 @@ const AGENCY_CONTACT = {
   email: "info@zestinsurance.co.ke",
 };
 
-let cachedLogo: string | null = null;
-async function loadLogo(): Promise<string | null> {
-  if (cachedLogo) return cachedLogo;
+const imageCache = new Map<string, string>();
+async function loadImage(url: string): Promise<string | null> {
+  if (imageCache.has(url)) return imageCache.get(url)!;
   try {
-    const res = await fetch(logoAsset.url);
+    const res = await fetch(url);
     const blob = await res.blob();
-    cachedLogo = await new Promise<string>((resolve, reject) => {
+    const data = await new Promise<string>((resolve, reject) => {
       const r = new FileReader();
       r.onload = () => resolve(r.result as string);
       r.onerror = reject;
       r.readAsDataURL(blob);
     });
-    return cachedLogo;
+    imageCache.set(url, data);
+    return data;
   } catch {
     return null;
   }
@@ -58,7 +60,7 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   doc.setFillColor(BRAND);
   doc.rect(0, 0, pageW, 110, "F");
 
-  const logo = await loadLogo();
+  const logo = await loadImage(logoAsset.url);
   if (logo) {
     try { doc.addImage(logo, "PNG", margin, 18, 70, 70); } catch { /* ignore */ }
   }
