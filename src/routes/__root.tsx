@@ -13,7 +13,6 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
-import logoRed from "@/assets/zia-logo-red.png.asset.json";
 import iconAsset from "@/assets/zest-icon-192.png.asset.json";
 import appleIconAsset from "@/assets/zest-icon-180.png.asset.json";
 
