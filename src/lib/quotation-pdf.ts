@@ -216,7 +216,7 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   doc.setFont("helvetica", "normal");
   doc.text("1211118266", margin + 330, payY + 52);
 
-  // Stamp (right side) with today's date over the signature line
+  // Stamp (right side)
   const stamp = await loadImage(stampAsset.url);
   const stampSize = 110;
   const stampX = pageW - margin - stampSize;
