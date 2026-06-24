@@ -111,16 +111,33 @@ function ImportPage() {
     const { data: u } = await supabase.auth.getUser();
     const createdBy = u.user?.id;
 
-    // Existing clients (by kra_pin and lower(full_name))
+    // Existing clients (by kra_pin, lower(full_name), normalized-name, phone, email)
     const { data: existingClients } = await supabase.from("clients").select("id, full_name, kra_pin, phone, email, alt_phone");
     const byPin = new Map<string, string>();
     const byName = new Map<string, string>();
+    const byNormName = new Map<string, string>();
+    const byPhone = new Map<string, string>();
+    const byEmail = new Map<string, string>();
     const existingById = new Map<string, { phone: string | null; email: string | null; alt_phone: string | null }>();
     (existingClients ?? []).forEach((c: any) => {
       if (c.kra_pin) byPin.set(c.kra_pin.toUpperCase(), c.id);
       byName.set((c.full_name ?? "").toLowerCase(), c.id);
+      const nk = nameKey(c.full_name);
+      if (nk) byNormName.set(nk, c.id);
+      if (c.phone) byPhone.set(normPhone(c.phone) ?? c.phone, c.id);
+      if (c.email) byEmail.set(String(c.email).toLowerCase(), c.id);
       existingById.set(c.id, { phone: c.phone ?? null, email: c.email ?? null, alt_phone: c.alt_phone ?? null });
     });
+
+    const findClientId = (name: string, pin: string, phone: string | null, email: string | null): string | undefined => {
+      return (
+        (pin && byPin.get(pin)) ||
+        byName.get(name.toLowerCase()) ||
+        byNormName.get(nameKey(name)) ||
+        (phone ? byPhone.get(phone) : undefined) ||
+        (email ? byEmail.get(email.toLowerCase()) : undefined)
+      );
+    };
 
     const { data: existingVeh } = await supabase.from("vehicles").select("registration_no");
     const regs = new Set((existingVeh ?? []).map((v: any) => v.registration_no.toUpperCase()));
@@ -138,8 +155,8 @@ function ImportPage() {
       const email = normEmail(pick(r, "EMAIL", "E-MAIL", "MAIL"));
       const phone = normPhone(pick(r, "PHONE", "TEL", "TELEPHONE", "MOBILE", "CONTACT", "CELL", "MSISDN"));
       const alt_phone = normPhone(pick(r, "ALT PHONE", "ALT TEL", "OTHER PHONE", "PHONE 2", "PHONE2"));
-      const key = pin || name.toLowerCase();
-      const existingId = (pin && byPin.get(pin)) || byName.get(name.toLowerCase());
+      const key = pin || nameKey(name) || name.toLowerCase();
+      const existingId = findClientId(name, pin, phone, email);
       if (existingId) {
         // Backfill missing contact info on existing clients
         const cur = existingById.get(existingId);
@@ -178,20 +195,29 @@ function ImportPage() {
       (data ?? []).forEach((c: any) => {
         if (c.kra_pin) byPin.set(c.kra_pin.toUpperCase(), c.id);
         byName.set((c.full_name ?? "").toLowerCase(), c.id);
+        const nk = nameKey(c.full_name);
+        if (nk) byNormName.set(nk, c.id);
         clientsAdded++;
       });
     }
 
     // Second pass: build vehicles
     const newVehicles: any[] = [];
-    for (const r of current.rows) {
+    const skippedRows: string[] = [];
+    current.rows.forEach((r, idx) => {
       const reg = upper(pick(r, "REG", "REGISTRATION", "REG NO", "REGISTRATION NO"));
-      if (!reg) continue;
-      if (regs.has(reg)) { skippedVeh++; continue; }
+      if (!reg) return;
+      if (regs.has(reg)) { skippedVeh++; return; }
       const name = upper(pick(r, "NAME", "CLIENT", "FULL NAME"));
       const pin = upper(pick(r, "KRA PIN", "PIN", "KRAPIN"));
-      const clientId = (pin && byPin.get(pin)) || byName.get(name.toLowerCase());
-      if (!clientId) { skippedVeh++; continue; }
+      const phone = normPhone(pick(r, "PHONE", "TEL", "TELEPHONE", "MOBILE", "CONTACT", "CELL", "MSISDN"));
+      const email = normEmail(pick(r, "EMAIL", "E-MAIL", "MAIL"));
+      const clientId = findClientId(name, pin, phone, email);
+      if (!clientId) {
+        skippedVeh++;
+        skippedRows.push(`Row ${idx + 2}: vehicle ${reg} skipped — no matching client for "${name || "(blank name)"}"`);
+        return;
+      }
       const company = norm(pick(r, "COMPANY", "COMPA", "INSURER"));
       const installment = norm(pick(r, "INSTALLM", "INSTALLMENT", "INSTALMENT"));
       const month = norm(pick(r, "MON", "MONTH"));
@@ -218,7 +244,8 @@ function ImportPage() {
         created_by: createdBy,
       });
       regs.add(reg);
-    }
+    });
+    if (skippedRows.length) setLog((l) => [...l, ...skippedRows.slice(0, 50), ...(skippedRows.length > 50 ? [`…and ${skippedRows.length - 50} more skipped rows`] : [])]);
 
     for (let i = 0; i < newVehicles.length; i += 200) {
       const batch = newVehicles.slice(i, i + 200);
