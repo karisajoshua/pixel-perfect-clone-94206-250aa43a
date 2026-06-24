@@ -133,11 +133,10 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   }
   // Totals row
   body.push([
-    { content: "Total premium payable", colSpan: 4, styles: { fontStyle: "bold", halign: "right", fillColor: "#f3f6fb" } },
-    { content: num(grossPremium), styles: { fontStyle: "bold", fillColor: "#f3f6fb" } },
-    { content: num(levies), styles: { fontStyle: "bold", fillColor: "#f3f6fb" } },
+    { content: "Total premium payable", colSpan: 6, styles: { fontStyle: "bold", halign: "right", fillColor: "#f3f6fb" } },
     { content: num(total), styles: { fontStyle: "bold", fillColor: "#f3f6fb" } },
   ]);
+
 
   autoTable(doc, {
     startY: 120,
@@ -217,7 +216,7 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   doc.setFont("helvetica", "normal");
   doc.text("1211118266", margin + 330, payY + 52);
 
-  // Stamp (right side) with today's date over the signature line
+  // Stamp (right side)
   const stamp = await loadImage(stampAsset.url);
   const stampSize = 110;
   const stampX = pageW - margin - stampSize;
@@ -225,16 +224,6 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   if (stamp) {
     try { doc.addImage(stamp, "PNG", stampX, stampY, stampSize, stampSize); } catch { /* ignore */ }
   }
-  // Overlay date
-  const today = new Date();
-  const dd = String(today.getDate()).padStart(2, "0");
-  const mm = String(today.getMonth() + 1).padStart(2, "0");
-  const yyyy = today.getFullYear();
-  const dateStr = `${dd}/${mm}/${yyyy}`;
-  doc.setFont("helvetica", "italic");
-  doc.setFontSize(9);
-  doc.setTextColor(BRAND_DARK);
-  doc.text(dateStr, stampX + stampSize / 2 + 8, stampY + stampSize * 0.66, { align: "center" });
 
   // ===== Footer band =====
   doc.setFillColor(BRAND);
