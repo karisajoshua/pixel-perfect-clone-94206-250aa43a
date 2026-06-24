@@ -511,6 +511,17 @@ function ImportPage() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Mode</Label>
+              <Select value={mode} onValueChange={(v) => setMode(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="insert">Insert new (skip existing)</SelectItem>
+                  <SelectItem value="backfill">Backfill missing premium on existing policies</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Backfill mode updates premium/sum insured on previously-imported policies that are missing those values (parsed from the S/INS column × 1000).</p>
+            </div>
           </div>
         )}
       </Card>
