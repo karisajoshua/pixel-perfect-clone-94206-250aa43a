@@ -29,8 +29,8 @@ const num = (s: any) => { const n = Number(norm(s).replace(/[^0-9.\-]/g, "")); r
 const parseSinsToKES = (raw: any): number | null => {
   const t = norm(raw);
   if (!t) return null;
-  const parts = t.split(/[+,&\/\n]/).map((p) => Number(p.replace(/[^0-9.]/g, "")));
-  const total = parts.filter((n) => Number.isFinite(n) && n > 0).reduce((s, n) => s + n, 0);
+  const parts = t.split(/[+,&\/\n]/).map((p: string) => Number(p.replace(/[^0-9.]/g, "")));
+  const total = parts.filter((n: number) => Number.isFinite(n) && n > 0).reduce((s: number, n: number) => s + n, 0);
   return total > 0 ? total * 1000 : null;
 };
 const installmentPaid = (raw: any): boolean => {
