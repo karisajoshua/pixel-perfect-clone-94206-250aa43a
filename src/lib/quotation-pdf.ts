@@ -133,9 +133,12 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   }
   // Totals row
   body.push([
-    { content: "Total premium payable", colSpan: 6, styles: { fontStyle: "bold", halign: "right", fillColor: "#f3f6fb" } },
+    { content: "Total premium payable", colSpan: 4, styles: { fontStyle: "bold", halign: "right", fillColor: "#f3f6fb" } },
+    { content: num(grossPremium), styles: { fontStyle: "bold", fillColor: "#f3f6fb" } },
+    { content: num(levies), styles: { fontStyle: "bold", fillColor: "#f3f6fb" } },
     { content: num(total), styles: { fontStyle: "bold", fillColor: "#f3f6fb" } },
   ]);
+
 
 
   autoTable(doc, {
