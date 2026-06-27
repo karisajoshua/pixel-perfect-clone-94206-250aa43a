@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { downloadInvoicePdf } from "@/lib/invoice-pdf";
+import { downloadReceiptPdf } from "@/lib/receipt-pdf";
 
 export const Route = createFileRoute("/_portal/portal/invoices/$id")({ component: Page });
 
@@ -52,7 +53,15 @@ function Page() {
       <Card><CardHeader><CardTitle className="text-base">Payments</CardTitle></CardHeader><CardContent>
         {(inv.payments ?? []).length === 0 ? <div className="text-sm text-muted-foreground">No payments recorded.</div> :
         <ul className="divide-y text-sm">{inv.payments.map((p: any) => (
-          <li key={p.id} className="py-2 flex justify-between"><span>{p.paid_date} · {p.method ?? "—"} {p.reference ? `(${p.reference})` : ""}</span><span className="font-medium">{Number(p.amount).toLocaleString()}</span></li>
+          <li key={p.id} className="py-2 flex items-center justify-between gap-3">
+            <span className="flex-1">{p.paid_date} · {p.method ?? "—"} {p.reference ? `(${p.reference})` : ""}</span>
+            <span className="font-medium">{Number(p.amount).toLocaleString()}</span>
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={async () => {
+              try {
+                await downloadReceiptPdf({ payment: p, invoice: inv, client: inv.clients, branch: inv.branches, policyNo: inv.policies?.policy_no, allPayments: inv.payments });
+              } catch (e) { console.error(e); }
+            }}><Download className="h-3.5 w-3.5 mr-1" /> Receipt</Button>
+          </li>
         ))}</ul>}
       </CardContent></Card>
     </div>

@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/page-header";
 import { InvoiceFormDialog } from "@/components/invoices/invoice-form-dialog";
 import { toast } from "sonner";
 import { downloadInvoicePdf } from "@/lib/invoice-pdf";
+import { downloadReceiptPdf } from "@/lib/receipt-pdf";
 
 export const Route = createFileRoute("/_authenticated/invoices/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: InvoiceDetail });
 
@@ -101,6 +102,17 @@ function InvoiceDetail() {
                   <span className="text-xs text-muted-foreground">{p.paid_date}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">{p.method ?? "—"} {p.reference ? `• ${p.reference}` : ""}</div>
+                <div className="pt-1">
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={async () => {
+                    const t = toast.loading("Preparing receipt…");
+                    try {
+                      await downloadReceiptPdf({ payment: p, invoice: inv, client: inv.clients, branch: inv.branches, policyNo: inv.policies?.policy_no, allPayments: inv.payments });
+                      toast.success("Receipt downloaded", { id: t });
+                    } catch (e: any) {
+                      toast.error(e?.message ?? "Download failed", { id: t });
+                    }
+                  }}><Download className="h-3.5 w-3.5 mr-1" /> Receipt</Button>
+                </div>
               </div>
             ))}
           </CardContent>
