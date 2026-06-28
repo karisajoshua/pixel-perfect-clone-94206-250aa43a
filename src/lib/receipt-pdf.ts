@@ -17,14 +17,19 @@ export type ReceiptPdfInput = {
   allPayments?: any[];
 };
 
-const ORANGE = "#f37021";
-const BLACK = "#0d0d0d";
-const DARK = "#1a1a1a";
+// Brand palette — kept in sync with invoice-pdf.ts and quotation-pdf.ts
+const BRAND = "#2563eb";
+const BRAND_DARK = "#1e3a8a";
+const BRAND_SOFT = "#eaf2ff";
+const INK = "#111827";
 const MUTED = "#6b7280";
-const LIGHT = "#f5f5f5";
+const BORDER = "#e5e7eb";
+const PAID = "#047857";
+const PARTIAL = "#b45309";
 
 const AGENCY = {
   name: "Zest Insurance Agency",
+  tagline: "Insurance Brokerage & Advisory",
   address: "Ruai, Miranje Hse, Nairobi, Kenya",
   phone: "+254 713 985 230",
   email: "info@zestinsurance.co.ke",
@@ -51,7 +56,6 @@ async function loadImage(url: string): Promise<string | null> {
 }
 
 const money = (n: any) => `KSH ${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const moneyPlain = (n: any) => `KSH ${Number(n || 0).toLocaleString()}`;
 
 // --- number to words (English, KES) ---
 const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
@@ -89,13 +93,14 @@ export function deriveReceiptNo(payment: { id?: string; paid_date?: string }): s
 }
 
 export async function downloadReceiptPdf(input: ReceiptPdfInput) {
-  const { payment, invoice, client, branch, policyNo, receivedBy, allPayments } = input;
+  const { payment, invoice, client, branch, policyNo, receivedBy } = input;
   const receiptNo = input.receiptNo ?? deriveReceiptNo(payment);
 
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 40;
+  const contentW = pageW - margin * 2;
 
   const total = Number(invoice?.total ?? 0);
   const newPaid = Number(invoice?.amount_paid ?? 0);
@@ -103,211 +108,166 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
   const amount = Number(payment?.amount ?? 0);
   const priorPaid = Math.max(0, newPaid - amount);
   const isFull = balance <= 0.01;
+  const dateStr = payment?.paid_date
+    ? new Date(payment.paid_date).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })
+    : new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
 
-  // ===== Header: black angled panel right with contact info =====
-  // Black polygon on right
-  const panelLeft = pageW * 0.45;
-  doc.setFillColor(BLACK);
-  doc.triangle(panelLeft, 0, panelLeft + 60, 0, panelLeft, 60, "F");
-  doc.rect(panelLeft + 60, 0, pageW - panelLeft - 60, 170, "F");
-  doc.setFillColor(BLACK);
-  doc.rect(panelLeft + 30, 60, pageW - panelLeft - 30, 110, "F");
-  // small orange accent triangle top
-  doc.setFillColor(ORANGE);
-  doc.triangle(panelLeft + 60, 0, panelLeft + 120, 0, panelLeft + 60, 30, "F");
+  // ===== Top brand rule =====
+  doc.setFillColor(BRAND);
+  doc.rect(0, 0, pageW, 6, "F");
 
-  // Logo (top-left)
+  // ===== Header =====
+  const headerY = 26;
   const logo = await loadImage(logoAsset.url);
   if (logo) {
-    try { doc.addImage(logo, "PNG", margin, 30, 70, 70); } catch {}
+    try { doc.addImage(logo, "PNG", margin, headerY, 56, 56); } catch {}
   }
-  // Agency name
-  doc.setTextColor(BLACK); doc.setFont("helvetica", "bold"); doc.setFontSize(22);
-  doc.text("ZEST", margin + 84, 60);
-  doc.setTextColor(ORANGE);
-  doc.text("INSURANCE", margin + 84 + doc.getTextWidth("ZEST") + 4, 60);
-  doc.setTextColor(BLACK); doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-  doc.text("AGENCY", margin + 84, 78);
-  // tagline
-  doc.setDrawColor(ORANGE); doc.setLineWidth(1);
-  doc.line(margin + 84, 88, margin + 200, 88);
-  doc.setFontSize(8); doc.setTextColor(DARK);
-  doc.text("INSURANCE BROKERAGE & ADVISORY", margin + 84, 100);
+  // Agency block (left)
+  doc.setTextColor(BRAND_DARK); doc.setFont("helvetica", "bold"); doc.setFontSize(16);
+  doc.text(AGENCY.name, margin + 70, headerY + 18);
+  doc.setTextColor(MUTED); doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+  doc.text(AGENCY.tagline, margin + 70, headerY + 32);
+  doc.setTextColor(INK);
+  doc.text(`${AGENCY.address}`, margin + 70, headerY + 46);
+  doc.text(`${AGENCY.phone}  ·  ${AGENCY.email}  ·  ${AGENCY.website}`, margin + 70, headerY + 58);
 
-  // Contact info (in black panel, orange icons replaced with bullets)
-  const cx = panelLeft + 80;
-  doc.setTextColor("#ffffff"); doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-  const contactItems = [
-    { icon: "\u260E", text: AGENCY.phone },
-    { icon: "\u2709", text: AGENCY.email },
-    { icon: "\u2318", text: AGENCY.website },
-    { icon: "\u25C9", text: "Nairobi, Kenya" },
-  ];
-  contactItems.forEach((item, i) => {
-    const yy = 78 + i * 20;
-    doc.setTextColor(ORANGE); doc.setFontSize(11);
-    doc.text(item.icon, cx - 18, yy);
-    doc.setTextColor("#ffffff"); doc.setFontSize(10);
-    doc.text(item.text, cx, yy);
-  });
-
-  // ===== RECEIPT title =====
-  let y = 210;
-  doc.setTextColor(BLACK); doc.setFont("helvetica", "bold"); doc.setFontSize(40);
-  doc.text("RECEIPT", margin, y);
-  // orange underline
-  doc.setDrawColor(ORANGE); doc.setLineWidth(3);
-  doc.line(margin, y + 8, margin + 90, y + 8);
-
-  // Receipt No pill
-  y += 32;
-  doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(DARK);
-  doc.text("Receipt No.:", margin, y);
-  const rnX = margin + doc.getTextWidth("Receipt No.:") + 10;
-  doc.setFillColor(BLACK);
-  doc.roundedRect(rnX, y - 14, 140, 22, 4, 4, "F");
-  doc.setTextColor(ORANGE); doc.setFont("helvetica", "bold"); doc.setFontSize(12);
-  doc.text(receiptNo, rnX + 70, y + 1, { align: "center" });
-
-  // Date block (right)
+  // Right block: title + meta
   const rx = pageW - margin;
-  doc.setFillColor(BLACK);
-  doc.circle(rx - 130, y - 8, 14, "F");
-  doc.setTextColor(ORANGE); doc.setFontSize(14);
-  doc.text("\u25A4", rx - 130, y - 4, { align: "center" });
-  doc.setTextColor(BLACK); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-  doc.text("DATE", rx - 110, y - 10);
-  doc.setTextColor(ORANGE); doc.setFont("helvetica", "normal"); doc.setFontSize(11);
-  const dateStr = payment?.paid_date ? new Date(payment.paid_date).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) : "";
-  doc.text(dateStr, rx - 110, y + 6);
+  doc.setTextColor(BRAND_DARK); doc.setFont("helvetica", "bold"); doc.setFontSize(20);
+  doc.text("OFFICIAL RECEIPT", rx, headerY + 18, { align: "right" });
+  doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(INK);
+  doc.text(`Receipt No.  `, rx - 130, headerY + 36);
+  doc.setFont("helvetica", "bold"); doc.setTextColor(BRAND);
+  doc.text(receiptNo, rx, headerY + 36, { align: "right" });
+  doc.setFont("helvetica", "normal"); doc.setTextColor(INK);
+  doc.text(`Date  `, rx - 130, headerY + 50);
+  doc.setFont("helvetica", "bold");
+  doc.text(dateStr, rx, headerY + 50, { align: "right" });
 
-  y += 40;
+  // Divider
+  let y = headerY + 76;
+  doc.setDrawColor(BORDER); doc.setLineWidth(0.8);
+  doc.line(margin, y, pageW - margin, y);
+  y += 18;
 
-  // ===== Two columns: RECEIVED FROM (left) + AMOUNT RECEIVED card (right) =====
-  const leftW = (pageW - margin * 2) * 0.42;
-  const rightX = margin + leftW + 24;
-  const rightW = pageW - margin - rightX;
+  // ===== Info cards: RECEIVED FROM | PAYMENT FOR =====
+  const colGap = 14;
+  const colW = (contentW - colGap) / 2;
+  const cardH = 96;
 
-  // Left: avatar circle
-  doc.setFillColor(ORANGE);
-  doc.circle(margin + 18, y + 18, 18, "F");
-  doc.setTextColor("#ffffff"); doc.setFontSize(18);
-  doc.text("\u2638", margin + 18, y + 23, { align: "center" });
-
-  doc.setTextColor(ORANGE); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-  doc.text("RECEIVED FROM", margin + 48, y + 8);
-  const clientName = client?.client_type === "corporate" ? (client?.company_name ?? client?.full_name ?? "") : (client?.full_name ?? "");
-  doc.setTextColor(BLACK); doc.setFontSize(14);
-  doc.text((clientName || "—").toUpperCase(), margin + 48, y + 28);
-
-  doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(DARK);
-  const fromItems = [
-    { i: "\u260E", t: client?.phone ?? "" },
-    { i: "\u2709", t: client?.email ?? "" },
-    { i: "\u25C9", t: branch?.name ? `${branch.name} branch` : "Nairobi" },
-  ].filter(x => x.t);
-  fromItems.forEach((it, i) => {
-    const yy = y + 50 + i * 18;
-    doc.setTextColor(ORANGE); doc.text(it.i, margin + 48, yy);
-    doc.setTextColor(DARK); doc.text(String(it.t), margin + 64, yy);
-  });
-
-  // Right: AMOUNT card
-  const cardY = y;
-  const cardH = 130;
-  // border
-  doc.setDrawColor("#e5e5e5"); doc.setLineWidth(1);
-  doc.roundedRect(rightX, cardY, rightW, cardH, 6, 6, "S");
-  // header black band
-  doc.setFillColor(BLACK);
-  doc.roundedRect(rightX, cardY, rightW, 28, 6, 6, "F");
-  doc.rect(rightX, cardY + 14, rightW, 14, "F");
-  doc.setTextColor("#ffffff"); doc.setFont("helvetica", "bold"); doc.setFontSize(12);
-  doc.text("AMOUNT RECEIVED", rightX + rightW / 2, cardY + 19, { align: "center" });
-  // amount
-  doc.setTextColor(ORANGE); doc.setFontSize(28);
-  doc.text(moneyPlain(amount), rightX + rightW / 2, cardY + 60, { align: "center" });
-  // words
-  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(DARK);
-  const words = `(${kesInWords(amount)})`;
-  const wrapped = doc.splitTextToSize(words, rightW - 30);
-  doc.text(wrapped, rightX + rightW / 2, cardY + 78, { align: "center" });
-  // status orange band
-  doc.setFillColor(ORANGE);
-  doc.roundedRect(rightX + 8, cardY + cardH - 38, rightW - 16, 32, 4, 4, "F");
-  doc.setTextColor("#ffffff"); doc.setFont("helvetica", "bold"); doc.setFontSize(14);
-  doc.text(isFull ? "\u2714  PAID IN FULL" : "\u26A0  PARTIAL PAYMENT", rightX + rightW / 2, cardY + cardH - 17, { align: "center" });
-
-  y = cardY + cardH + 30;
-
-  // ===== PAYMENT DETAILS =====
-  // Tab label
-  doc.setFillColor(BLACK);
-  doc.roundedRect(margin, y, 160, 26, 4, 4, "F");
-  doc.setTextColor("#ffffff"); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-  doc.text("PAYMENT DETAILS", margin + 12, y + 17);
-  // Rounded panel
-  const pdY = y + 16;
-  const pdH = 86;
-  doc.setDrawColor("#e5e5e5");
-  doc.roundedRect(margin, pdY, pageW - margin * 2, pdH, 6, 6, "S");
-
-  const col4W = (pageW - margin * 2) / 4;
-  const drawDetail = (label: string, val: string, icon: string, idx: number) => {
-    const cxc = margin + col4W * idx + col4W / 2;
-    const cyc = pdY + 22;
-    doc.setFillColor(ORANGE); doc.circle(cxc, cyc, 12, "F");
-    doc.setTextColor("#ffffff"); doc.setFontSize(12);
-    doc.text(icon, cxc, cyc + 4, { align: "center" });
-    doc.setTextColor(BLACK); doc.setFont("helvetica", "bold"); doc.setFontSize(9);
-    doc.text(label, cxc, cyc + 26, { align: "center" });
-    doc.setTextColor(ORANGE); doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-    const wrapVal = doc.splitTextToSize(val || "—", col4W - 12);
-    doc.text(wrapVal, cxc, cyc + 40, { align: "center" });
-    // divider
-    if (idx < 3) {
-      doc.setDrawColor("#e5e5e5");
-      doc.line(margin + col4W * (idx + 1), pdY + 12, margin + col4W * (idx + 1), pdY + pdH - 12);
-    }
+  const drawCard = (x: number, title: string, rows: { label: string; value: string }[]) => {
+    doc.setFillColor(BRAND_SOFT);
+    doc.setDrawColor(BORDER);
+    doc.roundedRect(x, y, colW, cardH, 6, 6, "FD");
+    doc.setFillColor(BRAND);
+    doc.rect(x, y, 4, cardH, "F");
+    doc.setTextColor(BRAND_DARK); doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+    doc.text(title, x + 14, y + 16);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(INK);
+    rows.forEach((r, i) => {
+      const ry = y + 34 + i * 15;
+      doc.setTextColor(MUTED); doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+      doc.text(r.label, x + 14, ry);
+      doc.setTextColor(INK); doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+      const v = doc.splitTextToSize(r.value || "—", colW - 90);
+      doc.text(v, x + 84, ry);
+    });
   };
-  const payDate = payment?.paid_date ? new Date(payment.paid_date).toLocaleDateString("en-GB") : "";
-  drawDetail("PAYMENT METHOD", String(payment?.method ?? "—").toUpperCase(), "$", 0);
-  drawDetail("REFERENCE", String(payment?.reference ?? "—"), "#", 1);
-  drawDetail("INVOICE", String(invoice?.invoice_no ?? "—"), "\u25A4", 2);
-  drawDetail("POLICY", String(policyNo ?? payDate ?? "—"), "\u2630", 3);
 
-  y = pdY + pdH + 24;
+  const clientName = client?.client_type === "corporate"
+    ? (client?.company_name ?? client?.full_name ?? "")
+    : (client?.full_name ?? "");
 
-  // ===== PAYMENT SUMMARY (left) + RECEIVED BY (right) =====
-  const sumW = (pageW - margin * 2) * 0.48;
-  const recvX = margin + sumW + 16;
-  const recvW = pageW - margin - recvX;
+  drawCard(margin, "RECEIVED FROM", [
+    { label: "Name", value: clientName || "—" },
+    { label: "Phone", value: client?.phone ?? "—" },
+    { label: "Email", value: client?.email ?? "—" },
+    { label: "Branch", value: branch?.name ?? "—" },
+  ]);
 
-  // Summary table
+  drawCard(margin + colW + colGap, "PAYMENT FOR", [
+    { label: "Invoice", value: invoice?.invoice_no ?? "—" },
+    { label: "Policy", value: policyNo ?? "—" },
+    { label: "Issued", value: invoice?.issue_date ?? "—" },
+    { label: "Due", value: invoice?.due_date ?? "—" },
+  ]);
+
+  y += cardH + 18;
+
+  // ===== AMOUNT RECEIVED band =====
+  const bandH = 70;
+  doc.setFillColor(BRAND);
+  doc.roundedRect(margin, y, contentW, bandH, 8, 8, "F");
+  // Status pill on the right
+  const pillW = 130, pillH = 26;
+  const pillX = margin + contentW - pillW - 16;
+  const pillY = y + (bandH - pillH) / 2;
+  doc.setFillColor(isFull ? PAID : PARTIAL);
+  doc.roundedRect(pillX, pillY, pillW, pillH, 13, 13, "F");
+  doc.setTextColor("#ffffff"); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+  doc.text(isFull ? "PAID IN FULL" : "PARTIAL PAYMENT", pillX + pillW / 2, pillY + 17, { align: "center" });
+
+  // Amount text
+  doc.setTextColor("#ffffff"); doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+  doc.text("AMOUNT RECEIVED", margin + 18, y + 22);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(22);
+  doc.text(money(amount), margin + 18, y + 48);
+  doc.setFont("helvetica", "italic"); doc.setFontSize(9);
+  const words = kesInWords(amount);
+  const wordLines = doc.splitTextToSize(words, contentW - pillW - 60);
+  doc.text(wordLines, margin + 18, y + 62);
+
+  y += bandH + 18;
+
+  // ===== Payment details table =====
   autoTable(doc, {
     startY: y,
-    head: [["PAYMENT SUMMARY", ""]],
+    head: [["Date", "Method", "Reference", "Invoice", "Policy", "Amount"]],
+    body: [[
+      dateStr,
+      String(payment?.method ?? "—"),
+      String(payment?.reference ?? "—"),
+      String(invoice?.invoice_no ?? "—"),
+      String(policyNo ?? "—"),
+      money(amount),
+    ]],
+    margin: { left: margin, right: margin },
+    styles: { fontSize: 10, cellPadding: 8, lineColor: BORDER, lineWidth: 0.5, textColor: INK },
+    headStyles: { fillColor: BRAND, textColor: "#ffffff", fontStyle: "bold" },
+    alternateRowStyles: { fillColor: "#fafafa" },
+    columnStyles: { 5: { halign: "right", fontStyle: "bold" } },
+  });
+  y = (doc as any).lastAutoTable.finalY + 18;
+
+  // ===== Summary (right) + Authorized by (left) =====
+  const sumW = contentW * 0.55;
+  const authX = margin;
+  const authW = contentW - sumW - colGap;
+  const sumX = margin + authW + colGap;
+
+  const sumStartY = y;
+  autoTable(doc, {
+    startY: sumStartY,
     body: [
       ["Invoice total", money(total)],
       ["Previously paid", money(priorPaid)],
       ["This payment", money(amount)],
       ["Total paid", money(newPaid)],
-      ["Balance", money(balance)],
+      ["Balance due", money(balance)],
     ],
-    styles: { fontSize: 10, cellPadding: 7, lineColor: "#e5e5e5", lineWidth: 0.5 },
-    headStyles: { fillColor: BLACK, textColor: "#ffffff", fontStyle: "bold", halign: "center" },
-    columnStyles: { 0: { halign: "left" }, 1: { halign: "right" } },
-    margin: { left: margin, right: pageW - margin - sumW },
+    margin: { left: sumX },
     tableWidth: sumW,
+    styles: { fontSize: 10, cellPadding: 7, lineColor: BORDER, lineWidth: 0.5, textColor: INK },
+    columnStyles: { 0: { halign: "left" }, 1: { halign: "right", fontStyle: "bold" } },
     didParseCell: (data) => {
       if (data.section === "body") {
-        if (data.row.index === 3) {
-          data.cell.styles.fillColor = ORANGE;
-          data.cell.styles.textColor = "#ffffff";
+        if (data.row.index === 2) {
+          data.cell.styles.fillColor = BRAND_SOFT;
+          data.cell.styles.textColor = BRAND_DARK;
           data.cell.styles.fontStyle = "bold";
         }
         if (data.row.index === 4) {
-          data.cell.styles.fillColor = BLACK;
+          data.cell.styles.fillColor = BRAND_DARK;
           data.cell.styles.textColor = "#ffffff";
           data.cell.styles.fontStyle = "bold";
         }
@@ -316,56 +276,47 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
   });
   const sumEnd = (doc as any).lastAutoTable.finalY;
 
-  // Received by panel
-  doc.setDrawColor("#e5e5e5");
-  doc.roundedRect(recvX, y, recvW, sumEnd - y, 6, 6, "S");
-  doc.setTextColor(ORANGE); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-  doc.text("RECEIVED BY", recvX + 14, y + 22);
-  // signature line
-  doc.setDrawColor("#bfbfbf"); doc.setLineWidth(0.8);
-  doc.line(recvX + 14, y + 70, recvX + recvW - 130, y + 70);
-  doc.setTextColor(BLACK); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-  doc.text(receivedBy || AGENCY.name, recvX + 14, y + 86);
-  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(MUTED);
-  doc.text("Authorized Signatory", recvX + 14, y + 100);
-  // stamp
+  // Authorized panel matching summary height
+  const authH = sumEnd - sumStartY;
+  doc.setDrawColor(BORDER);
+  doc.setFillColor("#ffffff");
+  doc.roundedRect(authX, sumStartY, authW, authH, 6, 6, "FD");
+  doc.setTextColor(BRAND_DARK); doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+  doc.text("AUTHORIZED BY", authX + 12, sumStartY + 16);
+
   const stamp = await loadImage(stampAsset.url);
   if (stamp) {
-    try { doc.addImage(stamp, "PNG", recvX + recvW - 110, y + 8, 100, 100); } catch {}
+    try { doc.addImage(stamp, "PNG", authX + authW - 88, sumStartY + 8, 80, 80); } catch {}
   }
 
-  y = sumEnd + 24;
+  doc.setDrawColor("#9ca3af"); doc.setLineWidth(0.6);
+  doc.line(authX + 12, sumStartY + authH - 30, authX + authW - 100, sumStartY + authH - 30);
+  doc.setTextColor(INK); doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+  doc.text(receivedBy || AGENCY.name, authX + 12, sumStartY + authH - 16);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(MUTED);
+  doc.text("Authorized Signatory", authX + 12, sumStartY + authH - 6);
 
-  // ===== Terms =====
-  doc.setFillColor(BLACK);
-  doc.circle(margin + 14, y + 8, 14, "F");
-  doc.setTextColor(ORANGE); doc.setFontSize(14);
-  doc.text("\u2630", margin + 14, y + 12, { align: "center" });
-  doc.setTextColor(ORANGE); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-  doc.text("TERMS & CONDITIONS", margin + 36, y + 4);
-  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(DARK);
-  const terms = [
-    "Payment is acknowledged in full as per the invoice.",
-    "This receipt is valid for the amount stated above only.",
-    "No refund shall be made once payment is processed.",
-    "Thank you for choosing Zest Insurance Agency.",
+  y = sumEnd + 18;
+
+  // ===== Notes =====
+  doc.setTextColor(BRAND_DARK); doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+  doc.text("NOTES", margin, y);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(MUTED);
+  const notes = [
+    "This receipt acknowledges the amount stated above against the referenced invoice.",
+    "Retain this document as proof of payment. Refunds are subject to the policy terms.",
+    "For any queries, contact us on " + AGENCY.phone + " or " + AGENCY.email + ".",
   ];
-  terms.forEach((t, i) => doc.text(`\u2022 ${t}`, margin + 36, y + 20 + i * 12));
+  notes.forEach((t, i) => doc.text(`•  ${t}`, margin, y + 14 + i * 11));
 
-  // ===== Footer band =====
-  const fY = pageH - 36;
-  doc.setFillColor(BLACK);
-  doc.rect(0, fY, pageW * 0.45, 36, "F");
-  doc.setFillColor(ORANGE);
-  doc.triangle(pageW * 0.45, fY, pageW * 0.45 + 30, fY, pageW * 0.45, fY + 36, "F");
-  doc.rect(pageW * 0.45 + 30, fY, pageW - pageW * 0.45 - 30, 36, "F");
-  doc.setTextColor("#ffffff"); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-  doc.text("INSURE.", margin, fY + 22);
-  doc.text("PROTECT.", margin + 60, fY + 22);
-  doc.setTextColor(BLACK);
-  doc.text("THRIVE.", margin + 130, fY + 22);
-  doc.setTextColor("#ffffff"); doc.setFont("helvetica", "italic"); doc.setFontSize(11);
-  doc.text("Thank you for your trust in Zest Insurance Agency.", pageW * 0.72, fY + 22, { align: "center" });
+  // ===== Footer =====
+  const fY = pageH - 32;
+  doc.setDrawColor(BRAND); doc.setLineWidth(1.2);
+  doc.line(margin, fY, pageW - margin, fY);
+  doc.setTextColor(MUTED); doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+  doc.text(`${AGENCY.name}  ·  ${AGENCY.website}`, margin, fY + 14);
+  doc.setTextColor(BRAND_DARK); doc.setFont("helvetica", "italic");
+  doc.text("Thank you for choosing Zest Insurance Agency.", pageW - margin, fY + 14, { align: "right" });
 
   const filename = `Receipt-${receiptNo}.pdf`;
   const blob = doc.output("blob");
