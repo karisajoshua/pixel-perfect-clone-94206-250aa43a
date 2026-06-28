@@ -136,11 +136,11 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
   doc.setTextColor(BRAND_DARK); doc.setFont("helvetica", "bold"); doc.setFontSize(20);
   doc.text("OFFICIAL RECEIPT", rx, headerY + 18, { align: "right" });
   doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(INK);
-  doc.text(`Receipt No.  `, rx - 130, headerY + 36);
+  doc.text("Receipt No.", rx - 200, headerY + 36);
   doc.setFont("helvetica", "bold"); doc.setTextColor(BRAND);
   doc.text(receiptNo, rx, headerY + 36, { align: "right" });
   doc.setFont("helvetica", "normal"); doc.setTextColor(INK);
-  doc.text(`Date  `, rx - 130, headerY + 50);
+  doc.text("Date", rx - 200, headerY + 50);
   doc.setFont("helvetica", "bold");
   doc.text(dateStr, rx, headerY + 50, { align: "right" });
 
@@ -292,7 +292,7 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
   doc.setDrawColor("#9ca3af"); doc.setLineWidth(0.6);
   doc.line(authX + 12, sumStartY + authH - 30, authX + authW - 100, sumStartY + authH - 30);
   doc.setTextColor(INK); doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-  doc.text(receivedBy || AGENCY.name, authX + 12, sumStartY + authH - 16);
+  doc.text(receivedBy || "Elizabeth Grace", authX + 12, sumStartY + authH - 16);
   doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(MUTED);
   doc.text("Authorized Signatory", authX + 12, sumStartY + authH - 6);
 
