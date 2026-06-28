@@ -1,43 +1,54 @@
 ## Goal
+Rebuild `src/lib/receipt-pdf.ts` so the receipt matches the invoice/quotation brand (blue `#2563eb` / `#1e3a8a`) instead of orange, and reorganize the layout into a clean, premium document.
 
-Whenever a payment is recorded against an invoice (partial or full), give staff and clients a downloadable **Receipt PDF** styled like the attached Texcortech receipt but with Zest branding (logo, blue header, Ruai address, +254 713 985 230, info@zestinsurance.co.ke, stamp, footer).
+## Color tokens (match invoice-pdf.ts / quotation-pdf.ts)
+- `BRAND = #2563eb` (primary)
+- `BRAND_DARK = #1e3a8a` (accents, totals)
+- `BRAND_SOFT = #eaf2ff` (table band, card fills)
+- `MUTED = #6b7280`, `BORDER = #e5e7eb`, `INK = #111827`
+- Status pill: green `#047857` for PAID IN FULL, amber `#b45309` for PARTIAL — never orange brand accents.
 
-## What gets built
+## Layout (A4 portrait, matches invoice/quote feel)
 
-### 1. New PDF generator — `src/lib/receipt-pdf.ts`
-Mirrors the structure of `invoice-pdf.ts` but matches the attached layout:
-- Top: Zest logo (left) + contact block (right): phone, email, website, Nairobi
-- Centered **RECEIPT** title with `Receipt No.` (format `RCP-YYYY-NNNN`, derived from payment id/sequence) and date
-- **RECEIVED FROM** block: client name, phone, email, branch
-- **AMOUNT RECEIVED**: big number + amount-in-words (Kenya Shillings …) + "PAID IN FULL" / "PARTIAL PAYMENT" tag based on remaining balance
-- **PAYMENT DETAILS**: method, reference, paid date, related invoice no. + policy no.
-- **PAYMENT SUMMARY** table: Invoice total, Previously paid, This payment, Total paid to date, Balance
-- **RECEIVED BY**: name of staff who recorded the payment (from `profiles`)
-- Terms & conditions block (same 4 bullets, adapted wording)
-- Zest stamp image bottom-right
-- Footer: address + agency contact + "Powered by Texcortech Systems"
+```text
+┌───────────────────────────────────────────────────────────┐
+│ [logo] ZEST INSURANCE AGENCY            OFFICIAL RECEIPT  │  ← thin blue rule under header
+│        Insurance Brokerage & Advisory   No. RCP-2026-XXXX │
+│        Ruai · +254… · info@…            Date: 28 Jun 2026 │
+├───────────────────────────────────────────────────────────┤
+│ RECEIVED FROM                 │ PAYMENT FOR               │  ← two soft-blue cards
+│ Client name                   │ Invoice INV-…             │
+│ phone · email                 │ Policy POL-…              │
+│ Branch                        │ Issued / Due dates        │
+├───────────────────────────────────────────────────────────┤
+│ AMOUNT RECEIVED                                           │
+│   KSH 12,500.00       [ PAID IN FULL ] (green) or         │
+│   Kenya Shillings Twelve Thousand … Only                  │  ← single full-width band, brand blue
+├───────────────────────────────────────────────────────────┤
+│ Payment details table (brand-blue header)                 │
+│  Date | Method | Reference | Invoice | Policy | Amount    │
+├───────────────────────────────────────────────────────────┤
+│ Summary table (right, ~55% width)   │ Authorized by panel │
+│  Invoice total                      │  Signature line     │
+│  Previously paid                    │  Name / role        │
+│  This payment        (brand row)    │  [stamp image]      │
+│  Total paid                         │                     │
+│  Balance due       (BRAND_DARK row) │                     │
+├───────────────────────────────────────────────────────────┤
+│ Notes / terms (small, muted)                              │
+│ Footer: thin brand rule + "Thank you …" centered          │
+└───────────────────────────────────────────────────────────┘
+```
 
-Helper `numberToKesWords(n)` for the "Kenya Shillings … Only" line.
+## Implementation notes
+- Reuse the visual grammar from `invoice-pdf.ts`: thin top brand bar, `autoTable` with `headStyles.fillColor = BRAND`, alternating `#fafafa` rows, soft-blue info cards with `#eaf2ff` fill + `BORDER` stroke.
+- Remove all orange fills, triangles, circular icon badges, the angled footer band, and the unicode glyphs (☎ ✉ ⌘ ◉ ☰) — they render inconsistently. Use plain bold labels (`Phone`, `Email`, `Web`).
+- Keep helpers already in the file: `loadImage`, `kesInWords`, `deriveReceiptNo`, `money`. No signature/API changes — call sites in `src/routes/_authenticated/invoices.$id.tsx` and `src/routes/_portal/portal/invoices.$id.tsx` keep working unchanged.
+- Stamp image: place inside the "Authorized by" panel at ~90×90, right-aligned.
+- Status pill uses green/amber per state, never the brand blue (so it stands out without clashing).
+- Single page; if content overflows on edge cases, let autoTable paginate naturally.
 
-### 2. Receipt number
-No schema change. Derive deterministically: `RCP-{year}-{zero-padded sequence within the year}` using count of payments in the same calendar year up to and including this payment's `paid_date`. Computed at render time.
+## File touched
+- `src/lib/receipt-pdf.ts` — full rewrite of the rendering body; exports unchanged.
 
-### 3. Download buttons
-Add a **Download receipt** action next to each payment row in:
-- `src/routes/_authenticated/invoices.$id.tsx` (payments list — staff)
-- `src/routes/_portal/portal/invoices.$id.tsx` (payments list — client portal)
-
-Wires payment + invoice + client + branch into `downloadReceiptPdf(...)`.
-
-### 4. Auto-email receipt on payment (optional, included)
-Reuse the existing `payment-receipt` email template registry entry. When a payment is created in `invoice-form-dialog.tsx` (and the API path that records payments), trigger `sendTransactionalEmail({ templateName: "payment-receipt", ... })` to the client's email if present. Idempotency key = payment id. No new infra — uses the existing transactional send route.
-
-## Out of scope
-- No schema change (no `receipts` table — receipt is derived from `payments` + `invoices`).
-- No bulk re-issue of receipts for historical payments (download button works for them on-demand).
-
-## Files touched
-- **Add** `src/lib/receipt-pdf.ts`
-- **Edit** `src/routes/_authenticated/invoices.$id.tsx` — add Download receipt button per payment
-- **Edit** `src/routes/_portal/portal/invoices.$id.tsx` — add Download receipt button per payment
-- **Edit** `src/components/invoices/invoice-form-dialog.tsx` — after recording a payment, fire transactional email
+No other files, no schema, no business logic changes.
