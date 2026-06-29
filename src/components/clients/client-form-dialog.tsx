@@ -49,15 +49,24 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
   const submit = async () => {
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
-    const payload = {
-      ...form,
+    const writable: Record<string, any> = {
+      client_type: form.client_type ?? "individual",
+      full_name: form.full_name ?? null,
+      company_name: form.company_name ?? null,
+      id_number: form.id_number ?? null,
+      kra_pin: form.kra_pin ?? null,
+      email: form.email ?? null,
       phone: normalizePhone(form.phone) ?? form.phone ?? null,
       alt_phone: normalizePhone(form.alt_phone) ?? form.alt_phone ?? null,
-      created_by: u.user?.id,
+      city: form.city ?? null,
+      address: form.address ?? null,
+      notes: form.notes ?? null,
     };
+    if (isAdmin) writable.branch_id = form.branch_id ?? null;
+    const insertPayload = { ...writable, created_by: u.user?.id };
     const op = initial?.id
-      ? supabase.from("clients").update(payload).eq("id", initial.id)
-      : supabase.from("clients").insert(payload).select("id").single();
+      ? supabase.from("clients").update(writable).eq("id", initial.id)
+      : supabase.from("clients").insert(insertPayload).select("id").single();
     const { data: saved, error } = await op as any;
     if (error) { setSaving(false); return toast.error(error.message); }
     toast.success(initial?.id ? "Client updated" : "Client created");

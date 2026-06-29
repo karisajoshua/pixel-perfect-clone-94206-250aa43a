@@ -49,6 +49,31 @@ const DOC_TYPE_ENUM = [
   "log_book","importation_doc","search_doc",
 ] as const;
 
+async function maybeAutoVerifyClientKyc(clientId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: client } = await supabaseAdmin
+    .from("clients")
+    .select("id, client_type, kyc_status")
+    .eq("id", clientId)
+    .maybeSingle();
+  if (!client || client.kyc_status === "verified") return;
+  const required = (client.client_type === "corporate" ? CORPORATE_SLOTS : INDIVIDUAL_SLOTS)
+    .filter((s) => s.required)
+    .map((s) => s.doc_type);
+  if (required.length === 0) return;
+  const { data: rows } = await supabaseAdmin
+    .from("client_required_documents")
+    .select("doc_type")
+    .eq("client_id", clientId)
+    .in("doc_type", required as any);
+  const have = new Set((rows ?? []).map((r: any) => r.doc_type));
+  if (required.every((t) => have.has(t))) {
+    await (supabaseAdmin.from("clients") as any)
+      .update({ kyc_status: "verified" })
+      .eq("id", clientId);
+  }
+}
+
 async function getMyClient(supabase: any, userId: string) {
   const { data, error } = await supabase
     .from("clients")
