@@ -3,7 +3,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Car, FileText, FileSignature, Receipt, ScrollText,
   BarChart3, ShieldCheck, LogOut, Building2, BellRing, Settings, Mail, Upload,
-  BookOpen, Menu, Inbox, KeyRound, Clock,
+  BookOpen, Menu, Inbox, KeyRound, Clock, MoreHorizontal,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyProfile, useMyRoles } from "@/hooks/use-auth";
@@ -51,6 +51,22 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const visibleNav = nav.filter((n) => (roles ?? []).some((r) => n.roles.includes(r as Role)));
 
+  const currentTitle =
+    visibleNav.find((n) => pathname === n.to || pathname.startsWith(n.to + "/"))?.label ??
+    adminNav.find((n) => pathname.startsWith(n.to))?.label ??
+    "Zest";
+
+  const tabs: { to: string; label: string; icon: typeof Users }[] = [
+    { to: "/dashboard", label: "Home", icon: LayoutDashboard },
+    { to: "/clients", label: "Clients", icon: Users },
+    { to: "/quotations", label: "Quotes", icon: FileSignature },
+    { to: "/invoices", label: "Invoices", icon: Receipt },
+  ];
+  const visibleTabs = tabs.filter((t) => visibleNav.some((n) => n.to === t.to));
+
+  const initials = (profile?.full_name ?? "Z")
+    .split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("") || "Z";
+
   const signOut = async () => {
     navigate({ to: "/", replace: true });
     await qc.cancelQueries();
@@ -93,7 +109,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex bg-background text-foreground">
-      <aside className="hidden md:flex w-64 shrink-0 bg-sidebar text-sidebar-foreground flex-col sticky top-0 h-screen max-h-screen overflow-hidden">
+      <aside className="hidden lg:flex w-64 shrink-0 bg-sidebar text-sidebar-foreground flex-col sticky top-0 h-screen max-h-screen overflow-hidden">
         {sidebarContent}
       </aside>
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -102,7 +118,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </SheetContent>
       </Sheet>
       <main className="flex-1 min-w-0 overflow-auto flex flex-col">
-        <div className="md:hidden flex items-center gap-2 px-3 py-2 sticky top-0 bg-sidebar text-sidebar-foreground z-30">
+        <div
+          className="lg:hidden flex items-center gap-2 px-3 sticky top-0 bg-sidebar text-sidebar-foreground z-30 shadow-sm"
+          style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.5rem)", paddingBottom: "0.5rem" }}
+        >
           <Button
             variant="ghost"
             size="icon"
@@ -113,12 +132,49 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Menu className="h-5 w-5" />
           </Button>
           <img src={logoWhite.url} alt="Zest" className="h-7 w-auto object-contain" />
+          <div className="ml-1 text-sm font-semibold truncate">{currentTitle}</div>
+          <div className="ml-auto h-8 w-8 rounded-full bg-sidebar-accent text-sidebar-accent-foreground grid place-items-center text-xs font-semibold">
+            {initials}
+          </div>
         </div>
-        <div className="flex-1 min-w-0">{children}</div>
-        <footer className="border-t px-4 py-3 text-xs text-muted-foreground text-center">
+        <div className="flex-1 min-w-0 pb-24 lg:pb-0">{children}</div>
+        <footer className="border-t px-4 py-3 text-xs text-muted-foreground text-center hidden lg:block">
           Powered by Texcortech Systems
         </footer>
       </main>
+      {/* Mobile/tablet bottom tab bar */}
+      <nav
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-sidebar text-sidebar-foreground border-t border-sidebar-border"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className={cn("grid", `grid-cols-${visibleTabs.length + 1}`)} style={{ gridTemplateColumns: `repeat(${visibleTabs.length + 1}, minmax(0, 1fr))` }}>
+          {visibleTabs.map((t) => {
+            const active = pathname === t.to || pathname.startsWith(t.to + "/");
+            const Icon = t.icon;
+            return (
+              <Link
+                key={t.to}
+                to={t.to}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
+                  active ? "text-primary" : "text-sidebar-foreground/70 hover:text-sidebar-foreground",
+                )}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{t.label}</span>
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            className="flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground"
+          >
+            <MoreHorizontal className="h-5 w-5" />
+            <span>More</span>
+          </button>
+        </div>
+      </nav>
       <AiAssistant />
     </div>
   );
