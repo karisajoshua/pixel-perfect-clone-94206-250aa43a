@@ -118,31 +118,40 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
 
   // ===== Header =====
   const headerY = 26;
+  const rightBlockW = 200; // reserved width on the right for OFFICIAL RECEIPT + meta
+  const leftTextX = margin + 70;
+  const leftTextMaxW = pageW - margin - rightBlockW - leftTextX - 12;
   const logo = await loadImage(logoAsset.url);
   if (logo) {
     try { doc.addImage(logo, "PNG", margin, headerY, 56, 56); } catch {}
   }
   // Agency block (left)
   doc.setTextColor(BRAND_DARK); doc.setFont("helvetica", "bold"); doc.setFontSize(16);
-  doc.text(AGENCY.name, margin + 70, headerY + 18);
+  doc.text(AGENCY.name, leftTextX, headerY + 18);
   doc.setTextColor(MUTED); doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-  doc.text(AGENCY.tagline, margin + 70, headerY + 32);
+  doc.text(AGENCY.tagline, leftTextX, headerY + 32);
   doc.setTextColor(INK);
-  doc.text(`${AGENCY.address}`, margin + 70, headerY + 46);
-  doc.text(`${AGENCY.phone}  ·  ${AGENCY.email}  ·  ${AGENCY.website}`, margin + 70, headerY + 58);
+  const addrLines = doc.splitTextToSize(AGENCY.address, leftTextMaxW);
+  doc.text(addrLines, leftTextX, headerY + 46);
+  const contactLines = doc.splitTextToSize(
+    `${AGENCY.phone}  ·  ${AGENCY.email}  ·  ${AGENCY.website}`,
+    leftTextMaxW,
+  );
+  doc.text(contactLines, leftTextX, headerY + 46 + addrLines.length * 12);
 
   // Right block: title + meta
   const rx = pageW - margin;
-  doc.setTextColor(BRAND_DARK); doc.setFont("helvetica", "bold"); doc.setFontSize(20);
-  doc.text("OFFICIAL RECEIPT", rx, headerY + 18, { align: "right" });
-  doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(INK);
-  doc.text("Receipt No.", rx - 200, headerY + 36);
-  doc.setFont("helvetica", "bold"); doc.setTextColor(BRAND);
+  doc.setTextColor(BRAND_DARK); doc.setFont("helvetica", "bold"); doc.setFontSize(18);
+  doc.text("OFFICIAL RECEIPT", rx, headerY + 16, { align: "right" });
+  const metaLabelX = rx - rightBlockW + 8;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(MUTED);
+  doc.text("Receipt No.", metaLabelX, headerY + 36);
+  doc.setFont("helvetica", "bold"); doc.setTextColor(BRAND); doc.setFontSize(10);
   doc.text(receiptNo, rx, headerY + 36, { align: "right" });
-  doc.setFont("helvetica", "normal"); doc.setTextColor(INK);
-  doc.text("Date", rx - 200, headerY + 50);
-  doc.setFont("helvetica", "bold");
-  doc.text(dateStr, rx, headerY + 50, { align: "right" });
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(MUTED);
+  doc.text("Date", metaLabelX, headerY + 52);
+  doc.setFont("helvetica", "bold"); doc.setTextColor(INK); doc.setFontSize(10);
+  doc.text(dateStr, rx, headerY + 52, { align: "right" });
 
   // Divider
   let y = headerY + 76;
@@ -276,8 +285,8 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
   });
   const sumEnd = (doc as any).lastAutoTable.finalY;
 
-  // Authorized panel matching summary height
-  const authH = sumEnd - sumStartY;
+  // Authorized panel matching summary height — stamp ABOVE signatory
+  const authH = Math.max(sumEnd - sumStartY, 140);
   doc.setDrawColor(BORDER);
   doc.setFillColor("#ffffff");
   doc.roundedRect(authX, sumStartY, authW, authH, 6, 6, "FD");
@@ -285,18 +294,23 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
   doc.text("AUTHORIZED BY", authX + 12, sumStartY + 16);
 
   const stamp = await loadImage(stampAsset.url);
+  const stampSize = 70;
+  const stampY = sumStartY + 22;
   if (stamp) {
-    try { doc.addImage(stamp, "PNG", authX + authW - 88, sumStartY + 8, 80, 80); } catch {}
+    try {
+      doc.addImage(stamp, "PNG", authX + (authW - stampSize) / 2, stampY, stampSize, stampSize);
+    } catch {}
   }
 
+  const lineY = sumStartY + authH - 30;
   doc.setDrawColor("#9ca3af"); doc.setLineWidth(0.6);
-  doc.line(authX + 12, sumStartY + authH - 30, authX + authW - 100, sumStartY + authH - 30);
+  doc.line(authX + 20, lineY, authX + authW - 20, lineY);
   doc.setTextColor(INK); doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-  doc.text(receivedBy || "Elizabeth Grace", authX + 12, sumStartY + authH - 16);
+  doc.text(receivedBy || "Elizabeth Grace", authX + authW / 2, sumStartY + authH - 16, { align: "center" });
   doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(MUTED);
-  doc.text("Authorized Signatory", authX + 12, sumStartY + authH - 6);
+  doc.text("Authorized Signatory", authX + authW / 2, sumStartY + authH - 6, { align: "center" });
 
-  y = sumEnd + 18;
+  y = Math.max(sumEnd, sumStartY + authH) + 18;
 
   // ===== Notes =====
   doc.setTextColor(BRAND_DARK); doc.setFont("helvetica", "bold"); doc.setFontSize(9);
