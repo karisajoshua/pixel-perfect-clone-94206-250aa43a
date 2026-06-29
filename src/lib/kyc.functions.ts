@@ -174,6 +174,7 @@ export const recordKycUpload = createServerFn({ method: "POST" })
     if (client.kyc_status === "rejected") {
       await context.supabase.from("clients").update({ kyc_status: "pending" }).eq("id", client.id);
     }
+    await maybeAutoVerifyClientKyc(client.id);
     return row;
   });
 
@@ -351,6 +352,7 @@ export const staffUploadKycDocument = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw error;
+    await maybeAutoVerifyClientKyc(data.client_id);
     return row;
   });
 
@@ -358,11 +360,14 @@ export const verifyKycDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { data: row, error } = await context.supabase
       .from("client_required_documents")
       .update({ status: "verified", verified_at: new Date().toISOString(), verified_by: context.userId, rejection_reason: null })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .select("client_id")
+      .maybeSingle();
     if (error) throw error;
+    if (row?.client_id) await maybeAutoVerifyClientKyc(row.client_id);
     return { ok: true };
   });
 
