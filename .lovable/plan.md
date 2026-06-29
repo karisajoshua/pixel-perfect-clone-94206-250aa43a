@@ -1,54 +1,38 @@
-## Goal
-Rebuild `src/lib/receipt-pdf.ts` so the receipt matches the invoice/quotation brand (blue `#2563eb` / `#1e3a8a`) instead of orange, and reorganize the layout into a clean, premium document.
+## Fixes
 
-## Color tokens (match invoice-pdf.ts / quotation-pdf.ts)
-- `BRAND = #2563eb` (primary)
-- `BRAND_DARK = #1e3a8a` (accents, totals)
-- `BRAND_SOFT = #eaf2ff` (table band, card fills)
-- `MUTED = #6b7280`, `BORDER = #e5e7eb`, `INK = #111827`
-- Status pill: green `#047857` for PAID IN FULL, amber `#b45309` for PARTIAL — never orange brand accents.
+### 1. Auto-verify KYC when all required docs are uploaded
+In `src/lib/kyc.functions.ts`, add a helper `maybeAutoVerifyClientKyc(client_id)` that:
+- Loads the client's `client_type` and current `kyc_status`.
+- Computes required slots (INDIVIDUAL_SLOTS or CORPORATE_SLOTS where `required: true`).
+- Counts existing `client_required_documents` rows for those required types.
+- If all required types are present AND `kyc_status !== 'verified'`, update `clients.kyc_status = 'verified'`.
 
-## Layout (A4 portrait, matches invoice/quote feel)
+Call this helper at the end of:
+- `recordKycUpload` (client self-upload)
+- `staffUploadKycDocument` (staff upload — these are already saved as `verified`)
+- `verifyKycDocument` (staff verifies an existing doc)
 
-```text
-┌───────────────────────────────────────────────────────────┐
-│ [logo] ZEST INSURANCE AGENCY            OFFICIAL RECEIPT  │  ← thin blue rule under header
-│        Insurance Brokerage & Advisory   No. RCP-2026-XXXX │
-│        Ruai · +254… · info@…            Date: 28 Jun 2026 │
-├───────────────────────────────────────────────────────────┤
-│ RECEIVED FROM                 │ PAYMENT FOR               │  ← two soft-blue cards
-│ Client name                   │ Invoice INV-…             │
-│ phone · email                 │ Policy POL-…              │
-│ Branch                        │ Issued / Due dates        │
-├───────────────────────────────────────────────────────────┤
-│ AMOUNT RECEIVED                                           │
-│   KSH 12,500.00       [ PAID IN FULL ] (green) or         │
-│   Kenya Shillings Twelve Thousand … Only                  │  ← single full-width band, brand blue
-├───────────────────────────────────────────────────────────┤
-│ Payment details table (brand-blue header)                 │
-│  Date | Method | Reference | Invoice | Policy | Amount    │
-├───────────────────────────────────────────────────────────┤
-│ Summary table (right, ~55% width)   │ Authorized by panel │
-│  Invoice total                      │  Signature line     │
-│  Previously paid                    │  Name / role        │
-│  This payment        (brand row)    │  [stamp image]      │
-│  Total paid                         │                     │
-│  Balance due       (BRAND_DARK row) │                     │
-├───────────────────────────────────────────────────────────┤
-│ Notes / terms (small, muted)                              │
-│ Footer: thin brand rule + "Thank you …" centered          │
-└───────────────────────────────────────────────────────────┘
-```
+Use `supabaseAdmin` for the update so it works regardless of who triggered it.
 
-## Implementation notes
-- Reuse the visual grammar from `invoice-pdf.ts`: thin top brand bar, `autoTable` with `headStyles.fillColor = BRAND`, alternating `#fafafa` rows, soft-blue info cards with `#eaf2ff` fill + `BORDER` stroke.
-- Remove all orange fills, triangles, circular icon badges, the angled footer band, and the unicode glyphs (☎ ✉ ⌘ ◉ ☰) — they render inconsistently. Use plain bold labels (`Phone`, `Email`, `Web`).
-- Keep helpers already in the file: `loadImage`, `kesInWords`, `deriveReceiptNo`, `money`. No signature/API changes — call sites in `src/routes/_authenticated/invoices.$id.tsx` and `src/routes/_portal/portal/invoices.$id.tsx` keep working unchanged.
-- Stamp image: place inside the "Authorized by" panel at ~90×90, right-aligned.
-- Status pill uses green/amber per state, never the brand blue (so it stands out without clashing).
-- Single page; if content overflows on edge cases, let autoTable paginate naturally.
+### 2. "Edit client → Save" error
+Investigate in build mode. Likely cause in `src/components/clients/client-form-dialog.tsx`: the update payload spreads `form` (which contains joined fields like `branches`, `created_at`, etc. when `initial` came from a SELECT with relations) and also re-sets `created_by`, which conflicts with the `enforce_creator_branch` trigger / non-updatable columns. Fix by:
+- Building a clean whitelist of writable columns for updates (full_name, company_name, client_type, id_number, kra_pin, email, phone, alt_phone, city, address, notes, branch_id only when admin).
+- Not sending `created_by` on update.
+- Logging the actual server error to confirm before shipping.
 
-## File touched
-- `src/lib/receipt-pdf.ts` — full rewrite of the rendering body; exports unchanged.
+### 3. Receipt PDF — header overlap
+In `src/lib/receipt-pdf.ts` header section:
+- Move agency text block to wrap within a max width so it never crosses into the right-side "OFFICIAL RECEIPT" column. Compute `leftW = contentW * 0.55` and `splitTextToSize` for address/contact lines.
+- Right column meta: align labels and values inside a fixed width (e.g. `rx - 160` to `rx`) and place "OFFICIAL RECEIPT" title slightly higher so the label/value rows sit below it cleanly.
 
-No other files, no schema, no business logic changes.
+### 4. Receipt PDF — stamp above signatory
+Restructure the "AUTHORIZED BY" card so the stamp sits centered above the signature line:
+- Top of card: `AUTHORIZED BY` label.
+- Middle: stamp image centered (`~70×70 pt`).
+- Below stamp: signature line, then `Elizabeth Grace` and `Authorized Signatory`.
+- Increase the card height to accommodate; keep the right-side summary table at the same `startY` so the two columns visually align.
+
+## Verification
+- Upload all required KYC docs as a client and as staff → client KYC flips to Verified automatically.
+- Edit an existing client, change phone/address, click Save → no error, value persists.
+- Generate a receipt PDF → no text overlap in header; stamp renders above signatory line.
