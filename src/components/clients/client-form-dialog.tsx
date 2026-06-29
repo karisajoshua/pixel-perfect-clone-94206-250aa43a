@@ -64,13 +64,14 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
     };
     if (isAdmin) writable.branch_id = form.branch_id ?? null;
     const insertPayload = { ...writable, created_by: u.user?.id };
+    const tbl = supabase.from("clients") as any;
     const op = initial?.id
-      ? supabase.from("clients").update(writable).eq("id", initial.id)
-      : supabase.from("clients").insert(insertPayload).select("id").single();
+      ? tbl.update(writable).eq("id", initial.id)
+      : tbl.insert(insertPayload).select("id").single();
     const { data: saved, error } = await op as any;
     if (error) { setSaving(false); return toast.error(error.message); }
     toast.success(initial?.id ? "Client updated" : "Client created");
-    if (!initial?.id && saved?.id && (payload.email || payload.phone)) {
+    if (!initial?.id && saved?.id && (writable.email || writable.phone)) {
       sendTransactionalEmail({
         templateName: "client-welcome",
         recipientEmail: form.email,
