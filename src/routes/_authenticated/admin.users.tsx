@@ -13,9 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useServerFn } from "@tanstack/react-start";
-import { updateUserProfile, deleteUser } from "@/lib/admin-users.functions";
+import { updateUserProfile, deleteUser, inviteStaff } from "@/lib/admin-users.functions";
 import { useCurrentUser } from "@/hooks/use-auth";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, UserPlus } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/admin/users")({ beforeLoad: requireRole(["admin"]), component: UsersAdmin });
@@ -27,10 +27,15 @@ function UsersAdmin() {
   const me = useCurrentUser();
   const updateFn = useServerFn(updateUserProfile);
   const deleteFn = useServerFn(deleteUser);
+  const inviteFn = useServerFn(inviteStaff);
   const [editing, setEditing] = useState<any | null>(null);
   const [deleting, setDeleting] = useState<any | null>(null);
   const [form, setForm] = useState({ full_name: "", email: "", phone: "" });
   const [saving, setSaving] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [invForm, setInvForm] = useState({ full_name: "", email: "", phone: "", role: "agent" as "admin"|"manager"|"agent"|"viewer", branch_id: "" });
+  const [inviting, setInviting] = useState(false);
+  const [invResult, setInvResult] = useState<{ email: string; password: string | null } | null>(null);
 
   const { data: profiles } = useQuery({
     queryKey: ["admin-profiles"],
@@ -103,9 +108,35 @@ function UsersAdmin() {
     }
   };
 
+  const submitInvite = async () => {
+    if (!invForm.full_name.trim() || !invForm.email.trim()) return toast.error("Name and email are required");
+    setInviting(true);
+    try {
+      const res = await inviteFn({ data: {
+        full_name: invForm.full_name,
+        email: invForm.email,
+        phone: invForm.phone || null,
+        role: invForm.role,
+        branch_id: invForm.branch_id || null,
+      } });
+      setInvResult({ email: res.email, password: res.password ?? null });
+      setInvForm({ full_name: "", email: "", phone: "", role: "agent", branch_id: "" });
+      qc.invalidateQueries({ queryKey: ["admin-profiles"] });
+      qc.invalidateQueries({ queryKey: ["admin-roles"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to invite staff");
+    } finally {
+      setInviting(false);
+    }
+  };
+
   return (
     <div className="p-8 space-y-6">
-      <PageHeader title="Users & Roles" subtitle="Assign roles and branches to staff. Invite new users from the auth sign-up flow." />
+      <PageHeader
+        title="Users & Roles"
+        subtitle="Invite staff to your agency and assign their role and branch."
+        actions={<Button onClick={() => { setInvResult(null); setInviteOpen(true); }}><UserPlus className="h-4 w-4 mr-2" /> Invite staff</Button>}
+      />
       <Card>
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/40 text-left">
@@ -187,6 +218,56 @@ function UsersAdmin() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setInvResult(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Invite staff</DialogTitle></DialogHeader>
+          {invResult ? (
+            <div className="space-y-3">
+              <p className="text-sm">
+                Account created for <strong>{invResult.email}</strong>. Share this one-time password with them — it won't be shown again.
+              </p>
+              {invResult.password ? (
+                <div className="rounded border bg-muted p-3 font-mono text-sm break-all">{invResult.password}</div>
+              ) : (
+                <p className="text-sm text-muted-foreground">This person already had a login; they were added to your agency using their existing password.</p>
+              )}
+              <DialogFooter>
+                <Button onClick={() => { setInviteOpen(false); setInvResult(null); }}>Done</Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2"><Label>Full name *</Label><Input value={invForm.full_name} onChange={(e) => setInvForm({ ...invForm, full_name: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Email *</Label><Input type="email" value={invForm.email} onChange={(e) => setInvForm({ ...invForm, email: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Phone</Label><Input value={invForm.phone} onChange={(e) => setInvForm({ ...invForm, phone: e.target.value })} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label>Role</Label>
+                  <Select value={invForm.role} onValueChange={(v) => setInvForm({ ...invForm, role: v as any })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">admin</SelectItem>
+                      <SelectItem value="manager">manager</SelectItem>
+                      <SelectItem value="agent">agent</SelectItem>
+                      <SelectItem value="viewer">viewer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2"><Label>Branch</Label>
+                  <Select value={invForm.branch_id} onValueChange={(v) => setInvForm({ ...invForm, branch_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="No branch" /></SelectTrigger>
+                    <SelectContent>{(branches ?? []).map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setInviteOpen(false)} disabled={inviting}>Cancel</Button>
+                <Button onClick={submitInvite} disabled={inviting}>{inviting ? "Creating…" : "Create account"}</Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
