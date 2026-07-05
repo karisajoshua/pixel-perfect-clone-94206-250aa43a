@@ -145,3 +145,90 @@ export const deleteUser = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const inviteStaff = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        email: z.string().email(),
+        full_name: z.string().min(1).max(120),
+        phone: z.string().max(30).optional().nullable(),
+        role: z.enum(["admin", "manager", "agent", "viewer"]),
+        branch_id: z.string().uuid().optional().nullable(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    // Caller must be an admin or manager of a tenant.
+    const { data: member } = await supabase
+      .from("tenant_members")
+      .select("tenant_id, role")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!member) throw new Error("You are not a member of any agency");
+    if (!["admin", "manager"].includes((member as any).role)) throw new Error("Forbidden: admin or manager role required");
+    const tenantId = (member as any).tenant_id as string;
+
+    const phone = normalizePhone(data.phone ?? null);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Reuse existing auth user if the email matches, otherwise create one.
+    const { data: existing } = await supabaseAdmin.auth.admin.listUsers();
+    let authUser = existing?.users?.find(
+      (u: any) => (u.email ?? "").toLowerCase() === data.email.toLowerCase(),
+    );
+    let tempPassword: string | null = null;
+    if (!authUser) {
+      tempPassword = generatePassword(14);
+      const createPayload: any = {
+        email: data.email,
+        email_confirm: true,
+        password: tempPassword,
+        user_metadata: { full_name: data.full_name },
+      };
+      if (phone) {
+        createPayload.phone = phone;
+        createPayload.phone_confirm = true;
+      }
+      const { data: created, error: cErr } = await supabaseAdmin.auth.admin.createUser(createPayload);
+      if (cErr || !created.user) throw new Error(cErr?.message ?? "Could not create user");
+      authUser = created.user as any;
+    }
+
+    const newUserId = (authUser as any).id as string;
+
+    // Refuse to move a user who already belongs to another agency.
+    const { data: prevMember } = await supabaseAdmin
+      .from("tenant_members")
+      .select("tenant_id")
+      .eq("user_id", newUserId)
+      .maybeSingle();
+    if (prevMember && (prevMember as any).tenant_id !== tenantId) {
+      throw new Error("This person already belongs to another agency");
+    }
+
+    await supabaseAdmin
+      .from("profiles")
+      .update({
+        tenant_id: tenantId,
+        full_name: data.full_name,
+        email: data.email,
+        phone: phone,
+        branch_id: data.branch_id ?? null,
+      })
+      .eq("id", newUserId);
+
+    await supabaseAdmin
+      .from("tenant_members")
+      .upsert({ tenant_id: tenantId, user_id: newUserId, role: data.role }, { onConflict: "tenant_id,user_id" });
+
+    // Replace app role with the invited role (strip any auto-assigned defaults).
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", newUserId);
+    await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: newUserId, role: data.role as any });
+
+    return { email: data.email, phone, password: tempPassword };
+  });
