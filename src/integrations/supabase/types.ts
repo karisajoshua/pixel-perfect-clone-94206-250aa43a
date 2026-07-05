@@ -1269,7 +1269,13 @@ export type Database = {
       user_branch: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
-      app_role: "admin" | "manager" | "agent" | "viewer" | "client"
+      app_role:
+        | "admin"
+        | "manager"
+        | "agent"
+        | "viewer"
+        | "client"
+        | "super_admin"
       client_type: "individual" | "corporate"
       comm_channel: "call" | "email" | "sms" | "whatsapp" | "in_person" | "note"
       comm_direction: "inbound" | "outbound"
@@ -1414,7 +1420,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "manager", "agent", "viewer", "client"],
+      app_role: [
+        "admin",
+        "manager",
+        "agent",
+        "viewer",
+        "client",
+        "super_admin",
+      ],
       client_type: ["individual", "corporate"],
       comm_channel: ["call", "email", "sms", "whatsapp", "in_person", "note"],
       comm_direction: ["inbound", "outbound"],
