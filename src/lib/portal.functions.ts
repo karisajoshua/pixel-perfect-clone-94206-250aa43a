@@ -180,7 +180,7 @@ export const reportClaim = createServerFn({ method: "POST" })
         description: data.description,
         claim_amount: data.claim_amount ?? null,
         status: "reported",
-      })
+      } as any)
       .select()
       .single();
     if (error) throw error;

@@ -55,7 +55,7 @@ export function InvoiceFormDialog({ open, onOpenChange, onSaved, initial }: any)
       invoice_id: invoiceId, description: i.description, quantity: i.quantity,
       unit_price: i.unit_price, total: Number(i.quantity) * Number(i.unit_price),
     }));
-    if (itemRows.length) await supabase.from("invoice_items").insert(itemRows);
+    if (itemRows.length) await supabase.from("invoice_items").insert(itemRows as any);
     setSaving(false);
     toast.success("Invoice saved");
     if (!initial?.id && invoiceId && form.client_id) {

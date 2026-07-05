@@ -436,7 +436,7 @@ function ImportPage() {
           created_by: createdBy,
         };
       });
-      const { data, error } = await supabase.from("invoices").insert(batch).select("id, total, invoice_no");
+      const { data, error } = await supabase.from("invoices").insert(batch as any).select("id, total, invoice_no");
       if (error) { errors++; setLog((l) => [...l, `Invoice batch error: ${error.message}`]); continue; }
       (data ?? []).forEach((inv: any) => insertedInvoices.push({ id: inv.id, amount: Number(inv.total) }));
     }
@@ -453,7 +453,7 @@ function ImportPage() {
         paid_date: today,
         recorded_by: createdBy,
       }));
-      const { data, error } = await supabase.from("payments").insert(batch).select("amount");
+      const { data, error } = await supabase.from("payments").insert(batch as any).select("amount");
       if (error) { errors++; setLog((l) => [...l, `Payment batch error: ${error.message}`]); continue; }
       (data ?? []).forEach((p: any) => { revenueAdded += Number(p.amount); });
     }

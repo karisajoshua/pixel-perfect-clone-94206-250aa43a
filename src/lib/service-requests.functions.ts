@@ -36,7 +36,7 @@ export const submitServiceRequest = createServerFn({ method: "POST" })
         request_type: data.request_type,
         preferred_contact: data.preferred_contact,
         reason: data.reason || null,
-      })
+      } as any)
       .select()
       .single();
     if (error) throw error;
