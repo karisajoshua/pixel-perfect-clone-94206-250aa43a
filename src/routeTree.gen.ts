@@ -13,6 +13,7 @@ import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as PortalRouteRouteImport } from './routes/_portal/route'
+import { Route as PlatformRouteRouteImport } from './routes/_platform/route'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
@@ -27,6 +28,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
 import { Route as AuthenticatedClaimsRouteImport } from './routes/_authenticated/claims'
 import { Route as PortalPortalIndexRouteImport } from './routes/_portal/portal/index'
+import { Route as PlatformPlatformIndexRouteImport } from './routes/_platform/platform/index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as PortalPortalVehiclesRouteImport } from './routes/_portal/portal/vehicles'
 import { Route as PortalPortalProfileRouteImport } from './routes/_portal/portal/profile'
@@ -34,6 +36,7 @@ import { Route as PortalPortalPoliciesRouteImport } from './routes/_portal/porta
 import { Route as PortalPortalInvoicesRouteImport } from './routes/_portal/portal/invoices'
 import { Route as PortalPortalDocumentsRouteImport } from './routes/_portal/portal/documents'
 import { Route as PortalPortalClaimsRouteImport } from './routes/_portal/portal/claims'
+import { Route as PlatformPlatformAgenciesRouteImport } from './routes/_platform/platform/agencies'
 import { Route as AuthenticatedPoliciesIdRouteImport } from './routes/_authenticated/policies.$id'
 import { Route as AuthenticatedInvoicesIdRouteImport } from './routes/_authenticated/invoices.$id'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
@@ -56,6 +59,7 @@ import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/em
 import { Route as ApiPublicHooksRenewalRemindersRouteImport } from './routes/api/public/hooks/renewal-reminders'
 import { Route as PortalPortalPoliciesIdRouteImport } from './routes/_portal/portal/policies.$id'
 import { Route as PortalPortalInvoicesIdRouteImport } from './routes/_portal/portal/invoices.$id'
+import { Route as PlatformPlatformAgenciesIdRouteImport } from './routes/_platform/platform/agencies.$id'
 
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
@@ -74,6 +78,10 @@ const OnboardingRoute = OnboardingRouteImport.update({
 } as any)
 const PortalRouteRoute = PortalRouteRouteImport.update({
   id: '/_portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformRouteRoute = PlatformRouteRouteImport.update({
+  id: '/_platform',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -145,6 +153,11 @@ const PortalPortalIndexRoute = PortalPortalIndexRouteImport.update({
   path: '/portal/',
   getParentRoute: () => PortalRouteRoute,
 } as any)
+const PlatformPlatformIndexRoute = PlatformPlatformIndexRouteImport.update({
+  id: '/platform/',
+  path: '/platform/',
+  getParentRoute: () => PlatformRouteRoute,
+} as any)
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
   path: '/lovable/email/suppression',
@@ -180,6 +193,12 @@ const PortalPortalClaimsRoute = PortalPortalClaimsRouteImport.update({
   path: '/portal/claims',
   getParentRoute: () => PortalRouteRoute,
 } as any)
+const PlatformPlatformAgenciesRoute =
+  PlatformPlatformAgenciesRouteImport.update({
+    id: '/platform/agencies',
+    path: '/platform/agencies',
+    getParentRoute: () => PlatformRouteRoute,
+  } as any)
 const AuthenticatedPoliciesIdRoute = AuthenticatedPoliciesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -302,6 +321,12 @@ const PortalPortalInvoicesIdRoute = PortalPortalInvoicesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => PortalPortalInvoicesRoute,
 } as any)
+const PlatformPlatformAgenciesIdRoute =
+  PlatformPlatformAgenciesIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => PlatformPlatformAgenciesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -333,6 +358,7 @@ export interface FileRoutesByFullPath {
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/policies/$id': typeof AuthenticatedPoliciesIdRoute
+  '/platform/agencies': typeof PlatformPlatformAgenciesRouteWithChildren
   '/portal/claims': typeof PortalPortalClaimsRoute
   '/portal/documents': typeof PortalPortalDocumentsRoute
   '/portal/invoices': typeof PortalPortalInvoicesRouteWithChildren
@@ -340,7 +366,9 @@ export interface FileRoutesByFullPath {
   '/portal/profile': typeof PortalPortalProfileRoute
   '/portal/vehicles': typeof PortalPortalVehiclesRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/platform/': typeof PlatformPlatformIndexRoute
   '/portal/': typeof PortalPortalIndexRoute
+  '/platform/agencies/$id': typeof PlatformPlatformAgenciesIdRoute
   '/portal/invoices/$id': typeof PortalPortalInvoicesIdRoute
   '/portal/policies/$id': typeof PortalPortalPoliciesIdRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
@@ -380,6 +408,7 @@ export interface FileRoutesByTo {
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/policies/$id': typeof AuthenticatedPoliciesIdRoute
+  '/platform/agencies': typeof PlatformPlatformAgenciesRouteWithChildren
   '/portal/claims': typeof PortalPortalClaimsRoute
   '/portal/documents': typeof PortalPortalDocumentsRoute
   '/portal/invoices': typeof PortalPortalInvoicesRouteWithChildren
@@ -387,7 +416,9 @@ export interface FileRoutesByTo {
   '/portal/profile': typeof PortalPortalProfileRoute
   '/portal/vehicles': typeof PortalPortalVehiclesRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/platform': typeof PlatformPlatformIndexRoute
   '/portal': typeof PortalPortalIndexRoute
+  '/platform/agencies/$id': typeof PlatformPlatformAgenciesIdRoute
   '/portal/invoices/$id': typeof PortalPortalInvoicesIdRoute
   '/portal/policies/$id': typeof PortalPortalPoliciesIdRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
@@ -401,6 +432,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/_platform': typeof PlatformRouteRouteWithChildren
   '/_portal': typeof PortalRouteRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -430,6 +462,7 @@ export interface FileRoutesById {
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/_authenticated/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/_authenticated/policies/$id': typeof AuthenticatedPoliciesIdRoute
+  '/_platform/platform/agencies': typeof PlatformPlatformAgenciesRouteWithChildren
   '/_portal/portal/claims': typeof PortalPortalClaimsRoute
   '/_portal/portal/documents': typeof PortalPortalDocumentsRoute
   '/_portal/portal/invoices': typeof PortalPortalInvoicesRouteWithChildren
@@ -437,7 +470,9 @@ export interface FileRoutesById {
   '/_portal/portal/profile': typeof PortalPortalProfileRoute
   '/_portal/portal/vehicles': typeof PortalPortalVehiclesRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/_platform/platform/': typeof PlatformPlatformIndexRoute
   '/_portal/portal/': typeof PortalPortalIndexRoute
+  '/_platform/platform/agencies/$id': typeof PlatformPlatformAgenciesIdRoute
   '/_portal/portal/invoices/$id': typeof PortalPortalInvoicesIdRoute
   '/_portal/portal/policies/$id': typeof PortalPortalPoliciesIdRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
@@ -479,6 +514,7 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/invoices/$id'
     | '/policies/$id'
+    | '/platform/agencies'
     | '/portal/claims'
     | '/portal/documents'
     | '/portal/invoices'
@@ -486,7 +522,9 @@ export interface FileRouteTypes {
     | '/portal/profile'
     | '/portal/vehicles'
     | '/lovable/email/suppression'
+    | '/platform/'
     | '/portal/'
+    | '/platform/agencies/$id'
     | '/portal/invoices/$id'
     | '/portal/policies/$id'
     | '/api/public/hooks/renewal-reminders'
@@ -526,6 +564,7 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/invoices/$id'
     | '/policies/$id'
+    | '/platform/agencies'
     | '/portal/claims'
     | '/portal/documents'
     | '/portal/invoices'
@@ -533,7 +572,9 @@ export interface FileRouteTypes {
     | '/portal/profile'
     | '/portal/vehicles'
     | '/lovable/email/suppression'
+    | '/platform'
     | '/portal'
+    | '/platform/agencies/$id'
     | '/portal/invoices/$id'
     | '/portal/policies/$id'
     | '/api/public/hooks/renewal-reminders'
@@ -546,6 +587,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/_platform'
     | '/_portal'
     | '/onboarding'
     | '/reset-password'
@@ -575,6 +617,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/$id'
     | '/_authenticated/invoices/$id'
     | '/_authenticated/policies/$id'
+    | '/_platform/platform/agencies'
     | '/_portal/portal/claims'
     | '/_portal/portal/documents'
     | '/_portal/portal/invoices'
@@ -582,7 +625,9 @@ export interface FileRouteTypes {
     | '/_portal/portal/profile'
     | '/_portal/portal/vehicles'
     | '/lovable/email/suppression'
+    | '/_platform/platform/'
     | '/_portal/portal/'
+    | '/_platform/platform/agencies/$id'
     | '/_portal/portal/invoices/$id'
     | '/_portal/portal/policies/$id'
     | '/api/public/hooks/renewal-reminders'
@@ -596,6 +641,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  PlatformRouteRoute: typeof PlatformRouteRouteWithChildren
   PortalRouteRoute: typeof PortalRouteRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -639,6 +685,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof PortalRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_platform': {
+      id: '/_platform'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof PlatformRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -739,6 +792,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalPortalIndexRouteImport
       parentRoute: typeof PortalRouteRoute
     }
+    '/_platform/platform/': {
+      id: '/_platform/platform/'
+      path: '/platform'
+      fullPath: '/platform/'
+      preLoaderRoute: typeof PlatformPlatformIndexRouteImport
+      parentRoute: typeof PlatformRouteRoute
+    }
     '/lovable/email/suppression': {
       id: '/lovable/email/suppression'
       path: '/lovable/email/suppression'
@@ -787,6 +847,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/portal/claims'
       preLoaderRoute: typeof PortalPortalClaimsRouteImport
       parentRoute: typeof PortalRouteRoute
+    }
+    '/_platform/platform/agencies': {
+      id: '/_platform/platform/agencies'
+      path: '/platform/agencies'
+      fullPath: '/platform/agencies'
+      preLoaderRoute: typeof PlatformPlatformAgenciesRouteImport
+      parentRoute: typeof PlatformRouteRoute
     }
     '/_authenticated/policies/$id': {
       id: '/_authenticated/policies/$id'
@@ -942,6 +1009,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalPortalInvoicesIdRouteImport
       parentRoute: typeof PortalPortalInvoicesRoute
     }
+    '/_platform/platform/agencies/$id': {
+      id: '/_platform/platform/agencies/$id'
+      path: '/$id'
+      fullPath: '/platform/agencies/$id'
+      preLoaderRoute: typeof PlatformPlatformAgenciesIdRouteImport
+      parentRoute: typeof PlatformPlatformAgenciesRoute
+    }
   }
 }
 
@@ -1031,6 +1105,34 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface PlatformPlatformAgenciesRouteChildren {
+  PlatformPlatformAgenciesIdRoute: typeof PlatformPlatformAgenciesIdRoute
+}
+
+const PlatformPlatformAgenciesRouteChildren: PlatformPlatformAgenciesRouteChildren =
+  {
+    PlatformPlatformAgenciesIdRoute: PlatformPlatformAgenciesIdRoute,
+  }
+
+const PlatformPlatformAgenciesRouteWithChildren =
+  PlatformPlatformAgenciesRoute._addFileChildren(
+    PlatformPlatformAgenciesRouteChildren,
+  )
+
+interface PlatformRouteRouteChildren {
+  PlatformPlatformAgenciesRoute: typeof PlatformPlatformAgenciesRouteWithChildren
+  PlatformPlatformIndexRoute: typeof PlatformPlatformIndexRoute
+}
+
+const PlatformRouteRouteChildren: PlatformRouteRouteChildren = {
+  PlatformPlatformAgenciesRoute: PlatformPlatformAgenciesRouteWithChildren,
+  PlatformPlatformIndexRoute: PlatformPlatformIndexRoute,
+}
+
+const PlatformRouteRouteWithChildren = PlatformRouteRoute._addFileChildren(
+  PlatformRouteRouteChildren,
+)
+
 interface PortalPortalInvoicesRouteChildren {
   PortalPortalInvoicesIdRoute: typeof PortalPortalInvoicesIdRoute
 }
@@ -1080,6 +1182,7 @@ const PortalRouteRouteWithChildren = PortalRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  PlatformRouteRoute: PlatformRouteRouteWithChildren,
   PortalRouteRoute: PortalRouteRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
