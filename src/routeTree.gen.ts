@@ -36,6 +36,7 @@ import { Route as PortalPortalPoliciesRouteImport } from './routes/_portal/porta
 import { Route as PortalPortalInvoicesRouteImport } from './routes/_portal/portal/invoices'
 import { Route as PortalPortalDocumentsRouteImport } from './routes/_portal/portal/documents'
 import { Route as PortalPortalClaimsRouteImport } from './routes/_portal/portal/claims'
+import { Route as PlatformPlatformNoticesRouteImport } from './routes/_platform/platform/notices'
 import { Route as PlatformPlatformAgenciesRouteImport } from './routes/_platform/platform/agencies'
 import { Route as AuthenticatedPoliciesIdRouteImport } from './routes/_authenticated/policies.$id'
 import { Route as AuthenticatedInvoicesIdRouteImport } from './routes/_authenticated/invoices.$id'
@@ -193,6 +194,11 @@ const PortalPortalClaimsRoute = PortalPortalClaimsRouteImport.update({
   id: '/portal/claims',
   path: '/portal/claims',
   getParentRoute: () => PortalRouteRoute,
+} as any)
+const PlatformPlatformNoticesRoute = PlatformPlatformNoticesRouteImport.update({
+  id: '/platform/notices',
+  path: '/platform/notices',
+  getParentRoute: () => PlatformRouteRoute,
 } as any)
 const PlatformPlatformAgenciesRoute =
   PlatformPlatformAgenciesRouteImport.update({
@@ -367,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/policies/$id': typeof AuthenticatedPoliciesIdRoute
   '/platform/agencies': typeof PlatformPlatformAgenciesRouteWithChildren
+  '/platform/notices': typeof PlatformPlatformNoticesRoute
   '/portal/claims': typeof PortalPortalClaimsRoute
   '/portal/documents': typeof PortalPortalDocumentsRoute
   '/portal/invoices': typeof PortalPortalInvoicesRouteWithChildren
@@ -418,6 +425,7 @@ export interface FileRoutesByTo {
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/policies/$id': typeof AuthenticatedPoliciesIdRoute
   '/platform/agencies': typeof PlatformPlatformAgenciesRouteWithChildren
+  '/platform/notices': typeof PlatformPlatformNoticesRoute
   '/portal/claims': typeof PortalPortalClaimsRoute
   '/portal/documents': typeof PortalPortalDocumentsRoute
   '/portal/invoices': typeof PortalPortalInvoicesRouteWithChildren
@@ -473,6 +481,7 @@ export interface FileRoutesById {
   '/_authenticated/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/_authenticated/policies/$id': typeof AuthenticatedPoliciesIdRoute
   '/_platform/platform/agencies': typeof PlatformPlatformAgenciesRouteWithChildren
+  '/_platform/platform/notices': typeof PlatformPlatformNoticesRoute
   '/_portal/portal/claims': typeof PortalPortalClaimsRoute
   '/_portal/portal/documents': typeof PortalPortalDocumentsRoute
   '/_portal/portal/invoices': typeof PortalPortalInvoicesRouteWithChildren
@@ -526,6 +535,7 @@ export interface FileRouteTypes {
     | '/invoices/$id'
     | '/policies/$id'
     | '/platform/agencies'
+    | '/platform/notices'
     | '/portal/claims'
     | '/portal/documents'
     | '/portal/invoices'
@@ -577,6 +587,7 @@ export interface FileRouteTypes {
     | '/invoices/$id'
     | '/policies/$id'
     | '/platform/agencies'
+    | '/platform/notices'
     | '/portal/claims'
     | '/portal/documents'
     | '/portal/invoices'
@@ -631,6 +642,7 @@ export interface FileRouteTypes {
     | '/_authenticated/invoices/$id'
     | '/_authenticated/policies/$id'
     | '/_platform/platform/agencies'
+    | '/_platform/platform/notices'
     | '/_portal/portal/claims'
     | '/_portal/portal/documents'
     | '/_portal/portal/invoices'
@@ -860,6 +872,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/portal/claims'
       preLoaderRoute: typeof PortalPortalClaimsRouteImport
       parentRoute: typeof PortalRouteRoute
+    }
+    '/_platform/platform/notices': {
+      id: '/_platform/platform/notices'
+      path: '/platform/notices'
+      fullPath: '/platform/notices'
+      preLoaderRoute: typeof PlatformPlatformNoticesRouteImport
+      parentRoute: typeof PlatformRouteRoute
     }
     '/_platform/platform/agencies': {
       id: '/_platform/platform/agencies'
@@ -1143,11 +1162,13 @@ const PlatformPlatformAgenciesRouteWithChildren =
 
 interface PlatformRouteRouteChildren {
   PlatformPlatformAgenciesRoute: typeof PlatformPlatformAgenciesRouteWithChildren
+  PlatformPlatformNoticesRoute: typeof PlatformPlatformNoticesRoute
   PlatformPlatformIndexRoute: typeof PlatformPlatformIndexRoute
 }
 
 const PlatformRouteRouteChildren: PlatformRouteRouteChildren = {
   PlatformPlatformAgenciesRoute: PlatformPlatformAgenciesRouteWithChildren,
+  PlatformPlatformNoticesRoute: PlatformPlatformNoticesRoute,
   PlatformPlatformIndexRoute: PlatformPlatformIndexRoute,
 }
 
