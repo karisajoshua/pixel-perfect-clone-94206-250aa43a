@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import logoAsset from "@/assets/zia-logo-white.png.asset.json";
 import stampAsset from "@/assets/zest-stamp.png.asset.json";
+import { getCurrentBrand } from "./tenant-brand";
 
 type Branch = { name?: string | null; address?: string | null; phone?: string | null; email?: string | null } | null | undefined;
 type Client = { full_name?: string | null; company_name?: string | null; client_type?: string | null; email?: string | null; phone?: string | null } | null | undefined;
@@ -16,16 +17,7 @@ export type QuotationPdfInput = {
   vehicle?: Vehicle;
 };
 
-const BRAND = "#2563eb";
-const BRAND_DARK = "#1e3a8a";
 const MUTED = "#6b7280";
-
-const AGENCY_CONTACT = {
-  name: "Zest Insurance Agency",
-  address: "Ruai, Miranje Hse, Nairobi, Kenya",
-  phone: "+254 713 985230",
-  email: "info@zestinsurance.co.ke",
-};
 
 const imageCache = new Map<string, string>();
 async function loadImage(url: string): Promise<string | null> {
@@ -51,6 +43,11 @@ const num = (n: any, d = 0) => Number(n || 0).toLocaleString(undefined, { minimu
 const titleCase = (s: any) => String(s ?? "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 export async function downloadQuotationPdf({ quotation, client, branch, insurer, vehicle }: QuotationPdfInput) {
+  const brand = await getCurrentBrand();
+  const BRAND = brand.primary;
+  const BRAND_DARK = brand.secondary;
+  const AGENCY_CONTACT = { name: brand.name, address: brand.address, phone: brand.phone, email: brand.email };
+
   const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -60,7 +57,7 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   doc.setFillColor(BRAND);
   doc.rect(0, 0, pageW, 110, "F");
 
-  const logo = await loadImage(logoAsset.url);
+  const logo = await loadImage(brand.logo_url || logoAsset.url);
   if (logo) {
     try { doc.addImage(logo, "PNG", margin, 18, 70, 70); } catch { /* ignore */ }
   }
@@ -72,7 +69,7 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   const headerX = margin + 110;
   doc.text(`Quotation provided by: ${insurer?.name ?? "—"}`, headerX, 38);
   doc.text(`CLIENT NAME: ${(clientName || "—").toUpperCase()}`, headerX, 62);
-  doc.text(`AGENT NAME: ZEST INSURANCE AGENT`, headerX, 86);
+  doc.text(`AGENT NAME: ${brand.name.toUpperCase()}`, headerX, 86);
 
   // ===== Build table data =====
   const li = (quotation.line_items ?? {}) as any;

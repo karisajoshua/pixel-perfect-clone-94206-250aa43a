@@ -58,7 +58,10 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
     }
     supabase.from("clients").select("id, full_name, company_name, client_type").order("full_name").limit(500).then(({ data }) => setClients(data ?? []));
     supabase.from("vehicles").select("id, registration_no, client_id").order("registration_no").limit(1000).then(({ data }) => setVehicles(data ?? []));
-    supabase.from("insurers").select("id, name").eq("active", true).order("name").then(({ data }) => setInsurers(data ?? []));
+    supabase.from("tenant_insurers").select("insurers(id, name, active)").eq("enabled", true).then(({ data }) => {
+      const rows = (data ?? []).map((r: any) => r.insurers).filter((i: any) => i && i.active).sort((a: any, b: any) => a.name.localeCompare(b.name));
+      setInsurers(rows);
+    });
     supabase.from("branches").select("id, name").order("name").then(({ data }) => setBranches(data ?? []));
   }, [open, initial, renewFrom]);
 
