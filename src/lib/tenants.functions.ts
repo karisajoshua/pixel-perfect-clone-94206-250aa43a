@@ -225,3 +225,34 @@ export const listMyInsurers = createServerFn({ method: "GET" })
       .eq("enabled", true);
     return (data ?? []).map((r: any) => r.insurers).filter(Boolean);
   });
+
+export type MyBrand = {
+  name: string;
+  tagline: string | null;
+  logo_url: string | null;
+  brand_primary: string | null;
+  brand_secondary: string | null;
+  brand_accent: string | null;
+};
+
+export const getMyBrand = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<MyBrand | null> => {
+    const { supabase, userId } = context;
+    const { data } = await supabase
+      .from("tenant_members")
+      .select("tenants(name, tagline, logo_url, brand_primary, brand_secondary, brand_accent)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true })
+      .maybeSingle();
+    const t: any = (data as any)?.tenants;
+    if (!t) return null;
+    return {
+      name: t.name,
+      tagline: t.tagline ?? null,
+      logo_url: t.logo_url ?? null,
+      brand_primary: t.brand_primary ?? null,
+      brand_secondary: t.brand_secondary ?? null,
+      brand_accent: t.brand_accent ?? null,
+    };
+  });
