@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import logoAsset from "@/assets/zest-icon-512.png.asset.json";
 import stampAsset from "@/assets/zest-stamp.png.asset.json";
+import { getCurrentBrand } from "./tenant-brand";
 
 type Branch = { name?: string | null; address?: string | null; phone?: string | null; email?: string | null } | null | undefined;
 type Client = { full_name?: string | null; company_name?: string | null; client_type?: string | null; email?: string | null; phone?: string | null } | null | undefined;
@@ -17,24 +18,11 @@ export type ReceiptPdfInput = {
   allPayments?: any[];
 };
 
-// Brand palette — kept in sync with invoice-pdf.ts and quotation-pdf.ts
-const BRAND = "#2563eb";
-const BRAND_DARK = "#1e3a8a";
-const BRAND_SOFT = "#eaf2ff";
 const INK = "#111827";
 const MUTED = "#6b7280";
 const BORDER = "#e5e7eb";
 const PAID = "#047857";
 const PARTIAL = "#b45309";
-
-const AGENCY = {
-  name: "Zest Insurance Agency",
-  tagline: "Insurance Brokerage & Advisory",
-  address: "Ruai, Miranje Hse, Nairobi, Kenya",
-  phone: "+254 713 985 230",
-  email: "info@zestinsurance.co.ke",
-  website: "www.zestinsurance.co.ke",
-};
 
 const imageCache = new Map<string, string>();
 async function loadImage(url: string): Promise<string | null> {
@@ -96,6 +84,12 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
   const { payment, invoice, client, branch, policyNo, receivedBy } = input;
   const receiptNo = input.receiptNo ?? deriveReceiptNo(payment);
 
+  const brand = await getCurrentBrand();
+  const BRAND = brand.primary;
+  const BRAND_DARK = brand.secondary;
+  const BRAND_SOFT = "#eaf2ff";
+  const AGENCY = { name: brand.name, tagline: brand.tagline, address: brand.address, phone: brand.phone, email: brand.email, website: brand.website };
+
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -121,7 +115,7 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
   const rightBlockW = 200; // reserved width on the right for OFFICIAL RECEIPT + meta
   const leftTextX = margin + 70;
   const leftTextMaxW = pageW - margin - rightBlockW - leftTextX - 12;
-  const logo = await loadImage(logoAsset.url);
+  const logo = await loadImage(brand.logo_url || logoAsset.url);
   if (logo) {
     try { doc.addImage(logo, "PNG", margin, headerY, 56, 56); } catch {}
   }
@@ -330,7 +324,7 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
   doc.setTextColor(MUTED); doc.setFont("helvetica", "normal"); doc.setFontSize(8);
   doc.text(`${AGENCY.name}  ·  ${AGENCY.website}`, margin, fY + 14);
   doc.setTextColor(BRAND_DARK); doc.setFont("helvetica", "italic");
-  doc.text("Thank you for choosing Zest Insurance Agency.", pageW - margin, fY + 14, { align: "right" });
+  doc.text(`Thank you for choosing ${brand.name}.`, pageW - margin, fY + 14, { align: "right" });
 
   const filename = `Receipt-${receiptNo}.pdf`;
   const blob = doc.output("blob");

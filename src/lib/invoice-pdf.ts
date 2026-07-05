@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import logoAsset from "@/assets/zia-logo-white.png.asset.json";
+import { getCurrentBrand } from "./tenant-brand";
 
 type Branch = { name?: string | null; address?: string | null; phone?: string | null; email?: string | null } | null | undefined;
 type Client = { full_name?: string | null; company_name?: string | null; client_type?: string | null; email?: string | null; phone?: string | null } | null | undefined;
@@ -14,30 +15,22 @@ export type InvoicePdfInput = {
   payments?: any[];
 };
 
-const BRAND = "#2563eb"; // zest blue
-const BRAND_DARK = "#1e3a8a";
 const MUTED = "#6b7280";
 
-const AGENCY_CONTACT = {
-  name: "Zest Insurance Agency",
-  address: "Ruai, Miranje Hse, Nairobi, Kenya",
-  phone: "+254 713 985230",
-  email: "info@zestinsurance.co.ke",
-};
-
-let cachedLogo: string | null = null;
-async function loadLogo(): Promise<string | null> {
-  if (cachedLogo) return cachedLogo;
+const logoCache = new Map<string, string>();
+async function loadLogo(url: string): Promise<string | null> {
+  if (logoCache.has(url)) return logoCache.get(url)!;
   try {
-    const res = await fetch(logoAsset.url);
+    const res = await fetch(url);
     const blob = await res.blob();
-    cachedLogo = await new Promise<string>((resolve, reject) => {
+    const data = await new Promise<string>((resolve, reject) => {
       const r = new FileReader();
       r.onload = () => resolve(r.result as string);
       r.onerror = reject;
       r.readAsDataURL(blob);
     });
-    return cachedLogo;
+    logoCache.set(url, data);
+    return data;
   } catch {
     return null;
   }
@@ -46,6 +39,11 @@ async function loadLogo(): Promise<string | null> {
 const money = (n: number) => `KES ${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export async function downloadInvoicePdf({ invoice, client, branch, policyNo, items, payments }: InvoicePdfInput) {
+  const brand = await getCurrentBrand();
+  const BRAND = brand.primary;
+  const BRAND_DARK = brand.secondary;
+  const AGENCY_CONTACT = { name: brand.name, address: brand.address, phone: brand.phone, email: brand.email };
+
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const margin = 40;
@@ -54,17 +52,17 @@ export async function downloadInvoicePdf({ invoice, client, branch, policyNo, it
   doc.setFillColor(BRAND);
   doc.rect(0, 0, pageW, 90, "F");
 
-  const logo = await loadLogo();
+  const logo = await loadLogo(brand.logo_url || logoAsset.url);
   if (logo) {
     try { doc.addImage(logo, "PNG", margin, 18, 54, 54); } catch { /* ignore */ }
   }
   doc.setTextColor("#ffffff");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  doc.text("Zest Insurance Agency", margin + (logo ? 66 : 0), 42);
+  doc.text(brand.name, margin + (logo ? 66 : 0), 42);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text("Insurance brokerage & advisory", margin + (logo ? 66 : 0), 60);
+  doc.text(brand.tagline, margin + (logo ? 66 : 0), 60);
 
   doc.setFontSize(22);
   doc.setFont("helvetica", "bold");
@@ -181,7 +179,7 @@ export async function downloadInvoicePdf({ invoice, client, branch, policyNo, it
   doc.setDrawColor(BRAND); doc.setLineWidth(2);
   doc.line(margin, pageH - 50, pageW - margin, pageH - 50);
   doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(MUTED);
-  doc.text("Thank you for choosing Zest Insurance Agency.", margin, pageH - 32);
+  doc.text(`Thank you for choosing ${brand.name}.`, margin, pageH - 32);
   doc.text(`Generated ${new Date().toLocaleDateString()}`, pageW - margin, pageH - 32, { align: "right" });
   doc.setFontSize(8);
   doc.text(
