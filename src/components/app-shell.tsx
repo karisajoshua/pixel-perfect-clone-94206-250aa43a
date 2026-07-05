@@ -49,6 +49,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: roles } = useMyRoles();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isAdmin = roles?.includes("admin");
+  const isSuper = roles?.includes("super_admin" as any);
   const [mobileOpen, setMobileOpen] = useState(false);
   const visibleNav = nav.filter((n) => (roles ?? []).some((r) => n.roles.includes(r as Role)));
 
@@ -93,6 +94,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             {adminNav.map((n) => (
               <SideLink key={n.to} to={n.to} label={n.label} Icon={n.icon} active={pathname.startsWith(n.to)} />
             ))}
+          </>
+        )}
+        {isSuper && (
+          <>
+            <div className="px-3 pt-5 pb-2 text-[11px] uppercase tracking-wider text-sidebar-foreground/50">Platform</div>
+            <SideLink to="/platform" label="Super admin portal" Icon={ShieldCheck} active={pathname.startsWith("/platform")} />
           </>
         )}
       </nav>
