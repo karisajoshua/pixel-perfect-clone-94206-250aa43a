@@ -60,7 +60,7 @@ export function SendNoticeDialog({
           {audience === "tenant" && (
             <div>
               <Label>Agency</Label>
-              <Select value={tenantId ?? ""} onValueChange={(v) => setTenantId(v)}>
+              <Select value={tenantId ?? undefined} onValueChange={(v) => setTenantId(v)}>
                 <SelectTrigger><SelectValue placeholder="Choose agency" /></SelectTrigger>
                 <SelectContent>
                   {agencies.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
