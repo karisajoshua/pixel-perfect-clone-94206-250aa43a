@@ -45,10 +45,17 @@ function AuthPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) return;
-      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", data.session.user.id);
+      const uid = data.session.user.id;
+      const [{ data: roles }, { data: member }] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", uid),
+        supabase.from("tenant_members").select("tenant_id").eq("user_id", uid).maybeSingle(),
+      ]);
       const list = (roles ?? []).map((r) => r.role);
       const clientOnly = list.length > 0 && list.every((r) => r === "client");
-      navigate({ to: clientOnly ? "/portal" : "/dashboard" });
+      const isSuper = list.includes("super_admin");
+      if (clientOnly) return navigate({ to: "/portal" });
+      if (!member && !isSuper) return navigate({ to: "/onboarding" });
+      navigate({ to: "/dashboard" });
     });
   }, [navigate]);
 
@@ -74,10 +81,17 @@ function AuthPage() {
     if (error) return toast.error(error.message);
     toast.success("Welcome back");
     const { data: u } = await supabase.auth.getUser();
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", u.user!.id);
+    const uid = u.user!.id;
+    const [{ data: roles }, { data: member }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", uid),
+      supabase.from("tenant_members").select("tenant_id").eq("user_id", uid).maybeSingle(),
+    ]);
     const list = (roles ?? []).map((r) => r.role);
     const clientOnly = list.length > 0 && list.every((r) => r === "client");
-    navigate({ to: clientOnly ? "/portal" : "/dashboard" });
+    const isSuper = list.includes("super_admin");
+    if (clientOnly) return navigate({ to: "/portal" });
+    if (!member && !isSuper) return navigate({ to: "/onboarding" });
+    navigate({ to: "/dashboard" });
   };
 
   const signUp = async (e: React.FormEvent) => {

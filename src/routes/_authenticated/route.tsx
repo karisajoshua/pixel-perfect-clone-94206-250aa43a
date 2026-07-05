@@ -16,6 +16,13 @@ export const Route = createFileRoute("/_authenticated")({
     if (roles.length > 0 && roles.every((r) => r === "client")) {
       throw redirect({ to: "/portal" });
     }
+    // Multi-tenant gate: user must belong to an agency (or be super admin).
+    const { data: member } = await supabase
+      .from("tenant_members").select("tenant_id").eq("user_id", data.user.id).maybeSingle();
+    const isSuper = roles.includes("super_admin");
+    if (!member && !isSuper) {
+      throw redirect({ to: "/onboarding" });
+    }
     return { user: data.user, roles };
   },
   component: AuthedLayout,
