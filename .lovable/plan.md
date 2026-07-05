@@ -1,63 +1,71 @@
-## What's wrong today
 
-1. **App UI still shows Zest brand for every agency.** `src/components/app-shell.tsx` hardcodes the Zest logo asset and the sidebar/primary colors come from static CSS tokens — the tenant's `logo_url`, `name`, and `brand_primary/secondary/accent` are only used inside PDFs.
-2. **New agency sees Zest staff sessions.** `listStaffSessions` in `src/lib/sessions.functions.ts` uses `supabaseAdmin` (bypasses RLS) and queries `user_roles` + `user_sessions` with no tenant filter, so every admin sees every tenant's users.
-3. **New signups are auto-put into the Zest tenant.** The `handle_new_user` trigger writes `profile.tenant_id = <first tenant>` (which is Zest). Any staff a new agency tries to add through plain sign-up land in Zest — and there is no proper "invite a teammate" flow scoped to the current tenant.
+## Goal
+Turn `/platform` into a real super-admin console: filterable agency list, drillable detail view, and the ability to send notices/notifications to one or all agencies. Add supporting operational tools (plan changes, impersonation-style workspace open, activity feed) that make it feel like a super admin.
 
-## The plan
+## 1. Filterable, sortable agencies list
+Update `src/routes/_platform/platform/agencies.tsx`:
+- Search box (name / contact email).
+- Status filter (all / active / suspended).
+- Plan filter (all / starter / pro / enterprise — from existing `plan` column).
+- Sort by name, clients, active policies, revenue (client-side over the overview payload).
+- Row click navigates to `/platform/agencies/$id` (already exists). Add a "View" button too.
+- Show onboarded date column.
 
-### 1. Tenant-aware app branding
+No new server fn needed — `getPlatformOverview` already returns everything; filter/sort in the component.
 
-- Add `getMyBrand` server fn (in `src/lib/tenants.functions.ts`) that returns `{ name, logo_url, brand_primary, brand_secondary, brand_accent, tagline }` for the caller's tenant (via `tenant_members`). Uses the authed client, so RLS keeps it tenant-safe.
-- New `src/components/tenant-brand-provider.tsx`:
-  - Fetches brand via TanStack Query, keyed by user id.
-  - Injects a `<style>` tag that overrides the semantic tokens driving the sidebar/primary look (`--primary`, `--sidebar`, `--sidebar-primary`, `--sidebar-accent`, `--ring`) by converting the tenant hex colors to the HSL triplet format the tokens already use.
-  - Exposes the brand via context so the shell can pull `name` and `logo_url`.
-- Mount the provider inside `AppShell` (and `PortalShell`, so client portal is also branded).
-- Update `AppShell`:
-  - Replace `logoWhite.url` with `brand.logo_url ?? logoWhite.url` in both the sidebar header and mobile top bar.
-  - Replace the "Zest" fallback title and alt text with `brand.name`.
-  - Show `brand.name` as the sidebar heading.
-- Reset the query on sign-in/sign-out so switching accounts refreshes the brand.
+## 2. Richer agency detail page
+Extend `src/routes/_platform/platform/agencies.$id.tsx` and `getAgencyDetail` in `src/lib/platform.functions.ts`:
+- Add: recent claims (last 10), recent invoices (last 10 with paid state), monthly revenue for the last 6 months (aggregated from `payments`).
+- Add "Actions" card with:
+  - Suspend / activate (exists).
+  - **Change plan** dropdown (starter / pro / enterprise) → new `setAgencyPlan` server fn.
+  - **Open workspace** button → link to `/dashboard` after switching context (see §4).
+  - **Send notice to this agency** button → opens the broadcast dialog prefilled with this tenant.
+- Small activity timeline: latest 20 rows from `audit_log` for this tenant.
 
-### 2. Stop leaking Zest staff into new agencies
+## 3. Platform notices & notifications
+New feature so super admin can message agencies.
 
-Two migrations:
+**Data (migration):**
+- `platform_notices` table: `id`, `title`, `body` (text), `severity` (info|warning|critical), `audience` ('all' | 'tenant'), `tenant_id` (nullable), `created_by`, timestamps.
+- `platform_notice_reads`: `notice_id`, `user_id`, `read_at` — to dismiss per user.
+- GRANTs + RLS: super admins full access; tenant members can SELECT notices where `audience='all'` OR `tenant_id = current_tenant_id()`; can insert their own read row.
+- Also fan out into existing `notifications` table (one row per admin/manager of the target agency/agencies) so the in-app bell picks it up immediately.
 
-**a. Stop auto-assigning new signups to Zest.**
-- Update `public.handle_new_user()` so it inserts `profiles(id, full_name, email, tenant_id=NULL)` — no more "default tenant".
-- Backfill: for existing profiles that (i) have `tenant_id = <Zest tenant>` and (ii) have no `tenant_members` row for that tenant, set `tenant_id = NULL`. That cleans up test signups that were accidentally placed in Zest.
+**Server fns (`src/lib/platform.functions.ts`):**
+- `listPlatformNotices()` — super-admin view of all notices sent.
+- `sendPlatformNotice({ title, body, severity, audience, tenant_id? })` — inserts notice + fans out `notifications` rows.
 
-**b. Add tenant-scoped RLS so cross-tenant admin queries return nothing.**
-- The existing `tenant_isolation` RESTRICTIVE policy already covers `profiles`, but `user_roles` was skipped. Add a RESTRICTIVE policy on `user_roles` that requires the row's `user_id` to belong to a profile in `current_tenant_id()` (or `is_super_admin()`).
+**UI:**
+- New route `src/routes/_platform/platform/notices.tsx`: list of past notices with a "New notice" dialog (title, body, severity, audience selector: All agencies / specific agency dropdown).
+- Sidebar link "Notices" added in `src/routes/_platform/route.tsx`.
+- On the tenant side, a lightweight `PlatformNoticeBanner` component renders at the top of `AppShell` for undismissed notices (queries `platform_notices` filtered to audience + tenant, with dismiss button that writes to `platform_notice_reads`).
 
-**c. Rewrite `listStaffSessions` to scope by tenant.**
-- Use the authed `context.supabase` (not `supabaseAdmin`).
-- Fetch `profiles` in current tenant → get `user_id` list → fetch `user_sessions` (already has `tenant_isolation`) → join `user_roles` filtered to those user ids.
-- Result: each agency admin only sees sessions of their own staff.
+## 4. Extra super-admin polish
+- **Platform sidebar**: add links for Overview, Agencies, Notices, Insurers catalog (read-only reuse of existing insurers admin), Audit log.
+- **Audit route** `src/routes/_platform/platform/audit.tsx`: cross-tenant `audit_log` viewer with tenant/action filter (server fn `getPlatformAuditLog`).
+- **Open workspace**: from agency detail, "View as this agency" button just sets `localStorage['zia_impersonate_tenant']` (advisory, super admin sees a banner) and navigates to `/dashboard`. Full impersonation is out of scope; this just labels the current context. Skip if too invasive — keep only the outbound `/dashboard` link.
+- **Overview page** gets two new tiles: "Notices sent (30d)", "New agencies (30d)".
 
-### 3. Give new agencies a proper "add staff" flow
-
-- New server fn `inviteStaff({ email, phone, full_name, role, branch_id })` in `src/lib/admin-users.functions.ts`:
-  - Asserts caller is `admin`/`manager` of a tenant.
-  - Creates the auth user via `supabaseAdmin.auth.admin.createUser` (email+password, returns temporary password to display once).
-  - Since `handle_new_user` now leaves `tenant_id` NULL, the server fn then:
-    - Sets `profiles.tenant_id`, `branch_id`, `full_name`, `phone` for the new user.
-    - Inserts `tenant_members(tenant_id, user_id, role)`.
-    - Inserts `user_roles(user_id, role)` for the chosen app role.
-- Update `src/routes/_authenticated/admin.users.tsx`:
-  - Add an "Invite staff" button + dialog (name, email, phone, role, branch) that calls `inviteStaff` and shows the temporary password.
-  - Keep the existing edit/role/branch/delete controls; they already act only on tenant-visible profiles via RLS.
-- The onboarding wizard already covers the very first user; this flow handles everyone after.
-
-### Out of scope
-
-- Full email invitation delivery (we surface the temp password in-app for now).
-- Retroactively splitting existing Zest data into other tenants — Zest keeps its current staff; only unassigned/test profiles get detached.
+## Out of scope
+- Email delivery of notices (in-app + notification bell only for now).
+- True auth impersonation (would require signing in as another user).
+- Billing/plan enforcement — plan is just a label.
 
 ## Technical notes
+- All new server fns use `requireSupabaseAuth` + `assertSuperAdmin` helper already in `platform.functions.ts`.
+- Fan-out inserts use `supabaseAdmin` (loaded inside handler).
+- Migration must include GRANTs and RLS per project rules; new tables both need `authenticated` grants; `platform_notices` also needs `SELECT` for tenant members via policy.
+- Reuse shadcn `Dialog`, `Select`, `Textarea`, `Input`, `Badge` — no new dependencies.
 
-- Files to add: `src/components/tenant-brand-provider.tsx`, one Supabase migration (updates `handle_new_user`, adds `user_roles` RESTRICTIVE policy, backfills orphan profiles).
-- Files to edit: `src/lib/tenants.functions.ts` (add `getMyBrand`), `src/lib/sessions.functions.ts` (tenant-scope `listStaffSessions`), `src/lib/admin-users.functions.ts` (add `inviteStaff`), `src/components/app-shell.tsx`, `src/components/portal/portal-shell.tsx`, `src/routes/_authenticated/admin.users.tsx`.
-- Semantic token override strategy: our `styles.css` tokens are HSL triplets (`--primary: 217 91% 60%`). The provider converts the tenant hex → HSL and writes those tokens on `:root` inside the authed area, so all shadcn components (buttons, links, active nav) re-tint automatically.
-- Zest's own tenant row keeps its current colors, so nothing changes for the existing Zest admin experience.
+## Files
+- edit `src/lib/platform.functions.ts` (extend detail + plan + notices + audit)
+- edit `src/routes/_platform/platform/agencies.tsx` (filters, sort)
+- edit `src/routes/_platform/platform/agencies.$id.tsx` (new sections + actions)
+- edit `src/routes/_platform/platform/index.tsx` (extra tiles)
+- edit `src/routes/_platform/route.tsx` (sidebar links)
+- new `src/routes/_platform/platform/notices.tsx`
+- new `src/routes/_platform/platform/audit.tsx`
+- new `src/components/platform/send-notice-dialog.tsx`
+- new `src/components/platform-notice-banner.tsx` + mount in `src/components/app-shell.tsx`
+- new migration: `platform_notices`, `platform_notice_reads` (+ GRANTs, RLS, triggers)
