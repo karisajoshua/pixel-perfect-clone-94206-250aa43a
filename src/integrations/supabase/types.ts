@@ -940,7 +940,7 @@ export type Database = {
           id: string
           is_active: boolean
           phone: string | null
-          tenant_id: string
+          tenant_id: string | null
           updated_at: string
         }
         Insert: {
@@ -952,7 +952,7 @@ export type Database = {
           id: string
           is_active?: boolean
           phone?: string | null
-          tenant_id: string
+          tenant_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -964,7 +964,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           phone?: string | null
-          tenant_id?: string
+          tenant_id?: string | null
           updated_at?: string
         }
         Relationships: [
