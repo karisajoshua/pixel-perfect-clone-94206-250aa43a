@@ -30,6 +30,7 @@ const nav: { to: string; label: string; icon: typeof Users; roles: Role[] }[] = 
 
 const adminNav = [
   { to: "/admin/users", label: "Users & Roles", icon: ShieldCheck },
+  { to: "/admin/tenant", label: "Agency & Brand", icon: Building2 },
   { to: "/admin/sessions", label: "Staff sessions", icon: Clock },
   { to: "/admin/branches", label: "Branches", icon: Building2 },
   { to: "/admin/insurers", label: "Insurers", icon: ShieldCheck },
