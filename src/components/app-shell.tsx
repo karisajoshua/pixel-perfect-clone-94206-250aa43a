@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import logoWhite from "@/assets/zia-logo-white.png.asset.json";
 import { AiAssistant } from "@/components/ai-assistant";
 import { TenantBrandProvider, useTenantBrand } from "@/components/tenant-brand-provider";
+import { PlatformNoticeBanner } from "@/components/platform-notice-banner";
 
 type Role = "admin" | "manager" | "agent" | "viewer" | "client";
 const nav: { to: string; label: string; icon: typeof Users; roles: Role[] }[] = [
@@ -158,6 +159,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
             {initials}
           </div>
         </div>
+        <PlatformNoticeBanner />
         <div className="flex-1 min-w-0 pb-24 lg:pb-0">{children}</div>
         <footer className="border-t px-4 py-3 text-xs text-muted-foreground text-center hidden lg:block">
           Powered by Texcortech Systems

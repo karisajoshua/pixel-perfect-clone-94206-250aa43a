@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getPlatformOverview } from "@/lib/platform.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Users, FileText, DollarSign, ScrollText } from "lucide-react";
+import { Building2, Users, FileText, DollarSign, ScrollText, Megaphone, Sparkles } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
@@ -24,6 +24,8 @@ function PlatformOverview() {
     { label: "Active policies", value: t?.activePolicies ?? "—", icon: FileText },
     { label: "Open claims", value: t?.openClaims ?? "—", icon: ScrollText },
     { label: "Total revenue", value: t ? fmt(t.revenue) : "—", icon: DollarSign },
+    { label: "New agencies (30d)", value: t?.newAgenciesLast30 ?? "—", icon: Sparkles },
+    { label: "Notices sent (30d)", value: t?.noticesLast30 ?? "—", icon: Megaphone },
   ];
 
   return (
@@ -32,7 +34,7 @@ function PlatformOverview() {
         <h1 className="text-2xl font-bold">Platform overview</h1>
         <p className="text-sm text-muted-foreground">Performance across every agency on the platform.</p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map((tile) => (
           <Card key={tile.label}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
