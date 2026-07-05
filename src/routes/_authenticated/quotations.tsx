@@ -51,7 +51,7 @@ function QuotationsPage() {
       start_date: today.toISOString().slice(0,10), end_date: yr.toISOString().slice(0,10),
       status: "pending", payment_status: "unpaid",
       created_by: u.user?.id,
-    }).select("id").single();
+    } as any).select("id").single();
     if (error) return toast.error(error.message);
     await supabase.from("quotations").update({ status: "converted", converted_policy_id: data!.id }).eq("id", q.id);
     toast.success("Quote converted to policy. Update the policy number.");
@@ -273,7 +273,7 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
     let clientId = matchedClient?.id ?? form.client_id ?? null;
     if (!matchedClient) {
       const { data: newClient, error: cErr } = await supabase.from("clients")
-        .insert({ full_name: typed, client_type: "individual", created_by: u.user?.id })
+        .insert({ full_name: typed, client_type: "individual", created_by: u.user?.id } as any)
         .select("id").single();
       if (cErr) { setSaving(false); return toast.error(cErr.message); }
       clientId = newClient!.id;

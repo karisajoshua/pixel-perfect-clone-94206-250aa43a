@@ -77,7 +77,7 @@ async function maybeAutoVerifyClientKyc(clientId: string) {
 async function getMyClient(supabase: any, userId: string) {
   const { data, error } = await supabase
     .from("clients")
-    .select("id, client_type, kyc_status, assigned_agent, full_name, email, branch_id, auth_user_id")
+    .select("id, client_type, kyc_status, assigned_agent, full_name, email, branch_id, auth_user_id, tenant_id")
     .eq("auth_user_id", userId)
     .maybeSingle();
   if (error) throw error;
@@ -157,6 +157,7 @@ export const recordKycUpload = createServerFn({ method: "POST" })
       .upsert(
         {
           client_id: client.id,
+          tenant_id: client.tenant_id,
           doc_type: data.doc_type,
           storage_path: data.storage_path,
           file_name: data.file_name,
@@ -164,7 +165,7 @@ export const recordKycUpload = createServerFn({ method: "POST" })
           rejection_reason: null,
           verified_at: null,
           verified_by: null,
-        },
+        } as any,
         { onConflict: "client_id,doc_type" },
       )
       .select()
@@ -327,18 +328,24 @@ export const staffUploadKycDocument = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: existing } = await supabaseAdmin
       .from("client_required_documents")
-      .select("storage_path")
+      .select("storage_path, tenant_id")
       .eq("client_id", data.client_id)
       .eq("doc_type", data.doc_type)
       .maybeSingle();
     if (existing?.storage_path && existing.storage_path !== data.storage_path) {
       await supabaseAdmin.storage.from("client-documents").remove([existing.storage_path]);
     }
+    let tenantId = existing?.tenant_id as string | undefined;
+    if (!tenantId) {
+      const { data: c } = await supabaseAdmin.from("clients").select("tenant_id").eq("id", data.client_id).maybeSingle();
+      tenantId = (c as any)?.tenant_id;
+    }
     const { data: row, error } = await supabaseAdmin
       .from("client_required_documents")
       .upsert(
         {
           client_id: data.client_id,
+          tenant_id: tenantId,
           doc_type: data.doc_type,
           storage_path: data.storage_path,
           file_name: data.file_name,
@@ -346,7 +353,7 @@ export const staffUploadKycDocument = createServerFn({ method: "POST" })
           rejection_reason: null,
           verified_at: new Date().toISOString(),
           verified_by: context.userId,
-        },
+        } as any,
         { onConflict: "client_id,doc_type" },
       )
       .select()

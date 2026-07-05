@@ -70,7 +70,7 @@ export const Route = createFileRoute("/api/public/hooks/renewal-reminders")({
           const { data: policies, error } = await supabaseAdmin
             .from("policies")
             .select(
-              "id, policy_no, end_date, client_id, branch_id, clients(full_name, company_name, client_type, email, phone)",
+              "id, policy_no, end_date, client_id, branch_id, tenant_id, clients(full_name, company_name, client_type, email, phone)",
             )
             .eq("end_date", dateStr)
             .in("status", ["active", "pending"]);
@@ -101,6 +101,7 @@ export const Route = createFileRoute("/api/public/hooks/renewal-reminders")({
               .from("notifications")
               .insert({
                 kind: `renewal_reminder_${days}d`,
+                tenant_id: (p as any).tenant_id,
                 entity_type: "policy",
                 entity_id: p.id,
                 client_id: p.client_id,
@@ -111,7 +112,7 @@ export const Route = createFileRoute("/api/public/hooks/renewal-reminders")({
                 subject,
                 body,
                 payload: { policy_no: p.policy_no, end_date: p.end_date, days_to_expiry: days },
-              })
+              } as any)
               .select("id")
               .single();
             if (insErr) {
@@ -133,6 +134,7 @@ export const Route = createFileRoute("/api/public/hooks/renewal-reminders")({
                 if (existingCh && existingCh.length > 0) continue;
                 await supabaseAdmin.from("notifications").insert({
                   kind: `renewal_reminder_${days}d_${ch}`,
+                  tenant_id: (p as any).tenant_id,
                   entity_type: "policy",
                   entity_id: p.id,
                   client_id: p.client_id,
@@ -142,7 +144,7 @@ export const Route = createFileRoute("/api/public/hooks/renewal-reminders")({
                   subject,
                   body,
                   payload: { policy_no: p.policy_no, end_date: p.end_date, days_to_expiry: days },
-                });
+                } as any);
                 queued += 1;
               }
             }

@@ -133,7 +133,7 @@ function PaymentDialog({ open, onOpenChange, invoiceId, max, currentPaid, total,
 
   const submit = async () => {
     const { data: u } = await supabase.auth.getUser();
-    const { data: pay, error } = await supabase.from("payments").insert({ invoice_id: invoiceId, amount, method, reference, paid_date: date, recorded_by: u.user?.id }).select("id").single();
+    const { data: pay, error } = await supabase.from("payments").insert({ invoice_id: invoiceId, amount, method, reference, paid_date: date, recorded_by: u.user?.id } as any).select("id").single();
     if (error) return toast.error(error.message);
     const newPaid = currentPaid + amount;
     const newStatus = newPaid >= total ? "paid" : "partial";

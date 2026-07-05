@@ -28,7 +28,7 @@ export function ClientCommunications({ clientId }: { clientId: string }) {
     const { data: u } = await supabase.auth.getUser();
     const { error } = await supabase.from("client_communications").insert({
       client_id: clientId, channel: channel as any, subject, body, created_by: u.user?.id,
-    });
+    } as any);
     if (error) return toast.error(error.message);
     setSubject(""); setBody("");
     qc.invalidateQueries({ queryKey: ["client-comms", clientId] });

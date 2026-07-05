@@ -8,7 +8,7 @@ export const startMySession = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("user_sessions")
-      .insert({ user_id: context.userId, user_agent: data.user_agent ?? null })
+      .insert({ user_id: context.userId, user_agent: data.user_agent ?? null } as any)
       .select("id")
       .single();
     if (error) throw error;
