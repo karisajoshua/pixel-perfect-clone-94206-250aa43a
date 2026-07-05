@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/tenant")({
   head: () => ({ meta: [{ title: "Agency settings" }] }),
-  component: TenantSettings;
+  component: TenantSettings,
 });
 
 function TenantSettings() {
