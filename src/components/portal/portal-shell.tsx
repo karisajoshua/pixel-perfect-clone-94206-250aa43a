@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import logoRed from "@/assets/zia-logo-red.png.asset.json";
+import { TenantBrandProvider, useTenantBrand } from "@/components/tenant-brand-provider";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
 const nav: NavItem[] = [
@@ -45,9 +46,18 @@ const mobileMoreItems: NavItem[] = [
 ];
 
 export function PortalShell({ children }: { children: ReactNode }) {
+  return (
+    <TenantBrandProvider>
+      <PortalShellInner>{children}</PortalShellInner>
+    </TenantBrandProvider>
+  );
+}
+
+function PortalShellInner({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: profile } = useMyProfile();
+  const brand = useTenantBrand();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const overviewFn = useServerFn(getPortalOverview);
   const { data: overview } = useQuery({
@@ -76,7 +86,7 @@ export function PortalShell({ children }: { children: ReactNode }) {
         className="h-14 md:h-16 border-b bg-card/90 backdrop-blur flex items-center px-4 md:px-6 gap-3 sticky top-0 z-20"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
-        <img src={logoRed.url} alt="Zest Insurance Agency" className="h-8 md:h-9 w-auto object-contain" />
+        <img src={brand?.logo_url ?? logoRed.url} alt={brand?.name ?? "Agency"} className="h-8 md:h-9 w-auto object-contain" />
         <div className="hidden md:block">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Client Portal</div>
           <div className="text-sm font-medium leading-tight">Welcome, {profile?.full_name ?? "…"}</div>
