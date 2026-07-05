@@ -13,6 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import logoWhite from "@/assets/zia-logo-white.png.asset.json";
 import { AiAssistant } from "@/components/ai-assistant";
+import { TenantBrandProvider, useTenantBrand } from "@/components/tenant-brand-provider";
 
 type Role = "admin" | "manager" | "agent" | "viewer" | "client";
 const nav: { to: string; label: string; icon: typeof Users; roles: Role[] }[] = [
@@ -43,20 +44,31 @@ const adminNav = [
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <TenantBrandProvider>
+      <AppShellInner>{children}</AppShellInner>
+    </TenantBrandProvider>
+  );
+}
+
+function AppShellInner({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: profile } = useMyProfile();
   const { data: roles } = useMyRoles();
+  const brand = useTenantBrand();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isAdmin = roles?.includes("admin");
   const isSuper = roles?.includes("super_admin" as any);
   const [mobileOpen, setMobileOpen] = useState(false);
   const visibleNav = nav.filter((n) => (roles ?? []).some((r) => n.roles.includes(r as Role)));
 
+  const agencyName = brand?.name ?? "Agency";
+  const agencyLogo = brand?.logo_url ?? logoWhite.url;
   const currentTitle =
     visibleNav.find((n) => pathname === n.to || pathname.startsWith(n.to + "/"))?.label ??
     adminNav.find((n) => pathname.startsWith(n.to))?.label ??
-    "Zest";
+    agencyName;
 
   const tabs: { to: string; label: string; icon: typeof Users }[] = [
     { to: "/dashboard", label: "Home", icon: LayoutDashboard },
@@ -79,9 +91,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const sidebarContent = (
     <>
       <div className="p-5 flex items-center gap-2 border-b border-sidebar-border">
-        <img src={logoWhite.url} alt="Zest Insurance Agency" className="h-12 w-auto object-contain" />
+        <img src={agencyLogo} alt={agencyName} className="h-12 w-auto object-contain bg-white/5 rounded p-1" />
         <div className="ml-1">
-          <div className="text-[11px] uppercase tracking-wider text-sidebar-foreground/60">Agency Workspace</div>
+          <div className="text-sm font-semibold text-sidebar-foreground truncate max-w-[10rem]">{agencyName}</div>
+          <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/60">Agency Workspace</div>
         </div>
       </div>
       <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-0.5" onClick={() => setMobileOpen(false)}>
@@ -139,7 +152,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <img src={logoWhite.url} alt="Zest" className="h-7 w-auto object-contain" />
+          <img src={agencyLogo} alt={agencyName} className="h-7 w-auto object-contain" />
           <div className="ml-1 text-sm font-semibold truncate">{currentTitle}</div>
           <div className="ml-auto h-8 w-8 rounded-full bg-sidebar-accent text-sidebar-accent-foreground grid place-items-center text-xs font-semibold">
             {initials}

@@ -56,7 +56,8 @@ export const listStaffSessions = createServerFn({ method: "POST" })
       .parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", {
       _user_id: context.userId,
       _role: "admin",
     });
@@ -66,18 +67,25 @@ export const listStaffSessions = createServerFn({ method: "POST" })
     const toIso = data.to ? new Date(data.to).toISOString() : new Date().toISOString();
     const targetRole = data.role ?? "manager";
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const { data: roleRows, error: rErr } = await supabaseAdmin
-      .from("user_roles")
-      .select("user_id")
-      .eq("role", targetRole);
-    if (rErr) throw rErr;
-    let userIds = (roleRows ?? []).map((r: any) => r.user_id as string);
+    // Tenant-scoped: RLS restricts profiles/user_roles/user_sessions to the caller's tenant,
+    // so we deliberately use the authed client (not supabaseAdmin) here.
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, email, branch_id, branches(name)");
+    let userIds = (profiles ?? []).map((p: any) => p.id as string);
     if (data.user_id) userIds = userIds.filter((u) => u === data.user_id);
     if (userIds.length === 0) return { sessions: [], totals: [] };
 
-    const { data: sessions, error: sErr } = await supabaseAdmin
+    const { data: roleRows, error: rErr } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", targetRole)
+      .in("user_id", userIds);
+    if (rErr) throw rErr;
+    userIds = (roleRows ?? []).map((r: any) => r.user_id as string);
+    if (userIds.length === 0) return { sessions: [], totals: [] };
+
+    const { data: sessions, error: sErr } = await supabase
       .from("user_sessions")
       .select("id, user_id, started_at, ended_at, last_seen_at, user_agent")
       .in("user_id", userIds)
@@ -86,10 +94,6 @@ export const listStaffSessions = createServerFn({ method: "POST" })
       .order("started_at", { ascending: false });
     if (sErr) throw sErr;
 
-    const { data: profiles } = await supabaseAdmin
-      .from("profiles")
-      .select("id, full_name, email, branch_id, branches(name)")
-      .in("id", userIds);
     const profileMap = new Map<string, any>();
     for (const p of profiles ?? []) profileMap.set(p.id as string, p);
 

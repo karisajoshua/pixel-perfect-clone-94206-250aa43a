@@ -1,89 +1,63 @@
+## What's wrong today
 
-# Multi-tenant platform
+1. **App UI still shows Zest brand for every agency.** `src/components/app-shell.tsx` hardcodes the Zest logo asset and the sidebar/primary colors come from static CSS tokens — the tenant's `logo_url`, `name`, and `brand_primary/secondary/accent` are only used inside PDFs.
+2. **New agency sees Zest staff sessions.** `listStaffSessions` in `src/lib/sessions.functions.ts` uses `supabaseAdmin` (bypasses RLS) and queries `user_roles` + `user_sessions` with no tenant filter, so every admin sees every tenant's users.
+3. **New signups are auto-put into the Zest tenant.** The `handle_new_user` trigger writes `profile.tenant_id = <first tenant>` (which is Zest). Any staff a new agency tries to add through plain sign-up land in Zest — and there is no proper "invite a teammate" flow scoped to the current tenant.
 
-Convert the app from a single-agency system into a multi-tenant SaaS where each agency ("tenant") is isolated, has its own brand, staff, clients, data, and choice of underwriters. A super-admin oversees all agencies from a separate `/platform` portal.
+## The plan
 
-## 1. Data model
+### 1. Tenant-aware app branding
 
-New tables (all with RLS + grants):
+- Add `getMyBrand` server fn (in `src/lib/tenants.functions.ts`) that returns `{ name, logo_url, brand_primary, brand_secondary, brand_accent, tagline }` for the caller's tenant (via `tenant_members`). Uses the authed client, so RLS keeps it tenant-safe.
+- New `src/components/tenant-brand-provider.tsx`:
+  - Fetches brand via TanStack Query, keyed by user id.
+  - Injects a `<style>` tag that overrides the semantic tokens driving the sidebar/primary look (`--primary`, `--sidebar`, `--sidebar-primary`, `--sidebar-accent`, `--ring`) by converting the tenant hex colors to the HSL triplet format the tokens already use.
+  - Exposes the brand via context so the shell can pull `name` and `logo_url`.
+- Mount the provider inside `AppShell` (and `PortalShell`, so client portal is also branded).
+- Update `AppShell`:
+  - Replace `logoWhite.url` with `brand.logo_url ?? logoWhite.url` in both the sidebar header and mobile top bar.
+  - Replace the "Zest" fallback title and alt text with `brand.name`.
+  - Show `brand.name` as the sidebar heading.
+- Reset the query on sign-in/sign-out so switching accounts refreshes the brand.
 
-- `tenants` — the agency: `name`, `slug`, `contact_email`, `contact_phone`, `address`, `city`, `country`, `logo_url`, `brand_primary`, `brand_secondary`, `brand_accent`, `tagline`, `status` (active/suspended), `plan` (free — placeholder for future billing), `onboarded_at`.
-- `tenant_insurers` — link table `(tenant_id, insurer_id)`: which underwriters each agency works with. Drives insurer dropdowns and future real-time API loading.
-- `tenant_members` — link `(tenant_id, user_id, role)` where role is the existing app_role. Replaces the "flat" user_roles model for tenant-scoped access.
-- New enum value `super_admin` on `app_role`.
+### 2. Stop leaking Zest staff into new agencies
 
-Add `tenant_id uuid` (FK → tenants, NOT NULL) to every tenant-owned table:
-`branches, profiles, clients, vehicles, policies, quotations, invoices, invoice_items, payments, claims, client_communications, client_required_documents, service_requests, notifications, audit_log, user_sessions`.
+Two migrations:
 
-Storage buckets stay the same but object paths get prefixed with `tenant_id/` and RLS policies check tenant membership.
+**a. Stop auto-assigning new signups to Zest.**
+- Update `public.handle_new_user()` so it inserts `profiles(id, full_name, email, tenant_id=NULL)` — no more "default tenant".
+- Backfill: for existing profiles that (i) have `tenant_id = <Zest tenant>` and (ii) have no `tenant_members` row for that tenant, set `tenant_id = NULL`. That cleans up test signups that were accidentally placed in Zest.
 
-## 2. Migration of current data
+**b. Add tenant-scoped RLS so cross-tenant admin queries return nothing.**
+- The existing `tenant_isolation` RESTRICTIVE policy already covers `profiles`, but `user_roles` was skipped. Add a RESTRICTIVE policy on `user_roles` that requires the row's `user_id` to belong to a profile in `current_tenant_id()` (or `is_super_admin()`).
 
-- Create one tenant "Zest Insurance Agency" (default) using existing agency details.
-- Backfill `tenant_id` on every existing row to that tenant.
-- Promote the current admin to `super_admin` AND keep them as admin of the default tenant.
-- Link all currently seeded insurers to the default tenant via `tenant_insurers`.
+**c. Rewrite `listStaffSessions` to scope by tenant.**
+- Use the authed `context.supabase` (not `supabaseAdmin`).
+- Fetch `profiles` in current tenant → get `user_id` list → fetch `user_sessions` (already has `tenant_isolation`) → join `user_roles` filtered to those user ids.
+- Result: each agency admin only sees sessions of their own staff.
 
-## 3. RLS rewrite
+### 3. Give new agencies a proper "add staff" flow
 
-Replace `has_role(uid, role)` checks with a new helper:
+- New server fn `inviteStaff({ email, phone, full_name, role, branch_id })` in `src/lib/admin-users.functions.ts`:
+  - Asserts caller is `admin`/`manager` of a tenant.
+  - Creates the auth user via `supabaseAdmin.auth.admin.createUser` (email+password, returns temporary password to display once).
+  - Since `handle_new_user` now leaves `tenant_id` NULL, the server fn then:
+    - Sets `profiles.tenant_id`, `branch_id`, `full_name`, `phone` for the new user.
+    - Inserts `tenant_members(tenant_id, user_id, role)`.
+    - Inserts `user_roles(user_id, role)` for the chosen app role.
+- Update `src/routes/_authenticated/admin.users.tsx`:
+  - Add an "Invite staff" button + dialog (name, email, phone, role, branch) that calls `inviteStaff` and shows the temporary password.
+  - Keep the existing edit/role/branch/delete controls; they already act only on tenant-visible profiles via RLS.
+- The onboarding wizard already covers the very first user; this flow handles everyone after.
 
-- `current_tenant_id()` — reads tenant from `tenant_members` for `auth.uid()` (falls back to profile.tenant_id).
-- `is_tenant_member(tenant_id, role)` — security definer.
-- `is_super_admin()` — security definer.
+### Out of scope
 
-Every tenant-owned table policy becomes: `tenant_id = current_tenant_id() OR is_super_admin()`, with role-based write checks layered on top. `enforce_creator_branch` extended to also stamp `tenant_id` on insert.
-
-## 4. Onboarding wizard (`/onboarding`)
-
-Public route reachable right after signup when the user has no tenant. 4 steps:
-
-1. **Agency details** — name, contact email/phone, address, city, country.
-2. **Brand assets** — logo upload (to new `tenant-brand` public bucket), primary/secondary/accent colors (color pickers), tagline.
-3. **Underwriters** — checkbox grid of the 14 preloaded insurers; picks populate `tenant_insurers`.
-4. **First branch & team** — create head-office branch, optionally invite teammates by email (reuses existing invite flow, scoped to new tenant).
-
-On finish: creates `tenants` row, `tenant_members` (current user as admin), `branches`, `tenant_insurers`; sets `profiles.tenant_id`; redirects to `/dashboard`.
-
-## 5. Branded quotes / invoices / receipts
-
-- Add server helper `getTenantBrand(tenantId)` returning `{ name, logo_url, colors, contact, address }`.
-- Update PDF generators (`invoice-pdf.ts`, `quotation-pdf.ts`, `receipt-pdf.ts`) to accept and render tenant brand (logo, colors, footer contact) instead of the hard-coded Zest branding.
-- Portal shell + emails also read tenant brand so each agency's clients see their agency's identity.
-
-## 6. Super-admin portal (`/platform`)
-
-New pathless layout `_platform/route.tsx` gated by `is_super_admin()`. Pages:
-
-- `/platform` — overview: total agencies, total clients across all tenants, total revenue, active policies, MoM growth.
-- `/platform/agencies` — table of every agency with KPIs (clients, active policies, revenue this month, open claims, status). Row click → drill-in.
-- `/platform/agencies/$id` — one agency's KPIs, branches, members, insurers, recent activity; suspend/activate actions.
-- `/platform/insurers` — manage the global insurer catalogue that agencies pick from.
-
-All data via new `platform.functions.ts` server fns using `supabaseAdmin` (bypasses tenant RLS) and gated by `requireSupabaseAuth` + `is_super_admin` check inside the handler.
-
-## 7. Insurer selection in-app
-
-Everywhere the app currently lists insurers (policy form, quotation form, etc.), swap the source from "all insurers" to "insurers linked to `current_tenant_id()`". Add `/admin/insurers` inside the tenant admin so agency admins can toggle their underwriters after onboarding.
-
-## 8. Route/auth changes
-
-- Root sign-in flow: after `SIGNED_IN`, check if user has a tenant. If not → `/onboarding`. If super-admin only → `/platform`. Else `/dashboard`.
-- `_authenticated` layout enforces tenant membership; `_platform` enforces super-admin.
-- Existing `/portal` (client portal) stays; scoped by `clients.tenant_id`.
-
-## 9. Out of scope
-
-- Billing/payments for agencies (structure only — `plan` field placeholder).
-- Custom domains per tenant.
-- Cross-tenant data sharing.
-- Real underwriter API integration (data model prepped, actual API wiring is later).
+- Full email invitation delivery (we surface the temp password in-app for now).
+- Retroactively splitting existing Zest data into other tenants — Zest keeps its current staff; only unassigned/test profiles get detached.
 
 ## Technical notes
 
-- New migration: enum + tables + tenant_id columns + backfill + policy rewrite. Single migration file, run in order: create → grant → RLS → policy. Include update triggers.
-- Delete/replace ~all existing RLS policies on affected tables; keep helpers `user_branch`, `has_role` but layer tenant check on top.
-- File uploads for logos: create `tenant-brand` public bucket via `storage_create_bucket`.
-- Update `handle_new_user` trigger: no longer auto-assigns admin/agent role; new users start with no tenant → wizard assigns role.
-- Client-linking-by-email path in `handle_new_user` becomes tenant-scoped (email + tenant_id lookup).
-- `getDashboardSummary` and `getReportsSummary` already scope by branch; add tenant scoping (implicit via RLS) — verify queries still work after RLS changes.
+- Files to add: `src/components/tenant-brand-provider.tsx`, one Supabase migration (updates `handle_new_user`, adds `user_roles` RESTRICTIVE policy, backfills orphan profiles).
+- Files to edit: `src/lib/tenants.functions.ts` (add `getMyBrand`), `src/lib/sessions.functions.ts` (tenant-scope `listStaffSessions`), `src/lib/admin-users.functions.ts` (add `inviteStaff`), `src/components/app-shell.tsx`, `src/components/portal/portal-shell.tsx`, `src/routes/_authenticated/admin.users.tsx`.
+- Semantic token override strategy: our `styles.css` tokens are HSL triplets (`--primary: 217 91% 60%`). The provider converts the tenant hex → HSL and writes those tokens on `:root` inside the authed area, so all shadcn components (buttons, links, active nav) re-tint automatically.
+- Zest's own tenant row keeps its current colors, so nothing changes for the existing Zest admin experience.
