@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, LayoutDashboard, LogOut, ShieldCheck } from "lucide-react";
+import { Building2, LayoutDashboard, LogOut, ShieldCheck, Megaphone, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_platform")({
@@ -29,6 +29,8 @@ function PlatformLayout() {
         </div>
         <Link to="/platform" className="flex items-center gap-2 px-3 py-2 rounded hover:bg-sidebar-accent"><LayoutDashboard size={16} /> Overview</Link>
         <Link to="/platform/agencies" className="flex items-center gap-2 px-3 py-2 rounded hover:bg-sidebar-accent"><Building2 size={16} /> Agencies</Link>
+        <Link to="/platform/notices" className="flex items-center gap-2 px-3 py-2 rounded hover:bg-sidebar-accent"><Megaphone size={16} /> Notices</Link>
+        <Link to="/platform/audit" className="flex items-center gap-2 px-3 py-2 rounded hover:bg-sidebar-accent"><ScrollText size={16} /> Audit log</Link>
         <Link to="/dashboard" className="flex items-center gap-2 px-3 py-2 rounded hover:bg-sidebar-accent mt-auto"><ShieldCheck size={16} /> My agency workspace</Link>
         <Button variant="ghost" onClick={signOut} className="justify-start text-sidebar-foreground hover:bg-sidebar-accent"><LogOut size={16} className="mr-2" /> Sign out</Button>
       </aside>
