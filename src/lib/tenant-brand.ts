@@ -21,9 +21,9 @@ const FALLBACK: TenantBrand = {
   email: "info@zestinsurance.co.ke",
   website: "www.zestinsurance.co.ke",
   logo_url: null,
-  primary: "#2563eb",
-  secondary: "#1e3a8a",
-  accent: "#f59e0b",
+  primary: "#F59E0B",
+  secondary: "#1E293B",
+  accent: "#FACC15",
 };
 
 let cached: Promise<TenantBrand> | null = null;
