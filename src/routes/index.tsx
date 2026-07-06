@@ -138,7 +138,7 @@ function AuthPage() {
             }`}
           />
         ))}
-        <div className="absolute inset-0 bg-gradient-to-br from-sidebar/90 via-sidebar/70 to-sidebar/95" />
+        <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/35 to-black/70" />
         <Link to="/" className="relative flex items-center">
           <img src={logoWhite.url} alt="Zest Insurance Agency" className="h-20 w-auto object-contain" />
         </Link>
