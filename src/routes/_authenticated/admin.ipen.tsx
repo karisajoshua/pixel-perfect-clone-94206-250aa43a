@@ -57,7 +57,6 @@ function IpenAdminPage() {
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [otpPassword, setOtpPassword] = useState("");
-  const [showOtpPanel, setShowOtpPanel] = useState(false);
   const [busy, setBusy] = useState(false);
   const [authTab, setAuthTab] = useState<"signin" | "register">("signin");
   const [reg, setReg] = useState({
@@ -80,8 +79,11 @@ function IpenAdminPage() {
     setBusy(true);
     try {
       const r = await connectFn({ data: { email, password } });
-      toast.success(r.mfaRequired ? "Enter the verification code sent to you" : "IPEN connected");
-      if (r.mfaRequired) setShowOtpPanel(true);
+      toast.success(
+        r.mfaRequired
+          ? "Enter the Ecobank OTP in the verification section below."
+          : "IPEN sign-in submitted. If you received an Ecobank OTP, enter it below.",
+      );
       setPassword("");
       refresh();
     } catch (e: any) {
@@ -98,7 +100,6 @@ function IpenAdminPage() {
       toast.success("IPEN connected");
       setCode("");
       setOtpPassword("");
-      setShowOtpPanel(false);
       refresh();
     } catch (e: any) {
       toast.error(e.message);
@@ -116,9 +117,12 @@ function IpenAdminPage() {
     setBusy(true);
     try {
       const r = await connectFn({ data: { email: targetEmail, password: otpPassword } });
-      toast.success(r.mfaRequired ? "OTP sent. Enter the Ecobank code below." : "IPEN connected");
+      toast.success(
+        r.mfaRequired
+          ? "OTP sent. Enter the Ecobank code below."
+          : "IPEN sign-in submitted. If you received an Ecobank OTP, enter it below.",
+      );
       setEmail(targetEmail);
-      if (r.mfaRequired) setShowOtpPanel(true);
       refresh();
     } catch (e: any) {
       toast.error(e.message);
@@ -202,7 +206,6 @@ function IpenAdminPage() {
 
   const connected = status?.connected;
   const mfaPending = status?.mfa_required;
-  const otpPanelOpen = Boolean(mfaPending || showOtpPanel);
 
   return (
     <div className="space-y-6 p-4 md:p-8">
@@ -244,53 +247,47 @@ function IpenAdminPage() {
                   {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Test connection
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowOtpPanel((v) => !v)}
-                  disabled={busy}
-                >
-                  I have an OTP
-                </Button>
               </div>
 
-              {otpPanelOpen && (
-                <div className="space-y-3 border-t pt-4">
-                  <p className="text-sm">
-                    Use the OTP sent by Ecobank to finish IPEN verification. If this code is from an
-                    older attempt, enter your IPEN password first to request a fresh OTP.
-                  </p>
-                  <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="connected-otp-password">IPEN password</Label>
-                      <Input
-                        id="connected-otp-password"
-                        type="password"
-                        autoComplete="new-password"
-                        value={otpPassword}
-                        onChange={(e) => setOtpPassword(e.target.value)}
-                      />
-                    </div>
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="connected-mfa">Ecobank OTP</Label>
-                      <Input
-                        id="connected-mfa"
-                        value={code}
-                        onChange={(e) => setCode(e.target.value)}
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" onClick={doRequestOtp} disabled={busy || !otpPassword}>
-                        {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Request OTP
-                      </Button>
-                      <Button onClick={doVerify} disabled={busy || !code}>
-                        Verify
-                      </Button>
-                    </div>
+              <div className="space-y-3 border-t pt-4">
+                <p className="text-sm">
+                  Use the OTP sent by Ecobank to finish IPEN verification. The Ecobank code is the
+                  IPEN verification code.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  If this code is from an older attempt, enter your IPEN password first to request a
+                  fresh OTP.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="connected-otp-password">IPEN password</Label>
+                    <Input
+                      id="connected-otp-password"
+                      type="password"
+                      autoComplete="new-password"
+                      value={otpPassword}
+                      onChange={(e) => setOtpPassword(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="connected-mfa">Ecobank OTP</Label>
+                    <Input
+                      id="connected-mfa"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={doRequestOtp} disabled={busy || !otpPassword}>
+                      {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Request OTP
+                    </Button>
+                    <Button onClick={doVerify} disabled={busy || !code}>
+                      Verify OTP
+                    </Button>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           ) : mfaPending ? (
             <div className="space-y-3">
