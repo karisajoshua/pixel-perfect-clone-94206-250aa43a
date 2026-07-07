@@ -193,11 +193,11 @@ export const transferVehicleOwnership = createServerFn({ method: "POST" })
     if (uErr) throw new Error(uErr.message);
 
     await supabase.from("audit_log").insert({
-      actor_id: userId,
+      user_id: userId,
       action: "vehicle.transfer",
-      entity: "vehicle",
+      entity_type: "vehicle",
       entity_id: data.vehicle_id,
-      diff: {
+      metadata: {
         registration_no: vehicle.registration_no,
         from_client_id: vehicle.client_id,
         to_client_id: data.new_client_id,
