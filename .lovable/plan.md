@@ -1,35 +1,23 @@
-## 1. Sidebar reorder
+## Changes
 
-In `src/components/app-shell.tsx`, reorder the top-level `nav` array so it reads:
+### 1. Quotation dialog — Third-party fixed premium (`src/routes/_authenticated/quotations.tsx`)
 
-1. Dashboard
-2. Clients
-3. Quotations
-4. Vehicles
-5. Policies
-6. Invoices
-7. Claims
-8. Renewals
-9. Service requests
-10. Reports
+Comprehensive uses `sum_insured × rate %`, but Third Party and TPFT are typically flat premiums with no sum insured. Update `QuoteDialog` so when `cover_type` is `third_party` or `third_party_fire_theft`:
 
-(Currently Vehicles comes before Quotations, and Quotations sits after Policies.) No role changes, no route changes.
+- Hide the Sum insured and Rate % inputs.
+- Show a single "Premium (KES)" input bound to a new `line_items.flat_premium` field.
+- Recompute totals: `basePremium = flat_premium`, `benefitPremium = 0` (benefits section also hidden for third-party since it's sum-insured-based), `levies = premiumGross × 0.0045 + 40`, `total = premiumGross + levies`.
+- Persist `premium_gross = flat_premium`, `premium_net = flat_premium`, `sum_insured = null`, `line_items = { flat_premium, levies }`.
 
-## 2. Managers see the central client database
+Comprehensive behavior stays exactly as it is today.
 
-Update the `clients` table SELECT RLS policy so managers can read every client in their agency, not just their branch. Admins already see all; agents/viewers stay branch‑scoped as today. Tenant isolation via `current_tenant_id()` is preserved.
+### 2. Vehicle dialog — Searchable client (`src/components/vehicles/vehicle-form-dialog.tsx`)
 
-Migration replaces `clients read scope` with:
+Replace the client `<Select>` (only shown when `lockedClient` is null) with the same searchable typeahead pattern already used in `QuoteDialog`:
 
-- `admin` → all
-- `manager` → all (within tenant, enforced by existing `tenant_isolation` policy)
-- `viewer` → unassigned or own branch (unchanged)
-- `agent` → unassigned, own branch, or assigned to them (unchanged)
+- Text input with client name; dropdown of up to 8 matches filtered by typed text.
+- Selecting a suggestion sets `form.client_id`.
+- Unlike the quote dialog, this does NOT auto-create a new client — Save stays disabled until an existing client is picked (matches current required-client behavior).
+- Locked-client mode (when opened from a client detail page) remains a read-only input, unchanged.
 
-Other tables (vehicles, policies, claims, invoices) keep their current branch scoping — the request was specifically about clients.
-
-## 3. Dashboard metrics stay branch‑scoped for managers
-
-No change to `src/lib/dashboard.functions.ts`. It already scopes counts to the signed‑in user's `profile.branch_id` for every non‑admin (managers included), so a manager's dashboard tiles and "clients / active policies / claims / renewals" continue to reflect only their branch, even though they can now browse the full client list on `/clients`.
-
-Admins continue to see agency‑wide totals and the "Revenue by branch" table.
+No schema changes, no other files touched.

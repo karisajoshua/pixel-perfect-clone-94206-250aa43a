@@ -26,6 +26,8 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
   const [branches, setBranches] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [lockedClient, setLockedClient] = useState<{ id: string; label: string } | null>(null);
+  const [clientText, setClientText] = useState("");
+  const [showClientList, setShowClientList] = useState(false);
   const [autoFilled, setAutoFilled] = useState<Set<string>>(new Set());
   const [scanning, setScanning] = useState(false);
   const [storedLogbook, setStoredLogbook] = useState<{ storage_path: string; file_name: string; doc_type: string } | null>(null);
@@ -38,6 +40,7 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
     if (!open) return;
     setForm(initial ?? { client_id: defaultClientId, usage_type: "private" });
     setAutoFilled(new Set());
+    setClientText("");
     const lockedId = initial?.client_id ?? defaultClientId ?? null;
     if (lockedId) {
       supabase.from("clients").select("id, full_name, company_name, client_type").eq("id", lockedId).maybeSingle().then(({ data }) => {
@@ -49,6 +52,22 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
     supabase.from("clients").select("id, full_name, company_name, client_type").order("full_name").limit(500).then(({ data }) => setClients(data ?? []));
     supabase.from("branches").select("id, name").order("name").then(({ data }) => setBranches(data ?? []));
   }, [open, initial, defaultClientId]);
+
+  // Hydrate typed text when editing an existing vehicle
+  useEffect(() => {
+    if (!form.client_id || clientText || lockedClient) return;
+    const c = clients.find((x) => x.id === form.client_id);
+    if (c) setClientText(c.client_type === "corporate" ? (c.company_name ?? c.full_name) : c.full_name);
+  }, [clients, form.client_id, lockedClient]);
+
+  const filteredClients = (() => {
+    const t = clientText.trim().toLowerCase();
+    if (!t) return clients.slice(0, 8);
+    return clients.filter((c) => {
+      const name = c.client_type === "corporate" ? (c.company_name ?? c.full_name) : c.full_name;
+      return name?.toLowerCase().includes(t);
+    }).slice(0, 8);
+  })();
 
   useEffect(() => {
     if (!open) return;
@@ -167,17 +186,37 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="sm:col-span-2 space-y-1.5 min-w-0">
+          <div className="sm:col-span-2 space-y-1.5 min-w-0 relative">
             <Label>Client *</Label>
             {lockedClient ? (
               <Input value={lockedClient.label} readOnly disabled />
             ) : (
-              <Select value={form.client_id ?? ""} onValueChange={(v) => set("client_id", v)}>
-                <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
-                <SelectContent>
-                  {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.client_type === "corporate" ? c.company_name ?? c.full_name : c.full_name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <>
+                <Input
+                  placeholder="Search client by name…"
+                  value={clientText}
+                  onChange={(e) => { setClientText(e.target.value); setShowClientList(true); set("client_id", null); }}
+                  onFocus={() => setShowClientList(true)}
+                  onBlur={() => setTimeout(() => setShowClientList(false), 150)}
+                />
+                {showClientList && filteredClients.length > 0 && (
+                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-56 overflow-auto">
+                    {filteredClients.map((c) => {
+                      const name = c.client_type === "corporate" ? (c.company_name ?? c.full_name) : c.full_name;
+                      return (
+                        <button key={c.id} type="button"
+                          className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => { setClientText(name ?? ""); set("client_id", c.id); setShowClientList(false); }}
+                        >{name}</button>
+                      );
+                    })}
+                  </div>
+                )}
+                {clientText.trim() && !form.client_id && (
+                  <p className="text-xs text-muted-foreground">Pick a client from the list.</p>
+                )}
+              </>
             )}
           </div>
           <F label="Registration *" value={form.registration_no} onChange={(v) => set("registration_no", v.toUpperCase())} auto={autoFilled.has("registration_no")} />
