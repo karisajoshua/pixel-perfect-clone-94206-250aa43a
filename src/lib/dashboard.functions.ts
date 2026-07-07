@@ -19,6 +19,7 @@ export type DashboardSummary = {
     revenue: number;
     share: number;
     policies: number;
+    clients: number;
     activeCoverPremium: number;
   }[];
   recentCancellations: {
@@ -52,7 +53,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       scope(supabase.from("policies").select("id, status, branch_id, premium_gross, start_date, cancelled_at")),
       scope(supabase.from("claims").select("id, status, branch_id")),
       scope(supabase.from("policies").select("id", { count: "exact", head: true }).gte("end_date", today).lte("end_date", in30).eq("status", "active")),
-      scope(supabase.from("clients").select("id", { count: "exact", head: true })),
+      scope(supabase.from("clients").select("id, branch_id")),
       scopeBranchId
         ? supabase.from("branches").select("id, name").eq("id", scopeBranchId)
         : supabase.from("branches").select("id, name"),
@@ -62,6 +63,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
     const policies = (policiesRes.data ?? []) as any[];
     const claims = (claimsRes.data ?? []) as any[];
     const branches = (branchesRes.data ?? []) as any[];
+    const clientsRows = (clientsRes.data ?? []) as any[];
     const paymentsRaw = (paymentsRes.data ?? []) as any[];
     const payments = scopeBranchId
       ? paymentsRaw.filter((p) => p.invoices?.branch_id === scopeBranchId)
@@ -90,8 +92,12 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
     for (const p of policies) {
       polByBranch.set(p.branch_id ?? null, (polByBranch.get(p.branch_id ?? null) ?? 0) + 1);
     }
+    const clientsByBranch = new Map<string | null, number>();
+    for (const c of clientsRows) {
+      clientsByBranch.set(c.branch_id ?? null, (clientsByBranch.get(c.branch_id ?? null) ?? 0) + 1);
+    }
 
-    const branchIds = new Set<string | null>([...revByBranch.keys(), ...acpByBranch.keys(), ...polByBranch.keys(), ...branches.map((b) => b.id)]);
+    const branchIds = new Set<string | null>([...revByBranch.keys(), ...acpByBranch.keys(), ...polByBranch.keys(), ...clientsByBranch.keys(), ...branches.map((b) => b.id)]);
     const byBranch = [...branchIds].map((id) => {
       const name = branches.find((b) => b.id === id)?.name ?? (id ? "Unknown branch" : "Unassigned");
       const r = revByBranch.get(id) ?? 0;
@@ -101,6 +107,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
         revenue: r,
         share: revenue ? r / revenue : 0,
         policies: polByBranch.get(id) ?? 0,
+        clients: clientsByBranch.get(id) ?? 0,
         activeCoverPremium: acpByBranch.get(id) ?? 0,
       };
     }).sort((a, b) => b.activeCoverPremium - a.activeCoverPremium);
@@ -122,7 +129,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
 
     return {
       totals: {
-        clients: clientsRes.count ?? 0,
+        clients: clientsRows.length,
         activePolicies: activePolicies.length,
         openClaims: claims.filter((c) => !["paid", "closed", "rejected"].includes(c.status)).length,
         dueRenewals: renewalsRes.count ?? 0,
