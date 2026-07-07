@@ -116,6 +116,7 @@ export type Database = {
           id: string
           incident_date: string | null
           incident_location: string | null
+          ipen_claim_id: string | null
           notes: string | null
           policy_id: string | null
           settled_amount: number | null
@@ -139,6 +140,7 @@ export type Database = {
           id?: string
           incident_date?: string | null
           incident_location?: string | null
+          ipen_claim_id?: string | null
           notes?: string | null
           policy_id?: string | null
           settled_amount?: number | null
@@ -162,6 +164,7 @@ export type Database = {
           id?: string
           incident_date?: string | null
           incident_location?: string | null
+          ipen_claim_id?: string | null
           notes?: string | null
           policy_id?: string | null
           settled_amount?: number | null
@@ -677,6 +680,45 @@ export type Database = {
           },
         ]
       }
+      ipen_credentials: {
+        Row: {
+          access_token: string | null
+          created_at: string
+          ipen_email: string
+          last_login_at: string | null
+          mfa_required: boolean
+          mfa_token: string | null
+          refresh_token: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string
+          ipen_email: string
+          last_login_at?: string | null
+          mfa_required?: boolean
+          mfa_token?: string | null
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string
+          ipen_email?: string
+          last_login_at?: string | null
+          mfa_required?: boolean
+          mfa_token?: string | null
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
@@ -758,6 +800,8 @@ export type Database = {
           created_at: string
           id: string
           invoice_id: string
+          ipen_checkout_request_id: string | null
+          ipen_transaction_ref: string | null
           method: string | null
           notes: string | null
           paid_date: string
@@ -770,6 +814,8 @@ export type Database = {
           created_at?: string
           id?: string
           invoice_id: string
+          ipen_checkout_request_id?: string | null
+          ipen_transaction_ref?: string | null
           method?: string | null
           notes?: string | null
           paid_date?: string
@@ -782,6 +828,8 @@ export type Database = {
           created_at?: string
           id?: string
           invoice_id?: string
+          ipen_checkout_request_id?: string | null
+          ipen_transaction_ref?: string | null
           method?: string | null
           notes?: string | null
           paid_date?: string
@@ -888,6 +936,7 @@ export type Database = {
           end_date: string
           id: string
           insurer_id: string | null
+          ipen_policy_id: string | null
           notes: string | null
           payment_status: string
           policy_no: string
@@ -914,6 +963,7 @@ export type Database = {
           end_date: string
           id?: string
           insurer_id?: string | null
+          ipen_policy_id?: string | null
           notes?: string | null
           payment_status?: string
           policy_no: string
@@ -940,6 +990,7 @@ export type Database = {
           end_date?: string
           id?: string
           insurer_id?: string | null
+          ipen_policy_id?: string | null
           notes?: string | null
           payment_status?: string
           policy_no?: string
@@ -1067,6 +1118,8 @@ export type Database = {
           created_by: string | null
           id: string
           insurer_id: string | null
+          ipen_proposal_id: string | null
+          ipen_quote_payload: Json | null
           line_items: Json
           notes: string | null
           parent_quote_id: string | null
@@ -1095,6 +1148,8 @@ export type Database = {
           created_by?: string | null
           id?: string
           insurer_id?: string | null
+          ipen_proposal_id?: string | null
+          ipen_quote_payload?: Json | null
           line_items?: Json
           notes?: string | null
           parent_quote_id?: string | null
@@ -1123,6 +1178,8 @@ export type Database = {
           created_by?: string | null
           id?: string
           insurer_id?: string | null
+          ipen_proposal_id?: string | null
+          ipen_quote_payload?: Json | null
           line_items?: Json
           notes?: string | null
           parent_quote_id?: string | null

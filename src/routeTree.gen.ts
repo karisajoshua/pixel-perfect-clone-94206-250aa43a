@@ -48,6 +48,7 @@ import { Route as AuthenticatedAdminSessionsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminSecurityRouteImport } from './routes/_authenticated/admin.security'
 import { Route as AuthenticatedAdminRequestsRouteImport } from './routes/_authenticated/admin.requests'
 import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin.notifications'
+import { Route as AuthenticatedAdminIpenRouteImport } from './routes/_authenticated/admin.ipen'
 import { Route as AuthenticatedAdminInsurersRouteImport } from './routes/_authenticated/admin.insurers'
 import { Route as AuthenticatedAdminImportRouteImport } from './routes/_authenticated/admin.import'
 import { Route as AuthenticatedAdminEmailsRouteImport } from './routes/_authenticated/admin.emails'
@@ -59,6 +60,7 @@ import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/l
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicIpenMpesaCallbackRouteImport } from './routes/api/public/ipen/mpesa-callback'
 import { Route as ApiPublicHooksRenewalRemindersRouteImport } from './routes/api/public/hooks/renewal-reminders'
 import { Route as PortalPortalPoliciesIdRouteImport } from './routes/_portal/portal/policies.$id'
 import { Route as PortalPortalInvoicesIdRouteImport } from './routes/_portal/portal/invoices.$id'
@@ -262,6 +264,11 @@ const AuthenticatedAdminNotificationsRoute =
     path: '/admin/notifications',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminIpenRoute = AuthenticatedAdminIpenRouteImport.update({
+  id: '/admin/ipen',
+  path: '/admin/ipen',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminInsurersRoute =
   AuthenticatedAdminInsurersRouteImport.update({
     id: '/admin/insurers',
@@ -324,6 +331,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicIpenMpesaCallbackRoute =
+  ApiPublicIpenMpesaCallbackRouteImport.update({
+    id: '/api/public/ipen/mpesa-callback',
+    path: '/api/public/ipen/mpesa-callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksRenewalRemindersRoute =
   ApiPublicHooksRenewalRemindersRouteImport.update({
     id: '/api/public/hooks/renewal-reminders',
@@ -369,6 +382,7 @@ export interface FileRoutesByFullPath {
   '/admin/emails': typeof AuthenticatedAdminEmailsRoute
   '/admin/import': typeof AuthenticatedAdminImportRoute
   '/admin/insurers': typeof AuthenticatedAdminInsurersRoute
+  '/admin/ipen': typeof AuthenticatedAdminIpenRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/admin/security': typeof AuthenticatedAdminSecurityRoute
@@ -394,6 +408,7 @@ export interface FileRoutesByFullPath {
   '/portal/invoices/$id': typeof PortalPortalInvoicesIdRoute
   '/portal/policies/$id': typeof PortalPortalPoliciesIdRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
+  '/api/public/ipen/mpesa-callback': typeof ApiPublicIpenMpesaCallbackRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -422,6 +437,7 @@ export interface FileRoutesByTo {
   '/admin/emails': typeof AuthenticatedAdminEmailsRoute
   '/admin/import': typeof AuthenticatedAdminImportRoute
   '/admin/insurers': typeof AuthenticatedAdminInsurersRoute
+  '/admin/ipen': typeof AuthenticatedAdminIpenRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/admin/security': typeof AuthenticatedAdminSecurityRoute
@@ -447,6 +463,7 @@ export interface FileRoutesByTo {
   '/portal/invoices/$id': typeof PortalPortalInvoicesIdRoute
   '/portal/policies/$id': typeof PortalPortalPoliciesIdRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
+  '/api/public/ipen/mpesa-callback': typeof ApiPublicIpenMpesaCallbackRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -479,6 +496,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/emails': typeof AuthenticatedAdminEmailsRoute
   '/_authenticated/admin/import': typeof AuthenticatedAdminImportRoute
   '/_authenticated/admin/insurers': typeof AuthenticatedAdminInsurersRoute
+  '/_authenticated/admin/ipen': typeof AuthenticatedAdminIpenRoute
   '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/_authenticated/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/_authenticated/admin/security': typeof AuthenticatedAdminSecurityRoute
@@ -504,6 +522,7 @@ export interface FileRoutesById {
   '/_portal/portal/invoices/$id': typeof PortalPortalInvoicesIdRoute
   '/_portal/portal/policies/$id': typeof PortalPortalPoliciesIdRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
+  '/api/public/ipen/mpesa-callback': typeof ApiPublicIpenMpesaCallbackRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -534,6 +553,7 @@ export interface FileRouteTypes {
     | '/admin/emails'
     | '/admin/import'
     | '/admin/insurers'
+    | '/admin/ipen'
     | '/admin/notifications'
     | '/admin/requests'
     | '/admin/security'
@@ -559,6 +579,7 @@ export interface FileRouteTypes {
     | '/portal/invoices/$id'
     | '/portal/policies/$id'
     | '/api/public/hooks/renewal-reminders'
+    | '/api/public/ipen/mpesa-callback'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -587,6 +608,7 @@ export interface FileRouteTypes {
     | '/admin/emails'
     | '/admin/import'
     | '/admin/insurers'
+    | '/admin/ipen'
     | '/admin/notifications'
     | '/admin/requests'
     | '/admin/security'
@@ -612,6 +634,7 @@ export interface FileRouteTypes {
     | '/portal/invoices/$id'
     | '/portal/policies/$id'
     | '/api/public/hooks/renewal-reminders'
+    | '/api/public/ipen/mpesa-callback'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -643,6 +666,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/emails'
     | '/_authenticated/admin/import'
     | '/_authenticated/admin/insurers'
+    | '/_authenticated/admin/ipen'
     | '/_authenticated/admin/notifications'
     | '/_authenticated/admin/requests'
     | '/_authenticated/admin/security'
@@ -668,6 +692,7 @@ export interface FileRouteTypes {
     | '/_portal/portal/invoices/$id'
     | '/_portal/portal/policies/$id'
     | '/api/public/hooks/renewal-reminders'
+    | '/api/public/ipen/mpesa-callback'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -687,6 +712,7 @@ export interface RootRouteChildren {
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksRenewalRemindersRoute: typeof ApiPublicHooksRenewalRemindersRoute
+  ApiPublicIpenMpesaCallbackRoute: typeof ApiPublicIpenMpesaCallbackRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -969,6 +995,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminNotificationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/ipen': {
+      id: '/_authenticated/admin/ipen'
+      path: '/admin/ipen'
+      fullPath: '/admin/ipen'
+      preLoaderRoute: typeof AuthenticatedAdminIpenRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/insurers': {
       id: '/_authenticated/admin/insurers'
       path: '/admin/insurers'
@@ -1044,6 +1077,13 @@ declare module '@tanstack/react-router' {
       path: '/lovable/email/auth/preview'
       fullPath: '/lovable/email/auth/preview'
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/ipen/mpesa-callback': {
+      id: '/api/public/ipen/mpesa-callback'
+      path: '/api/public/ipen/mpesa-callback'
+      fullPath: '/api/public/ipen/mpesa-callback'
+      preLoaderRoute: typeof ApiPublicIpenMpesaCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/renewal-reminders': {
@@ -1130,6 +1170,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminEmailsRoute: typeof AuthenticatedAdminEmailsRoute
   AuthenticatedAdminImportRoute: typeof AuthenticatedAdminImportRoute
   AuthenticatedAdminInsurersRoute: typeof AuthenticatedAdminInsurersRoute
+  AuthenticatedAdminIpenRoute: typeof AuthenticatedAdminIpenRoute
   AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
   AuthenticatedAdminRequestsRoute: typeof AuthenticatedAdminRequestsRoute
   AuthenticatedAdminSecurityRoute: typeof AuthenticatedAdminSecurityRoute
@@ -1154,6 +1195,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminEmailsRoute: AuthenticatedAdminEmailsRoute,
   AuthenticatedAdminImportRoute: AuthenticatedAdminImportRoute,
   AuthenticatedAdminInsurersRoute: AuthenticatedAdminInsurersRoute,
+  AuthenticatedAdminIpenRoute: AuthenticatedAdminIpenRoute,
   AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
   AuthenticatedAdminRequestsRoute: AuthenticatedAdminRequestsRoute,
   AuthenticatedAdminSecurityRoute: AuthenticatedAdminSecurityRoute,
@@ -1255,6 +1297,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksRenewalRemindersRoute: ApiPublicHooksRenewalRemindersRoute,
+  ApiPublicIpenMpesaCallbackRoute: ApiPublicIpenMpesaCallbackRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
@@ -1264,13 +1307,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

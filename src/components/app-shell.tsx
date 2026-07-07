@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Users, Car, FileText, FileSignature, Receipt, ScrollText,
   BarChart3, ShieldCheck, LogOut, Building2, BellRing, Settings, Mail, Upload,
   BookOpen, Menu, Inbox, KeyRound, Clock, MoreHorizontal,
+  Plug,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyProfile, useMyRoles } from "@/hooks/use-auth";
@@ -42,6 +43,7 @@ const adminNav = [
   { to: "/admin/audit", label: "Audit log", icon: Settings },
   { to: "/admin/security", label: "Account security", icon: KeyRound },
   { to: "/admin/docs", label: "Documentation", icon: BookOpen },
+  { to: "/admin/ipen", label: "IPEN integration", icon: Plug },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
