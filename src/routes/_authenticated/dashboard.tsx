@@ -30,6 +30,8 @@ function Dashboard() {
   const { data } = useQuery({
     queryKey: ["dashboard", "summary"],
     queryFn: () => fetchSummary(),
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
   });
 
   const fmt = (n: number) =>
