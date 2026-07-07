@@ -1,39 +1,27 @@
-## Goal
+## Improve "New claim" dialog UX
 
-Let admins and managers view (and reset) the portal login for any client that already has one — directly from the client detail page.
+Edit `src/routes/_authenticated/claims.tsx` — `ClaimDialog` only:
 
-## UX
+**1. Client → searchable combobox**
+- Replace the `Select` (line 244-250) with a Popover + Command (shadcn) searchable picker.
+- Shows client display name; filters as admin/manager types. Keeps existing `form.client_id` state.
 
-On `src/routes/_authenticated/clients.$id.tsx`, when `client.auth_user_id` exists, replace the current "no portal button" state with a **"View portal login"** button (visible to admin + manager). Clicking opens a dialog showing:
+**2. Policy → auto-prefill + editable**
+- When the client changes (or dialog opens with a preselected client), if that client has exactly one active policy, auto-set `form.policy_id` to it.
+- If multiple policies exist, auto-pick the most recent one (highest `created_at`) as a sensible default.
+- Keep the field as an editable `Select` so the user can change it. Only prefill when `policy_id` is empty or when the selected policy doesn't belong to the new client.
+- Extend the `policies` fetch to also load `created_at` (and, if available, `status`) so we can prefer active/most-recent.
 
-- Login identifier: the client's `phone` (preferred) or `email`, with a copy button
-- Portal URL with copy button
-- A **"Reset password"** button that generates a new temporary password, shows it once (reusing existing `CredentialsDialog` reveal UI), and invalidates the old one
-- "Copy all" button (same format as generation flow)
+**3. Vehicle → auto-prefill**
+- Prefer the vehicle linked to the auto-selected policy (fetch `vehicle_id` on `policies`).
+- Otherwise, if the client has exactly one vehicle, prefill that.
+- Kept editable via the existing `Select`; only prefill when empty or when current vehicle doesn't belong to the client.
 
-No stored/retrievable password — matches Supabase auth's hashed-only model.
+**Behavior details**
+- Prefill runs on client change and on initial open for `new` claims. When editing an existing claim, don't overwrite values that were already saved.
+- No schema changes, no server-function changes.
 
-## Backend
-
-New server function in `src/lib/admin-users.functions.ts`:
-
-- `getClientPortalInfo({ client_id })` — admin/manager only. Returns `{ email, phone, has_login: boolean }` derived from `clients.auth_user_id` + auth user lookup. No password.
-- `resetClientPortalPassword({ client_id })` — admin/manager only. Verifies the client has an `auth_user_id` and role `client`, generates a new password via existing `generatePassword`, calls `supabaseAdmin.auth.admin.updateUserById(uid, { password })`, writes an `audit_log` entry (`client.portal_password_reset`), and returns `{ email, phone, password }` shaped like `PortalCreds` so the existing `CredentialsDialog` renders it.
-
-Both reuse `assertAdminOrManager`.
-
-## Frontend
-
-`src/routes/_authenticated/clients.$id.tsx`:
-
-- Add a "View portal login" button next to "Generate portal login" (mutually exclusive based on `client.auth_user_id`).
-- New small `PortalLoginDialog` (inline or new file `src/components/clients/portal-login-dialog.tsx`) that fetches `getClientPortalInfo` and shows identifier + reset button. On reset confirm, calls `resetClientPortalPassword` and pipes result into the existing `CredentialsDialog` to reveal the new password.
-- Confirm prompt before reset: "This will invalidate the client's current password."
-
-No changes to generation flow or `client-form-dialog.tsx`.
-
-## Files
-
-- `src/lib/admin-users.functions.ts` — add two server functions
-- `src/routes/_authenticated/clients.$id.tsx` — new button + dialog wiring
-- `src/components/clients/portal-login-dialog.tsx` — new component
+### Technical notes
+- Combobox uses existing `@/components/ui/popover` + `@/components/ui/command` (already in project via shadcn).
+- Add `vehicle_id, created_at, status` to the `policies` select; add `created_at` to `vehicles` select for consistent ordering.
+- All logic contained inside `ClaimDialog`; no other files touched.
