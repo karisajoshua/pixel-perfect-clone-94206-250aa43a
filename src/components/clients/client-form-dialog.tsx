@@ -13,6 +13,8 @@ import { createClientPortalAccount } from "@/lib/admin-users.functions";
 import { Copy } from "lucide-react";
 import { normalizePhone } from "@/lib/phone";
 import { useMyRoles } from "@/hooks/use-auth";
+import { checkPinByIdNumber, type KraIdType } from "@/lib/kra.functions";
+import { CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 
 export type PortalCreds = {
   email: string | null;
@@ -36,15 +38,54 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
   const portalFn = useServerFn(createClientPortalAccount);
   const { data: roles } = useMyRoles();
   const isAdmin = (roles ?? []).includes("admin");
+  const kraFn = useServerFn(checkPinByIdNumber);
+  const [kraChecking, setKraChecking] = useState(false);
+  const [kraResult, setKraResult] = useState<
+    | { ok: true; pin: string; taxpayer_name: string; status: string }
+    | { ok: false; message: string }
+    | null
+  >(null);
 
   useEffect(() => {
     if (open) {
       setForm(initial ?? { client_type: "individual" });
       supabase.from("branches").select("id, name").order("name").then(({ data }) => setBranches(data ?? []));
+      setKraResult(null);
     }
   }, [open, initial]);
 
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
+
+  const checkKra = async () => {
+    if (!form.id_number) return;
+    setKraChecking(true);
+    setKraResult(null);
+    try {
+      const r = await kraFn({
+        data: {
+          id_number: String(form.id_number).trim(),
+          id_type: (form.kra_id_type as KraIdType) ?? "national_id",
+        },
+      });
+      if (r.ok) {
+        setKraResult({ ok: true, pin: r.pin, taxpayer_name: r.taxpayer_name, status: r.status });
+        setForm((f: any) => ({
+          ...f,
+          kra_pin: r.pin,
+          kra_id_type: r.id_type,
+          kra_verified_name: r.taxpayer_name,
+          kra_verification_status: "verified",
+          kra_verified_at: new Date().toISOString(),
+        }));
+      } else {
+        setKraResult({ ok: false, message: r.message });
+      }
+    } catch (e: any) {
+      setKraResult({ ok: false, message: e?.message ?? "Lookup failed" });
+    } finally {
+      setKraChecking(false);
+    }
+  };
 
   const submit = async () => {
     setSaving(true);
@@ -55,6 +96,10 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
       company_name: form.company_name ?? null,
       id_number: form.id_number ?? null,
       kra_pin: form.kra_pin ?? null,
+      kra_id_type: form.kra_id_type ?? null,
+      kra_verified_name: form.kra_verified_name ?? null,
+      kra_verification_status: form.kra_verification_status ?? null,
+      kra_verified_at: form.kra_verified_at ?? null,
       email: form.email ?? null,
       phone: normalizePhone(form.phone) ?? form.phone ?? null,
       alt_phone: normalizePhone(form.alt_phone) ?? form.alt_phone ?? null,
@@ -125,8 +170,46 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
           )}
           <Field label="Full name" value={form.full_name} onChange={(v) => set("full_name", v)} required />
           {form.client_type === "corporate" && <Field label="Company name" value={form.company_name} onChange={(v) => set("company_name", v)} />}
-          <Field label="ID / Registration number" value={form.id_number} onChange={(v) => set("id_number", v)} />
-          <Field label="KRA PIN" value={form.kra_pin} onChange={(v) => set("kra_pin", v)} />
+          <div className="space-y-1.5 min-w-0">
+            <Label>ID type</Label>
+            <Select value={form.kra_id_type ?? "national_id"} onValueChange={(v) => set("kra_id_type", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="national_id">National ID</SelectItem>
+                <SelectItem value="passport">Passport</SelectItem>
+                <SelectItem value="service_id">Service ID</SelectItem>
+                <SelectItem value="alien_id">Alien ID</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5 min-w-0">
+            <Label>ID / Registration number</Label>
+            <div className="flex gap-2">
+              <Input value={form.id_number ?? ""} onChange={(e) => set("id_number", e.target.value)} />
+              <Button type="button" variant="outline" onClick={checkKra} disabled={!form.id_number || kraChecking}>
+                {kraChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Check KRA"}
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-1.5 min-w-0 sm:col-span-2">
+            <Label>KRA PIN</Label>
+            <Input value={form.kra_pin ?? ""} onChange={(e) => set("kra_pin", e.target.value)} />
+            {kraResult?.ok && (
+              <p className="flex items-center gap-1.5 text-xs text-emerald-600">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Verified — {kraResult.taxpayer_name || "Taxpayer"} ({kraResult.status})
+              </p>
+            )}
+            {kraResult && !kraResult.ok && (
+              <p className="flex items-center gap-1.5 text-xs text-destructive">
+                <AlertTriangle className="h-3.5 w-3.5" /> {kraResult.message}
+              </p>
+            )}
+            {!kraResult && form.kra_verified_name && (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Previously verified as {form.kra_verified_name}
+              </p>
+            )}
+          </div>
           <Field label="Email" type="email" value={form.email} onChange={(v) => set("email", v)} />
           <Field label="Phone" value={form.phone} onChange={(v) => set("phone", v)} />
           <Field label="Alt. phone" value={form.alt_phone} onChange={(v) => set("alt_phone", v)} />
