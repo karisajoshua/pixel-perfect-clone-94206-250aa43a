@@ -173,17 +173,23 @@ export const registerIpen = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    const body: Record<string, unknown> = {
-      email: data.email,
-      password: data.password,
-      confirmPassword: data.confirmPassword,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      phoneNumber: data.phoneNumber,
+    // Send both camelCase and PascalCase keys — some IPEN endpoints bind
+    // strictly to PascalCase model properties.
+    const dual = (k: string, v: unknown, out: Record<string, unknown>) => {
+      if (v === undefined || v === null || v === "") return;
+      out[k] = v;
+      out[k.charAt(0).toUpperCase() + k.slice(1)] = v;
     };
-    if (data.middleName) body.middleName = data.middleName;
-    if (data.idNumber) body.idNumber = data.idNumber;
-    if (data.companyName) body.companyName = data.companyName;
+    const body: Record<string, unknown> = {};
+    dual("email", data.email, body);
+    dual("password", data.password, body);
+    dual("confirmPassword", data.confirmPassword, body);
+    dual("firstName", data.firstName, body);
+    dual("lastName", data.lastName, body);
+    dual("phoneNumber", data.phoneNumber, body);
+    dual("middleName", data.middleName, body);
+    dual("idNumber", data.idNumber, body);
+    dual("companyName", data.companyName, body);
 
     const res = await ipenPublic<any>({
       path: "/api/Auth/Register",
