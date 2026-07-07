@@ -58,11 +58,11 @@ export const Route = createFileRoute("/api/public/ipen/mpesa-callback")({
         if (checkoutId) {
           const patch: {
             ipen_transaction_ref?: string;
-            paid_at?: string;
+            reference?: string;
           } = {};
-          if (mpesaReceipt) patch.ipen_transaction_ref = String(mpesaReceipt);
-          if (resultCode === 0 || resultCode === "0") {
-            patch.paid_at = new Date().toISOString();
+          if (mpesaReceipt) {
+            patch.ipen_transaction_ref = String(mpesaReceipt);
+            patch.reference = String(mpesaReceipt);
           }
           if (Object.keys(patch).length > 0) {
             await supabaseAdmin
