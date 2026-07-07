@@ -16,6 +16,7 @@ import {
   connectIpen,
   disconnectIpen,
   ipenStatus,
+  registerIpen,
   resendIpenMfa,
   verifyIpenMfa,
 } from "@/lib/ipen/auth.functions";
@@ -44,6 +45,7 @@ function IpenAdminPage() {
   const verifyFn = useServerFn(verifyIpenMfa);
   const resendFn = useServerFn(resendIpenMfa);
   const disconnectFn = useServerFn(disconnectIpen);
+  const registerFn = useServerFn(registerIpen);
 
   const { data: status, isLoading } = useQuery({
     queryKey: ["ipen-status"],
@@ -54,6 +56,18 @@ function IpenAdminPage() {
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [authTab, setAuthTab] = useState<"signin" | "register">("signin");
+  const [reg, setReg] = useState({
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    email: "",
+    phoneNumber: "",
+    idNumber: "",
+    companyName: "",
+    password: "",
+    confirmPassword: "",
+  });
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["ipen-status"] });
 
@@ -91,6 +105,48 @@ function IpenAdminPage() {
     try {
       await disconnectFn();
       toast.success("Disconnected");
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doRegister = async () => {
+    if (reg.password !== reg.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    setBusy(true);
+    try {
+      const r = await registerFn({
+        data: {
+          firstName: reg.firstName,
+          middleName: reg.middleName || undefined,
+          lastName: reg.lastName,
+          email: reg.email,
+          phoneNumber: reg.phoneNumber,
+          idNumber: reg.idNumber || undefined,
+          companyName: reg.companyName || undefined,
+          password: reg.password,
+          confirmPassword: reg.confirmPassword,
+        },
+      });
+      toast.success(r.message);
+      setEmail(reg.email);
+      setReg({
+        firstName: "",
+        middleName: "",
+        lastName: "",
+        email: "",
+        phoneNumber: "",
+        idNumber: "",
+        companyName: "",
+        password: "",
+        confirmPassword: "",
+      });
+      if (!r.connected && !r.mfaRequired) setAuthTab("signin");
       refresh();
     } catch (e: any) {
       toast.error(e.message);
@@ -175,32 +231,147 @@ function IpenAdminPage() {
               </div>
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-              <div className="grid gap-1.5">
-                <Label htmlFor="ipen-email">IPEN email</Label>
-                <Input
-                  id="ipen-email"
-                  type="email"
-                  autoComplete="off"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="ipen-pw">IPEN password</Label>
-                <Input
-                  id="ipen-pw"
-                  type="password"
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <Button onClick={doConnect} disabled={busy || !email || !password}>
-                {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plug className="mr-2 h-4 w-4" />}
-                Connect
-              </Button>
-            </div>
+            <Tabs value={authTab} onValueChange={(v) => setAuthTab(v as "signin" | "register")}>
+              <TabsList>
+                <TabsTrigger value="signin">Sign in</TabsTrigger>
+                <TabsTrigger value="register">Register</TabsTrigger>
+              </TabsList>
+              <TabsContent value="signin" className="mt-4">
+                <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="ipen-email">IPEN email</Label>
+                    <Input
+                      id="ipen-email"
+                      type="email"
+                      autoComplete="off"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="ipen-pw">IPEN password</Label>
+                    <Input
+                      id="ipen-pw"
+                      type="password"
+                      autoComplete="new-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                  <Button onClick={doConnect} disabled={busy || !email || !password}>
+                    {busy ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plug className="mr-2 h-4 w-4" />
+                    )}
+                    Connect
+                  </Button>
+                </div>
+              </TabsContent>
+              <TabsContent value="register" className="mt-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="reg-fn">First name</Label>
+                    <Input
+                      id="reg-fn"
+                      value={reg.firstName}
+                      onChange={(e) => setReg({ ...reg, firstName: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="reg-mn">Middle name</Label>
+                    <Input
+                      id="reg-mn"
+                      value={reg.middleName}
+                      onChange={(e) => setReg({ ...reg, middleName: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="reg-ln">Last name</Label>
+                    <Input
+                      id="reg-ln"
+                      value={reg.lastName}
+                      onChange={(e) => setReg({ ...reg, lastName: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="reg-em">Email</Label>
+                    <Input
+                      id="reg-em"
+                      type="email"
+                      autoComplete="off"
+                      value={reg.email}
+                      onChange={(e) => setReg({ ...reg, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="reg-ph">Phone number</Label>
+                    <Input
+                      id="reg-ph"
+                      value={reg.phoneNumber}
+                      onChange={(e) => setReg({ ...reg, phoneNumber: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="reg-id">ID number (optional)</Label>
+                    <Input
+                      id="reg-id"
+                      value={reg.idNumber}
+                      onChange={(e) => setReg({ ...reg, idNumber: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-1.5 sm:col-span-3">
+                    <Label htmlFor="reg-co">Company (optional)</Label>
+                    <Input
+                      id="reg-co"
+                      value={reg.companyName}
+                      onChange={(e) => setReg({ ...reg, companyName: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="reg-pw">Password</Label>
+                    <Input
+                      id="reg-pw"
+                      type="password"
+                      autoComplete="new-password"
+                      value={reg.password}
+                      onChange={(e) => setReg({ ...reg, password: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="reg-pw2">Confirm password</Label>
+                    <Input
+                      id="reg-pw2"
+                      type="password"
+                      autoComplete="new-password"
+                      value={reg.confirmPassword}
+                      onChange={(e) => setReg({ ...reg, confirmPassword: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <Button
+                    onClick={doRegister}
+                    disabled={
+                      busy ||
+                      !reg.firstName ||
+                      !reg.lastName ||
+                      !reg.email ||
+                      !reg.phoneNumber ||
+                      !reg.password ||
+                      !reg.confirmPassword
+                    }
+                  >
+                    {busy ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plug className="mr-2 h-4 w-4" />
+                    )}
+                    Create IPEN account
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
           )}
         </CardContent>
       </Card>
