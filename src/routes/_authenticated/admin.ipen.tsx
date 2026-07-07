@@ -109,7 +109,7 @@ function IpenAdminPage() {
   };
 
   const doRequestOtp = async () => {
-    const targetEmail = status?.ipen_email || email;
+    const targetEmail = status?.ipen_email || email || reg.email;
     if (!targetEmail || !otpPassword) {
       toast.error("Enter your IPEN password first");
       return;
@@ -180,7 +180,11 @@ function IpenAdminPage() {
           confirmPassword: reg.confirmPassword,
         },
       });
-      toast.success(r.message);
+      toast.success(
+        r.mfaRequired
+          ? "Enter the Ecobank OTP in the verification section below."
+          : "IPEN registration submitted. If you received an Ecobank OTP, enter it below.",
+      );
       setEmail(reg.email);
       setReg({
         firstName: "",
@@ -495,6 +499,45 @@ function IpenAdminPage() {
                   </Button>
                 </div>
               </TabsContent>
+              <div className="mt-5 space-y-3 border-t pt-4">
+                <p className="text-sm">
+                  Use the OTP sent by Ecobank to finish IPEN verification. The Ecobank code is the
+                  IPEN verification code.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Enter your IPEN password to request a fresh OTP, then type the Ecobank OTP and
+                  verify it here.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="signin-otp-password">IPEN password</Label>
+                    <Input
+                      id="signin-otp-password"
+                      type="password"
+                      autoComplete="new-password"
+                      value={otpPassword}
+                      onChange={(e) => setOtpPassword(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="signin-mfa">Ecobank OTP</Label>
+                    <Input
+                      id="signin-mfa"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={doRequestOtp} disabled={busy || !otpPassword}>
+                      {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Request OTP
+                    </Button>
+                    <Button onClick={doVerify} disabled={busy || !code}>
+                      Verify OTP
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </Tabs>
           )}
         </CardContent>

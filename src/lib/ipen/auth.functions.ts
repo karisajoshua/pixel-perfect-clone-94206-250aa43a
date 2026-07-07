@@ -55,7 +55,7 @@ export const verifyIpenMfa = createServerFn({ method: "POST" })
       .eq("user_id", userId)
       .maybeSingle();
     if (cErr) throw new Error(cErr.message);
-    if (!cred?.mfa_token) throw new Error("No pending MFA challenge. Log in again.");
+    if (!cred?.mfa_token) throw new Error("No pending OTP challenge. Click Request OTP first, then enter the Ecobank code.");
 
     const res = await ipenPublic<any>({
       path: "/api/Auth/login/verify-mfa",
