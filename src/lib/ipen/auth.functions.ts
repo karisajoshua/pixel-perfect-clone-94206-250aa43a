@@ -20,6 +20,13 @@ export const connectIpen = createServerFn({ method: "POST" })
       noAuth: true,
     });
     if (!res.ok) throw new Error(res.error ?? "IPEN login failed");
+    try {
+      console.log(
+        "[ipen] login response keys",
+        res.data && typeof res.data === "object" ? Object.keys(res.data) : typeof res.data,
+        res.data,
+      );
+    } catch {}
     const t = extractTokens(res.data);
     const mfaRequired = Boolean(t.mfaRequired || t.mfaToken);
 
@@ -51,19 +58,36 @@ export const verifyIpenMfa = createServerFn({ method: "POST" })
     const { supabase, userId } = context as any;
     const { data: cred, error: cErr } = await supabase
       .from("ipen_credentials")
-      .select("mfa_token")
+      .select("mfa_token, ipen_email")
       .eq("user_id", userId)
       .maybeSingle();
     if (cErr) throw new Error(cErr.message);
-    if (!cred?.mfa_token) throw new Error("No pending OTP challenge. Click Request OTP first, then enter the Ecobank code.");
+    if (!cred) throw new Error("Sign in with your IPEN account first, then enter the OTP.");
 
-    const res = await ipenPublic<any>({
-      path: "/api/Auth/login/verify-mfa",
-      method: "POST",
-      body: { mfaToken: cred.mfa_token, code: data.code },
-      noAuth: true,
-    });
-    if (!res.ok) throw new Error(res.error ?? "MFA verification failed");
+    const body: Record<string, unknown> = { code: data.code, otp: data.code };
+    if (cred.mfa_token) {
+      body.mfaToken = cred.mfa_token;
+      body.MfaToken = cred.mfa_token;
+    }
+    if (cred.ipen_email) {
+      body.email = cred.ipen_email;
+      body.Email = cred.ipen_email;
+    }
+
+    const paths = [
+      "/api/Auth/login/verify-mfa",
+      "/api/Auth/verify-mfa",
+      "/api/Auth/verify-otp",
+    ];
+    let res: Awaited<ReturnType<typeof ipenPublic<any>>> | null = null;
+    let lastErr: string | undefined;
+    for (const path of paths) {
+      res = await ipenPublic<any>({ path, method: "POST", body, noAuth: true });
+      if (res.ok) break;
+      lastErr = res.error;
+      if (res.status !== 404 && res.status !== 405) break;
+    }
+    if (!res || !res.ok) throw new Error(lastErr ?? "MFA verification failed");
     const t = extractTokens(res.data);
     if (!t.accessToken) throw new Error("MFA response missing access token");
 
@@ -90,17 +114,29 @@ export const resendIpenMfa = createServerFn({ method: "POST" })
     const { supabase, userId } = context as any;
     const { data: cred } = await supabase
       .from("ipen_credentials")
-      .select("mfa_token")
+      .select("mfa_token, ipen_email")
       .eq("user_id", userId)
       .maybeSingle();
-    if (!cred?.mfa_token) throw new Error("No pending MFA challenge.");
-    const res = await ipenPublic<any>({
-      path: "/api/Auth/login/resend-mfa",
-      method: "POST",
-      body: { mfaToken: cred.mfa_token },
-      noAuth: true,
-    });
-    if (!res.ok) throw new Error(res.error ?? "Failed to resend code");
+    if (!cred) throw new Error("Sign in with your IPEN account first.");
+    const body: Record<string, unknown> = {};
+    if (cred.mfa_token) {
+      body.mfaToken = cred.mfa_token;
+      body.MfaToken = cred.mfa_token;
+    }
+    if (cred.ipen_email) {
+      body.email = cred.ipen_email;
+      body.Email = cred.ipen_email;
+    }
+    const paths = ["/api/Auth/login/resend-mfa", "/api/Auth/resend-otp", "/api/Auth/resend-mfa"];
+    let res: Awaited<ReturnType<typeof ipenPublic<any>>> | null = null;
+    let lastErr: string | undefined;
+    for (const path of paths) {
+      res = await ipenPublic<any>({ path, method: "POST", body, noAuth: true });
+      if (res.ok) break;
+      lastErr = res.error;
+      if (res.status !== 404 && res.status !== 405) break;
+    }
+    if (!res || !res.ok) throw new Error(lastErr ?? "Failed to resend code");
     return { ok: true };
   });
 
@@ -209,6 +245,13 @@ export const registerIpen = createServerFn({ method: "POST" })
       noAuth: true,
     });
     if (!res.ok) throw new Error(res.error ?? "IPEN registration failed");
+    try {
+      console.log(
+        "[ipen] register response keys",
+        res.data && typeof res.data === "object" ? Object.keys(res.data) : typeof res.data,
+        res.data,
+      );
+    } catch {}
     const t = extractTokens(res.data);
     const mfaRequired = Boolean(t.mfaRequired || t.mfaToken);
 

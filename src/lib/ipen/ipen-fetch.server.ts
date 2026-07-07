@@ -127,12 +127,48 @@ export function extractTokens(payload: any): {
 } {
   if (!payload || typeof payload !== "object") return {};
   const p = payload.data ?? payload;
+  const mfaToken =
+    p.mfaToken ??
+    p.mfa_token ??
+    p.twoFactorToken ??
+    p.two_factor_token ??
+    p.otpToken ??
+    p.otp_token ??
+    p.challengeToken ??
+    p.challenge_token ??
+    p.challengeId ??
+    p.challenge_id ??
+    p.mfaSessionId ??
+    p.mfa_session_id ??
+    p.sessionId ??
+    p.session_id ??
+    p.verificationToken ??
+    p.verification_token ??
+    p.requestId ??
+    p.request_id;
+  const accessToken = p.accessToken ?? p.access_token ?? p.token;
+  const msg = typeof p.message === "string" ? p.message.toLowerCase() : "";
+  const flagged =
+    p.mfaRequired ??
+    p.mfa_required ??
+    p.requiresTwoFactor ??
+    p.requires_two_factor ??
+    p.requires_mfa ??
+    p.twoFactorRequired ??
+    p.two_factor_required;
+  const msgHints =
+    !accessToken &&
+    (msg.includes("otp") ||
+      msg.includes("verification") ||
+      msg.includes("two-factor") ||
+      msg.includes("two factor") ||
+      msg.includes("mfa"));
   return {
-    accessToken: p.accessToken ?? p.access_token ?? p.token,
+    accessToken,
     refreshToken: p.refreshToken ?? p.refresh_token,
     expiresIn: p.expiresIn ?? p.expires_in ?? null,
-    mfaToken: p.mfaToken ?? p.mfa_token,
-    mfaRequired: p.mfaRequired ?? p.mfa_required ?? Boolean(p.mfaToken ?? p.mfa_token),
+    mfaToken,
+    mfaRequired: Boolean(flagged ?? (mfaToken || msgHints)),
   };
 }
 
