@@ -127,35 +127,62 @@ export function extractTokens(payload: any): {
 } {
   if (!payload || typeof payload !== "object") return {};
   const p = payload.data ?? payload;
+  const pick = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = p[key];
+      if (value !== undefined && value !== null && value !== "") return value;
+    }
+    return undefined;
+  };
   const mfaToken =
-    p.mfaToken ??
-    p.mfa_token ??
-    p.twoFactorToken ??
-    p.two_factor_token ??
-    p.otpToken ??
-    p.otp_token ??
-    p.challengeToken ??
-    p.challenge_token ??
-    p.challengeId ??
-    p.challenge_id ??
-    p.mfaSessionId ??
-    p.mfa_session_id ??
-    p.sessionId ??
-    p.session_id ??
-    p.verificationToken ??
-    p.verification_token ??
-    p.requestId ??
-    p.request_id;
-  const accessToken = p.accessToken ?? p.access_token ?? p.token;
-  const msg = typeof p.message === "string" ? p.message.toLowerCase() : "";
+    pick(
+      "mfaToken",
+      "MfaToken",
+      "mfa_token",
+      "twoFactorToken",
+      "TwoFactorToken",
+      "two_factor_token",
+      "otpToken",
+      "OtpToken",
+      "OTPToken",
+      "otp_token",
+      "challengeToken",
+      "ChallengeToken",
+      "challenge_token",
+      "challengeId",
+      "ChallengeId",
+      "challenge_id",
+      "mfaSessionId",
+      "MfaSessionId",
+      "mfa_session_id",
+      "sessionId",
+      "SessionId",
+      "session_id",
+      "verificationToken",
+      "VerificationToken",
+      "verification_token",
+      "requestId",
+      "RequestId",
+      "request_id",
+    );
+  const accessToken = pick("accessToken", "AccessToken", "access_token", "token", "Token");
+  const msgSource = typeof p.message === "string" ? p.message : payload.message;
+  const msg = typeof msgSource === "string" ? msgSource.toLowerCase() : "";
   const flagged =
-    p.mfaRequired ??
-    p.mfa_required ??
-    p.requiresTwoFactor ??
-    p.requires_two_factor ??
-    p.requires_mfa ??
-    p.twoFactorRequired ??
-    p.two_factor_required;
+    pick(
+      "mfaRequired",
+      "MfaRequired",
+      "mfa_required",
+      "requiresTwoFactor",
+      "RequiresTwoFactor",
+      "requires_two_factor",
+      "requires_mfa",
+      "requiresMfa",
+      "RequiresMfa",
+      "twoFactorRequired",
+      "TwoFactorRequired",
+      "two_factor_required",
+    );
   const msgHints =
     !accessToken &&
     (msg.includes("otp") ||
@@ -165,8 +192,8 @@ export function extractTokens(payload: any): {
       msg.includes("mfa"));
   return {
     accessToken,
-    refreshToken: p.refreshToken ?? p.refresh_token,
-    expiresIn: p.expiresIn ?? p.expires_in ?? null,
+    refreshToken: pick("refreshToken", "RefreshToken", "refresh_token"),
+    expiresIn: pick("expiresIn", "ExpiresIn", "expires_in") ?? null,
     mfaToken,
     mfaRequired: Boolean(flagged ?? (mfaToken || msgHints)),
   };
