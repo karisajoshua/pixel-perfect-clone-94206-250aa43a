@@ -1,64 +1,35 @@
-## IPEN (AfricaBima) API integration — Phase 1
+## 1. Sidebar reorder
 
-Integrate the IPEN sandbox API (`https://ipen-api-sandbox.africabima.com`) into the staff quoting workflow. Per-user IPEN login, hybrid storage (IDs kept locally, details fetched live), server-side proxy so the IPEN token never touches the browser.
+In `src/components/app-shell.tsx`, reorder the top-level `nav` array so it reads:
 
-### 1. Credentials & token storage
+1. Dashboard
+2. Clients
+3. Quotations
+4. Vehicles
+5. Policies
+6. Invoices
+7. Claims
+8. Renewals
+9. Service requests
+10. Reports
 
-- New table `public.ipen_credentials` (per user):
-  - `user_id` (PK, FK → `auth.users`)
-  - `ipen_email`, `access_token`, `refresh_token`, `token_expires_at`, `last_login_at`
-- RLS: user reads/writes only their own row. `service_role` full access. No `anon` access.
-- Add a "Connect IPEN account" panel under **Settings / Profile** where an agent enters their IPEN email + password once; on success we store the returned tokens.
-- Store the `IPEN_API_BASE_URL` as a runtime secret so we can flip sandbox → production later without a redeploy.
+(Currently Vehicles comes before Quotations, and Quotations sits after Policies.) No role changes, no route changes.
 
-### 2. Server proxy layer (`createServerFn`)
+## 2. Managers see the central client database
 
-All IPEN calls go through TanStack server functions — never called from the browser directly.
+Update the `clients` table SELECT RLS policy so managers can read every client in their agency, not just their branch. Admins already see all; agents/viewers stay branch‑scoped as today. Tenant isolation via `current_tenant_id()` is preserved.
 
-New files:
-- `src/lib/ipen/client.server.ts` — thin `fetch` wrapper: reads the caller's stored token, auto-refreshes via `/api/Auth/refresh-token` on 401, re-persists new tokens, returns typed JSON.
-- `src/lib/ipen/auth.functions.ts` — `connectIpen`, `disconnectIpen`, `ipenStatus` (login/register/logout/MFA-verify).
-- `src/lib/ipen/common.functions.ts` — cached reference data: countries, genders, identification documents, relationships, risk-class categories, motor types, vehicle makes/models, vehicle uses. Cached per-process for 12 h.
-- `src/lib/ipen/policies.functions.ts` — `generateMotorQuotes`, `getCoverOptions`, `confirmQuote`, `listPolicies`, `getPolicy`, `getProducts(riskClass)`, life-product equivalents.
-- `src/lib/ipen/claims.functions.ts` — `listClaims`, `getClaim`, `createClaim`.
-- `src/lib/ipen/payments.functions.ts` — `initiateMpesaExpress`, `confirmMpesaPayment`, `processPayment`.
+Migration replaces `clients read scope` with:
 
-All functions use `.middleware([requireSupabaseAuth])` so the calling user is known and RLS on `ipen_credentials` applies.
+- `admin` → all
+- `manager` → all (within tenant, enforced by existing `tenant_isolation` policy)
+- `viewer` → unassigned or own branch (unchanged)
+- `agent` → unassigned, own branch, or assigned to them (unchanged)
 
-### 3. M-Pesa callback (public route)
+Other tables (vehicles, policies, claims, invoices) keep their current branch scoping — the request was specifically about clients.
 
-- `src/routes/api/public/ipen/mpesa-callback.ts` — receives `ProcessExpressCallback` from IPEN, verifies a shared `IPEN_CALLBACK_SECRET` header (configured on the IPEN side), updates the local `payments`/`invoices` row that carries the proposal reference.
+## 3. Dashboard metrics stay branch‑scoped for managers
 
-### 4. UI touchpoints (staff quoting flow only)
+No change to `src/lib/dashboard.functions.ts`. It already scopes counts to the signed‑in user's `profile.branch_id` for every non‑admin (managers included), so a manager's dashboard tiles and "clients / active policies / claims / renewals" continue to reflect only their branch, even though they can now browse the full client list on `/clients`.
 
-- **Clients → new "Get IPEN Motor Quote" action** on a client detail page:
-  - Wizard: pick vehicle (from local `vehicles` or search IPEN `customer-vehicles`) → risk class → cover options → generate quotes → pick insurer/product → confirm → initiate M-Pesa STK push.
-  - On confirm we save `ipen_proposal_id` / `ipen_policy_id` onto our local `quotations` / `policies` row (hybrid model — details still fetched live).
-- **Policies list**: add an "IPEN" badge + "View live details" drawer that calls `getPolicy(ipen_policy_id)`.
-- **Claims → "File via IPEN"** button that calls `createClaim` and stores the returned `ipen_claim_id` on our `claims` row.
-- **Admin → Insurers / Reference** page: a read-only viewer of IPEN reference data so staff can confirm the sandbox is reachable.
-
-### 5. Local schema additions
-
-Add nullable columns (no data migration needed):
-- `quotations.ipen_proposal_id text`, `ipen_quote_payload jsonb`
-- `policies.ipen_policy_id text`
-- `claims.ipen_claim_id text`
-- `payments.ipen_transaction_ref text`, `ipen_checkout_request_id text`
-
-### 6. Secrets to add
-
-- `IPEN_API_BASE_URL` = `https://ipen-api-sandbox.africabima.com` (set via `set_secret`)
-- `IPEN_CALLBACK_SECRET` (generated) — verified on the M-Pesa callback route
-
-### Out of scope for this phase
-
-- Client portal surfacing IPEN data (staff-only for now).
-- Full sync/mirror job — we keep the hybrid model.
-- Life-insurance quoting UI (server functions are added, but no wizard yet).
-- Assistant, Portal/dashboard, Documents/content, Profile-photo upload endpoints.
-
-### Open items I'll confirm during build
-
-- Exact request/response shapes per endpoint (I'll pull the OpenAPI JSON at `…/openapi/v1.json` before writing each function).
-- Whether IPEN's login returns MFA challenge — if yes, the connect dialog gets an OTP step.
+Admins continue to see agency‑wide totals and the "Revenue by branch" table.
