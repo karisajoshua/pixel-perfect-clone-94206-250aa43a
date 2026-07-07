@@ -19,6 +19,9 @@ export type IpenResponse<T = any> = {
   status: number;
   data: T | null;
   error?: string;
+  /** True when the upstream IPEN service failed in a way we cannot fix
+   *  from this app (e.g. their database is missing columns, 5xx outage). */
+  upstreamOutage?: boolean;
 };
 
 function baseUrl(): string {
@@ -66,6 +69,10 @@ async function rawFetch<T>(
   }
   if (!res.ok) {
     let msg: string | null = null;
+    // Detect the specific "their DB is out of sync with their code" failure
+    // so we can surface a clear message instead of a raw stack trace.
+    const raw = typeof data === "string" ? data : JSON.stringify(data ?? "");
+    const schemaBroken = /Invalid column name/i.test(raw);
     if (data && typeof data === "object") {
       // ASP.NET ValidationProblemDetails: { title, errors: { Field: ["msg", ...] } }
       const errs = (data as any).errors;
@@ -81,11 +88,28 @@ async function rawFetch<T>(
     } else if (typeof data === "string" && data) {
       msg = data;
     }
+    if (schemaBroken) {
+      return {
+        ok: false,
+        status: res.status,
+        data,
+        upstreamOutage: true,
+        error:
+          "Ecobank/IPEN's login service is currently down (their database is missing required columns). " +
+          "This is an outage on IPEN's side — please contact IPEN support and try again once they've patched their service.",
+      };
+    }
     const fallback =
       res.status >= 500
         ? `IPEN service error (${res.status}). Please request a new OTP and try again.`
         : `IPEN ${res.status}`;
-    return { ok: false, status: res.status, data, error: msg ?? fallback };
+    return {
+      ok: false,
+      status: res.status,
+      data,
+      error: msg ?? fallback,
+      upstreamOutage: res.status >= 500,
+    };
   }
   return { ok: true, status: res.status, data: data as T };
 }
