@@ -146,3 +146,80 @@ export const ipenStatus = createServerFn({ method: "GET" })
       token_expires_at: data.token_expires_at,
     };
   });
+
+// Register a new IPEN account via /api/Auth/Register. If the response
+// returns tokens we persist them; if it returns an MFA challenge we store
+// the mfaToken so the existing MFA UI can complete verification.
+export const registerIpen = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        email: z.string().email(),
+        password: z.string().min(6),
+        confirmPassword: z.string().min(6),
+        firstName: z.string().min(1),
+        lastName: z.string().min(1),
+        phoneNumber: z.string().min(1),
+        middleName: z.string().optional(),
+        idNumber: z.string().optional(),
+        companyName: z.string().optional(),
+      })
+      .refine((v) => v.password === v.confirmPassword, {
+        message: "Passwords do not match",
+        path: ["confirmPassword"],
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const body: Record<string, unknown> = {
+      email: data.email,
+      password: data.password,
+      confirmPassword: data.confirmPassword,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phoneNumber: data.phoneNumber,
+    };
+    if (data.middleName) body.middleName = data.middleName;
+    if (data.idNumber) body.idNumber = data.idNumber;
+    if (data.companyName) body.companyName = data.companyName;
+
+    const res = await ipenPublic<any>({
+      path: "/api/Auth/Register",
+      method: "POST",
+      body,
+      noAuth: true,
+    });
+    if (!res.ok) throw new Error(res.error ?? "IPEN registration failed");
+    const t = extractTokens(res.data);
+
+    const now = new Date().toISOString();
+    const row: Record<string, unknown> = {
+      user_id: userId as string,
+      ipen_email: data.email,
+      access_token: t.accessToken ?? null,
+      refresh_token: t.refreshToken ?? null,
+      token_expires_at: t.expiresIn
+        ? new Date(Date.now() + t.expiresIn * 1000).toISOString()
+        : null,
+      mfa_token: t.mfaToken ?? null,
+      mfa_required: Boolean(t.mfaRequired),
+      last_login_at: t.accessToken ? now : null,
+    };
+    const { error } = await supabase
+      .from("ipen_credentials")
+      .upsert(row, { onConflict: "user_id" });
+    if (error) throw new Error(error.message);
+
+    return {
+      registered: true,
+      connected: Boolean(t.accessToken),
+      mfaRequired: Boolean(t.mfaRequired),
+      message: t.accessToken
+        ? "IPEN account created and connected."
+        : t.mfaRequired
+          ? "Enter the verification code sent to you."
+          : "Account created. Check your email to verify, then sign in below.",
+    };
+  });
