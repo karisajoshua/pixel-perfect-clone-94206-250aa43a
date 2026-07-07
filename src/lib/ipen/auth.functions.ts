@@ -162,7 +162,9 @@ export const registerIpen = createServerFn({ method: "POST" })
         lastName: z.string().min(1),
         phoneNumber: z.string().min(1),
         middleName: z.string().optional(),
-        idNumber: z.string().optional(),
+        idNumber: z.string().min(1),
+        identificationTypeId: z.coerce.number().int().positive(),
+        registerAs: z.string().min(1).default("Individual"),
         companyName: z.string().optional(),
       })
       .refine((v) => v.password === v.confirmPassword, {
@@ -180,16 +182,24 @@ export const registerIpen = createServerFn({ method: "POST" })
       out[k] = v;
       out[k.charAt(0).toUpperCase() + k.slice(1)] = v;
     };
-    const body: Record<string, unknown> = {};
-    dual("email", data.email, body);
-    dual("password", data.password, body);
-    dual("confirmPassword", data.confirmPassword, body);
-    dual("firstName", data.firstName, body);
-    dual("lastName", data.lastName, body);
-    dual("phoneNumber", data.phoneNumber, body);
-    dual("middleName", data.middleName, body);
-    dual("idNumber", data.idNumber, body);
-    dual("companyName", data.companyName, body);
+    const dto: Record<string, unknown> = {};
+    dual("email", data.email, dto);
+    dual("password", data.password, dto);
+    dual("confirmPassword", data.confirmPassword, dto);
+    dual("firstName", data.firstName, dto);
+    dual("lastName", data.lastName, dto);
+    dual("phoneNumber", data.phoneNumber, dto);
+    dual("middleName", data.middleName, dto);
+    dual("idNumber", data.idNumber, dto);
+    dual("identificationTypeId", data.identificationTypeId, dto);
+    dual("registerAs", data.registerAs, dto);
+    dual("companyName", data.companyName, dto);
+    // The API wraps the DTO under `registerUserDto` (case-insensitive).
+    const body: Record<string, unknown> = {
+      registerUserDto: dto,
+      RegisterUserDto: dto,
+      ...dto,
+    };
 
     const res = await ipenPublic<any>({
       path: "/api/Auth/Register",
