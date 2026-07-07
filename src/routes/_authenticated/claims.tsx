@@ -170,7 +170,19 @@ function ClaimDialog({ open, onOpenChange, initial, onSaved }: any) {
   const submit = async () => {
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
-    const payload = { ...form, third_party_details: thirdParties, created_by: u.user?.id };
+    const {
+      clients: _c,
+      policies: _p,
+      vehicles: _v,
+      id: _id,
+      created_at: _ca,
+      updated_at: _ua,
+      tenant_id: _t,
+      branch_id: _b,
+      ...rest
+    } = form ?? {};
+    const payload: any = { ...rest, third_party_details: thirdParties };
+    if (!initial?.id) payload.created_by = u.user?.id;
     const op = initial?.id
       ? supabase.from("claims").update(payload).eq("id", initial.id).select("id, status").single()
       : supabase.from("claims").insert(payload).select("id, status").single();
