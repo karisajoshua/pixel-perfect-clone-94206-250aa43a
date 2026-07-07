@@ -19,6 +19,7 @@ export type DashboardSummary = {
     revenue: number;
     share: number;
     policies: number;
+    clients: number;
     activeCoverPremium: number;
   }[];
   recentCancellations: {
