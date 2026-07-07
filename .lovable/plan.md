@@ -1,30 +1,24 @@
-## Problem
+## Simplify the IPEN OTP flow to just "enter and verify"
 
-The IPEN API is returning a “connected” style response, so the app shows the `IPEN connected` toast. But you still received an Ecobank OTP, meaning IPEN still expects verification. Because the UI only opens the OTP panel when `mfaRequired` is explicitly true, the OTP box remains hidden.
+The user already receives the Ecobank OTP. The current UI mixes "Request OTP", "IPEN password", "Resend", and duplicated forms across tabs — it's confusing. Reduce the entire OTP step to a single, obvious box: paste the code, click Verify.
 
-## Fix
+### Changes to `src/routes/_authenticated/admin.ipen.tsx`
 
-1. **Always show OTP recovery on the IPEN page**
-   - Replace the hidden/toggled OTP panel with a permanently visible section on the Connection card:
-     - IPEN password
-     - Ecobank OTP
-     - Request OTP
-     - Verify OTP
-   - This means you will not need to wait for a pop-up or hidden state.
+1. **Strip the OTP UI down to one panel** shown at the top of the Connection card whenever the user is either connected OR has an MFA challenge pending (i.e. any state where verifying an OTP makes sense):
+   - One input: `Ecobank OTP`
+   - One button: `Verify`
+   - One small helper line: `Paste the code from the Ecobank / IPEN SMS or email.`
+   - A small secondary `Resend code` link (uses existing `resendFn`) — only shown when `mfa_required` is true.
 
-2. **Open the OTP section automatically after connect/register**
-   - After any IPEN sign-in or register attempt, show the OTP section even if IPEN says “connected.”
-   - Change the toast to say: `IPEN sign-in submitted. If you received an Ecobank OTP, enter it below.`
+2. **Remove from the page:**
+   - The `IPEN password` field inside the OTP section
+   - The `Request OTP` button and `doRequestOtp` function
+   - The `otpPassword` state
+   - The duplicated OTP forms under the Sign in / Register tabs (those tabs already trigger OTP send on submit — no extra form needed there)
+   - The separate `mfaPending` branch layout; fold it into the single OTP panel
 
-3. **Make verify usable even when the app thinks it is connected**
-   - Keep the `Request OTP` button to generate a fresh OTP using your IPEN email/password.
-   - Keep `Verify OTP` using the stored MFA challenge.
-   - If there is no stored challenge, show a clear message telling you to click `Request OTP` first.
+3. **Keep unchanged:** sign-in form, register form, disconnect, test connection, all server functions. No backend changes.
 
-4. **Reduce confusion around Ecobank**
-   - Add helper text directly beside the OTP input: `The Ecobank code is the IPEN verification code.`
+### Result
 
-## Files to update
-
-- `src/routes/_authenticated/admin.ipen.tsx`
-- `src/lib/ipen/auth.functions.ts` only if needed to make the error message clearer when no MFA challenge exists.
+Whether the user just signed in, just registered, or is already "connected" but has a fresh OTP in hand, they see the same single box: **Ecobank OTP → Verify**. Nothing else to think about.
