@@ -141,6 +141,7 @@ function Dashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Branch</TableHead>
+                    <TableHead className="text-right">Clients</TableHead>
                     <TableHead className="text-right">Policies</TableHead>
                     <TableHead className="text-right">Active cover</TableHead>
                     <TableHead className="text-right">Revenue (paid)</TableHead>
@@ -151,6 +152,7 @@ function Dashboard() {
                   {data.byBranch.map((b) => (
                     <TableRow key={b.branchId ?? "unassigned"}>
                       <TableCell className="font-medium">{b.branchName}</TableCell>
+                      <TableCell className="text-right">{b.clients}</TableCell>
                       <TableCell className="text-right">{b.policies}</TableCell>
                       <TableCell className="text-right">{fmt(b.activeCoverPremium)}</TableCell>
                       <TableCell className="text-right">{fmt(b.revenue)}</TableCell>
@@ -159,6 +161,9 @@ function Dashboard() {
                   ))}
                   <TableRow className="font-semibold border-t-2">
                     <TableCell>All branches</TableCell>
+                    <TableCell className="text-right">
+                      {data.byBranch.reduce((s, b) => s + b.clients, 0)}
+                    </TableCell>
                     <TableCell className="text-right">
                       {data.byBranch.reduce((s, b) => s + b.policies, 0)}
                     </TableCell>
