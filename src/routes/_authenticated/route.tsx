@@ -21,6 +21,11 @@ export const Route = createFileRoute("/_authenticated")({
       .from("tenant_members").select("tenant_id").eq("user_id", data.user.id).maybeSingle();
     const isSuper = roles.includes("super_admin");
     if (!member && !isSuper) {
+      // Fallback: if this auth user is linked to a client record, it's a
+      // portal user — send them to /portal instead of the agency onboarding.
+      const { data: clientRow } = await supabase
+        .from("clients").select("id").eq("auth_user_id", data.user.id).maybeSingle();
+      if (clientRow) throw redirect({ to: "/portal" });
       throw redirect({ to: "/onboarding" });
     }
     return { user: data.user, roles };
