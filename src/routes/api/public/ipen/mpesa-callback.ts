@@ -72,20 +72,14 @@ export const Route = createFileRoute("/api/public/ipen/mpesa-callback")({
           }
         }
 
-        // Log for audit; failure to log must not fail the callback.
-        try {
-          await supabaseAdmin.from("audit_log").insert({
-            action: "ipen.mpesa_callback",
-            entity_type: "payment",
-            entity_id: checkoutId ?? null,
-            meta: {
-              result_code: resultCode,
-              result_desc: resultDesc,
-              mpesa_receipt: mpesaReceipt,
-              payload,
-            },
-          } as any);
-        } catch {}
+        // Log to server for observability — audit_log requires tenant scoping so
+        // we don't insert from an unauthenticated public callback.
+        console.log("[ipen.mpesa_callback]", {
+          checkoutId,
+          resultCode,
+          resultDesc,
+          mpesaReceipt,
+        });
 
         return new Response(JSON.stringify({ ok: true }), {
           status: 200,
