@@ -87,7 +87,11 @@ async function persistTokens(
   userId: string,
   tokens: { accessToken?: string; refreshToken?: string; expiresIn?: number | null },
 ): Promise<void> {
-  const patch: Record<string, unknown> = {};
+  const patch: {
+    access_token?: string;
+    refresh_token?: string;
+    token_expires_at?: string;
+  } = {};
   if (tokens.accessToken) patch.access_token = tokens.accessToken;
   if (tokens.refreshToken) patch.refresh_token = tokens.refreshToken;
   if (tokens.expiresIn) {
