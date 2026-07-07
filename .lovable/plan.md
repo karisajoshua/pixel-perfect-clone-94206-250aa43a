@@ -1,25 +1,21 @@
-## This is an upstream IPEN/Ecobank error, not a bug in this app
 
-The error comes from the IPEN backend (`Ecobank_Api_Backend.Services.OtpService`) when it tries to generate and send a new MFA code. Their SQL Server database is missing two columns on the OTP/attempts table:
+## Problem
 
-- `Purpose`
-- `Attempts`
+`/admin/ipen` hits the root error boundary ("This page didn't load / Something went wrong on our end"). The current boundary hides the actual error message and stack, so we can't tell whether the crash is coming from the recent `auth.functions.ts` / `ipen-fetch.server.ts` edits, from `ipenStatus`, or from a component render. Typecheck passes and the dev server has no errors, so it's a runtime throw happening only for the authenticated user.
 
-Stack trace confirms it happens in their code at `OtpService.cs:line 62`, called from `AuthService.LoginAsync` at `line 71`. Entity Framework is issuing a query that references columns that don't exist in their database — meaning IPEN deployed new application code without running the matching database migration on their side.
+## Plan
 
-There is nothing we can change in our TanStack app, our request payload, or our Supabase database that will fix this. The failure is 100% on the IPEN side.
+1. **Give `/admin/ipen` its own error boundary** in `src/routes/_authenticated/admin.ipen.tsx` via `errorComponent`, so a failure inside the page doesn't blank the whole app — the sidebar/shell stays, and the panel shows the error inline with a Retry button.
 
-## Proposed plan
+2. **Show the real error details in dev/preview** in `src/routes/__root.tsx` `ErrorComponent`: keep the friendly copy in production, but when running on `*.lovableproject.com` / `localhost` / `*-dev.lovable.app`, also render `error.message` and `error.stack` in a `<details>` block so the user can screenshot and share it. Production users still see the polished fallback.
 
-1. **Surface the upstream error clearly to the user** in `src/lib/ipen/auth.functions.ts` / `src/routes/_authenticated/admin.ipen.tsx`:
-   - Detect responses whose body contains `Invalid column name` (or a generic IPEN 500 during MFA send) and show a friendly message like:
-     > "Ecobank/IPEN's login service is currently failing on their side (missing database columns `Purpose` / `Attempts`). This is not something we can fix from Zest — please contact IPEN support and retry once they've patched their service."
-   - Keep the raw error in server logs (redacted) for our own diagnostics.
+3. **Harden the IPEN status query** in `admin.ipen.tsx`: add `retry: false` on the `ipenStatus` `useQuery` (matches the reference-explorer queries) and render the status error inline instead of letting an unhandled promise rejection or render throw escape. This is the most likely culprit if the recent `ipenFetch` / auth edits changed the shape of what `ipenStatus` returns for a disconnected user.
 
-2. **Do not clear the stored MFA token** for this error class — it's an upstream outage, not an expired challenge, so we shouldn't force the user to reconnect repeatedly.
+4. **After the changes ship, the user reopens `/admin/ipen`** and either the page loads, or the inline error box shows the actual message — we then know exactly what to fix.
 
-3. **Add a lightweight "IPEN status" note** on the `/admin/ipen` connect screen when the last attempt failed with an upstream 5xx, so the user knows to wait rather than keep retrying.
+No backend, schema, or business-logic changes.
 
-4. **Action for you (outside code):** open a ticket with IPEN/Ecobank quoting the error above so they run the missing EF Core migration that adds `Purpose` and `Attempts` to their OTP table.
+## Files touched
 
-No changes to Supabase schema, RLS, or business logic — this is purely error-handling/UX polish around an external outage.
+- `src/routes/_authenticated/admin.ipen.tsx` — add `errorComponent`, `retry: false` on status query.
+- `src/routes/__root.tsx` — dev-only error details block inside `ErrorComponent`.
