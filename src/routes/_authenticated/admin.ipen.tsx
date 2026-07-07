@@ -56,7 +56,6 @@ function IpenAdminPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
-  const [otpPassword, setOtpPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [authTab, setAuthTab] = useState<"signin" | "register">("signin");
   const [reg, setReg] = useState({
@@ -99,30 +98,6 @@ function IpenAdminPage() {
       await verifyFn({ data: { code } });
       toast.success("IPEN connected");
       setCode("");
-      setOtpPassword("");
-      refresh();
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const doRequestOtp = async () => {
-    const targetEmail = status?.ipen_email || email || reg.email;
-    if (!targetEmail || !otpPassword) {
-      toast.error("Enter your IPEN password first");
-      return;
-    }
-    setBusy(true);
-    try {
-      const r = await connectFn({ data: { email: targetEmail, password: otpPassword } });
-      toast.success(
-        r.mfaRequired
-          ? "OTP sent. Enter the Ecobank code below."
-          : "IPEN sign-in submitted. If you received an Ecobank OTP, enter it below.",
-      );
-      setEmail(targetEmail);
       refresh();
     } catch (e: any) {
       toast.error(e.message);
