@@ -1,64 +1,74 @@
-## 1. Clients-per-branch count
+## KRA PIN checker (lookup PIN by ID number)
 
-**`src/lib/dashboard.functions.ts`** — extend `getDashboardSummary`:
-- Fetch `clients` with `branch_id` (admin scope) or a single-branch count (non-admin) instead of the current `head:true` count.
-- Aggregate a `clientsByBranch: Map<branchId, number>` alongside the existing `polByBranch` / `revByBranch`.
-- Add `clients: number` to each `byBranch` row in the returned `DashboardSummary` type.
+The endpoint you linked (GavaConnect DTD_PINChecker) is KRA's official Enterprise API. It uses OAuth2 client-credentials — you register an app on `developer.go.ke`, receive a **client ID + client secret**, then call the PIN-by-ID endpoint with a bearer token. Same shape used by every wrapper (Salami Gateway, gavaconnect-sdk, kra-php-sdk).
 
-**`src/routes/_authenticated/dashboard.tsx`** — "Revenue by branch" table:
-- Add a `Clients` column between Branch and Policies.
-- Sum in the "All branches" total row.
+I'll wire it up end-to-end and let you paste the credentials in at the end.
 
-**`src/routes/_authenticated/admin.branches.tsx`** — branches admin table:
-- Load `clients (branch_id)` counts once (single grouped query) and render a `Clients` column next to Name/Code/Email/Phone so admins see the effect of reassignments immediately.
+## 1. Secrets (I'll request via secrets tool)
 
-No schema change needed — this is purely a read/UI update, so moving a client between branches will reflect on the next refresh.
+- `KRA_GAVACONNECT_CLIENT_ID`
+- `KRA_GAVACONNECT_CLIENT_SECRET`
+- `KRA_GAVACONNECT_BASE_URL` (default `https://api.gavaconnect.go.ke`, overridable if KRA gave you a sandbox URL)
 
-## 2. Performance pass
+## 2. Schema — one migration
 
-### Database indexes (new migration)
+Add to `public.clients`:
 
-Add btree indexes covering the hot filter/join paths used by dashboard, reports, and list pages. All are additive, safe, and small:
+- `kra_id_type text` (`national_id` | `passport` | `service_id` | `alien_id`) — remembers what we verified against
+- `kra_verified_name text` — taxpayer name returned by KRA
+- `kra_verified_at timestamptz` — verification timestamp
+- `kra_verification_status text` — `verified` | `mismatch` | `not_found` | `error`
 
-```text
-policies:      (branch_id), (status), (end_date), (client_id), (insurer_id), (created_by)
-claims:        (branch_id), (status), (client_id), (policy_id)
-clients:       (branch_id), (tenant_id), (auth_user_id)
-invoices:      (branch_id), (client_id), (status)
-payments:      (invoice_id), (paid_date)
-vehicles:      (client_id)
-quotations:    (client_id), (status)
-user_roles:    (user_id, role)     -- speeds has_role() and role checks
-profiles:      (branch_id)
-audit_log:     (entity_type, entity_id), (created_at desc)
-```
+No policy changes — inherits existing clients policies.
 
-### Server-function query shape
+## 3. Server function — `src/lib/kra.functions.ts`
 
-- `dashboard.functions.ts`: replace the full-table `select("*")` fetches used purely for counts (clients, claims-by-status, policies-by-status) with `select("id", { count: "exact", head: true })` per bucket, or a single narrow projection. Only the byBranch aggregates need row data — narrow those selects to the exact columns used (`branch_id, status, premium_gross, start_date, end_date, cancelled_at`).
-- `reports.functions.ts`: same narrowing; drop unused columns from the big `select`s.
+`checkPinByIdNumber` (createServerFn, requireSupabaseAuth):
+- Input: `{ id_number: string, id_type: 'national_id'|'passport'|'service_id'|'alien_id' }`
+- Fetch (and cache in module-scope for ~50 min) OAuth2 token via `POST {BASE_URL}/oauth2/token` with `grant_type=client_credentials`
+- Call `POST {BASE_URL}/checker/v1/pin-by-id` with `{ TaxpayerID, TaxpayerType }` (codes 1/2/3/4)
+- Normalise response to `{ pin, taxpayer_name, status, raw }`
+- Errors surface as `{ ok:false, code, message }` (never leak credentials)
 
-### Client caching / prefetch
+`savePinVerification` (admin/manager/agent role):
+- Input: `{ clientId, id_type, pin, taxpayer_name, status }`
+- Writes `kra_pin`, `kra_id_type`, `kra_verified_name`, `kra_verified_at=now()`, `kra_verification_status`
+- Writes `audit_log` row `client.kra_verified`
 
-- Bump route `staleTime` on `dashboard.tsx` and `reports.tsx` to `60_000` (and `gcTime` `5*60_000`) so navigating away and back is instant.
-- Use `context.queryClient.ensureQueryData(queryOptions)` in the route loader for dashboard + reports so data starts fetching during navigation rather than after mount.
-- Set React Query default `staleTime: 30_000` in `getRouter` so common lookup queries (branches, insurers, profiles) stop refetching on every mount.
+## 4. UI
 
-### Route data-loading cleanup
+### a) Inline in the client form (`src/components/clients/client-form-dialog.tsx`)
 
-- Convert any list page still using `useEffect` + `supabase.from(...)` to `useQuery` with a stable `queryKey` (checked during implementation; only touch pages that need it).
-- Ensure Query is invalidated on the relevant mutations only (avoid `invalidateQueries()` with no key on sign-in events — already handled in `__root.tsx`).
+- Small **ID type** Select next to the existing `id_number` field (defaults to National ID).
+- **"Check KRA PIN"** button — disabled until an ID number is entered.
+- On success: auto-fill `kra_pin`, show a green pill `Verified — <TAXPAYER NAME>` under the PIN field.
+- On mismatch (user typed a PIN that doesn't match the one returned): show amber "PIN mismatch — expected `A123456789Z`" with an **Apply KRA PIN** button.
+- On not-found / error: red inline hint with the KRA message.
+- Verification is persisted on Save (part of the existing insert/update payload).
 
-### Verification
+### b) Standalone page — `/clients/kra-checker`
 
-- `supabase--slow_queries` before and after to confirm the indexes take effect.
-- Reload dashboard + reports and check network timing drops.
+- New route `src/routes/_authenticated/clients.kra-checker.tsx` (role: admin/manager/agent).
+- ID type + ID number inputs → **Check** button → result card with KRA PIN, taxpayer name, status.
+- If the ID matches an existing client (`clients.id_number = ?`), show that client with an **"Update client"** button that calls `savePinVerification`.
+- If not, show **"Create new client with this PIN"** button that opens `ClientFormDialog` pre-filled.
+- Recent lookups list (last 20) from a lightweight in-memory query cache — no new table.
 
-## Files touched
+### c) Navigation
 
-- `src/lib/dashboard.functions.ts`
-- `src/routes/_authenticated/dashboard.tsx`
-- `src/routes/_authenticated/admin.branches.tsx`
-- `src/lib/reports.functions.ts`
-- `src/router.tsx` (default query staleTime)
-- New migration: `supabase/migrations/<ts>_perf_indexes.sql`
+- Add "KRA PIN checker" link under the Clients group in `src/components/app-shell.tsx`.
+
+## 5. Files touched
+
+- New: `src/lib/kra.functions.ts`
+- New: `src/routes/_authenticated/clients.kra-checker.tsx`
+- Edit: `src/components/clients/client-form-dialog.tsx`
+- Edit: `src/components/app-shell.tsx`
+- New migration: add KRA verification columns to `public.clients`
+- Secrets: request `KRA_GAVACONNECT_CLIENT_ID`, `KRA_GAVACONNECT_CLIENT_SECRET`, `KRA_GAVACONNECT_BASE_URL`
+
+## Assumptions to confirm (build proceeds with these unless you say otherwise)
+
+- Endpoint path is `POST /checker/v1/pin-by-id`; if KRA gave you a different path when you registered the app I'll swap it in one line.
+- Token endpoint is `POST /oauth2/token` (client-credentials, Basic auth header).
+- Only admin/manager/agent can run the lookup; portal (`client`) role cannot.
