@@ -170,8 +170,46 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
           )}
           <Field label="Full name" value={form.full_name} onChange={(v) => set("full_name", v)} required />
           {form.client_type === "corporate" && <Field label="Company name" value={form.company_name} onChange={(v) => set("company_name", v)} />}
-          <Field label="ID / Registration number" value={form.id_number} onChange={(v) => set("id_number", v)} />
-          <Field label="KRA PIN" value={form.kra_pin} onChange={(v) => set("kra_pin", v)} />
+          <div className="space-y-1.5 min-w-0">
+            <Label>ID type</Label>
+            <Select value={form.kra_id_type ?? "national_id"} onValueChange={(v) => set("kra_id_type", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="national_id">National ID</SelectItem>
+                <SelectItem value="passport">Passport</SelectItem>
+                <SelectItem value="service_id">Service ID</SelectItem>
+                <SelectItem value="alien_id">Alien ID</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5 min-w-0">
+            <Label>ID / Registration number</Label>
+            <div className="flex gap-2">
+              <Input value={form.id_number ?? ""} onChange={(e) => set("id_number", e.target.value)} />
+              <Button type="button" variant="outline" onClick={checkKra} disabled={!form.id_number || kraChecking}>
+                {kraChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Check KRA"}
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-1.5 min-w-0 sm:col-span-2">
+            <Label>KRA PIN</Label>
+            <Input value={form.kra_pin ?? ""} onChange={(e) => set("kra_pin", e.target.value)} />
+            {kraResult?.ok && (
+              <p className="flex items-center gap-1.5 text-xs text-emerald-600">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Verified — {kraResult.taxpayer_name || "Taxpayer"} ({kraResult.status})
+              </p>
+            )}
+            {kraResult && !kraResult.ok && (
+              <p className="flex items-center gap-1.5 text-xs text-destructive">
+                <AlertTriangle className="h-3.5 w-3.5" /> {kraResult.message}
+              </p>
+            )}
+            {!kraResult && form.kra_verified_name && (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Previously verified as {form.kra_verified_name}
+              </p>
+            )}
+          </div>
           <Field label="Email" type="email" value={form.email} onChange={(v) => set("email", v)} />
           <Field label="Phone" value={form.phone} onChange={(v) => set("phone", v)} />
           <Field label="Alt. phone" value={form.alt_phone} onChange={(v) => set("alt_phone", v)} />
