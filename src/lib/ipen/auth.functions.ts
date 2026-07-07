@@ -21,18 +21,19 @@ export const connectIpen = createServerFn({ method: "POST" })
     });
     if (!res.ok) throw new Error(res.error ?? "IPEN login failed");
     const t = extractTokens(res.data);
+    const mfaRequired = Boolean(t.mfaRequired || t.mfaToken);
 
     const row = {
       user_id: userId as string,
       ipen_email: data.email,
-      access_token: t.accessToken ?? null,
-      refresh_token: t.refreshToken ?? null,
-      token_expires_at: t.expiresIn
+      access_token: mfaRequired ? null : (t.accessToken ?? null),
+      refresh_token: mfaRequired ? null : (t.refreshToken ?? null),
+      token_expires_at: !mfaRequired && t.expiresIn
         ? new Date(Date.now() + t.expiresIn * 1000).toISOString()
         : null,
       mfa_token: t.mfaToken ?? null,
-      mfa_required: Boolean(t.mfaRequired),
-      last_login_at: new Date().toISOString(),
+      mfa_required: mfaRequired,
+      last_login_at: mfaRequired ? null : new Date().toISOString(),
     };
     const { error } = await supabase
       .from("ipen_credentials")
@@ -139,7 +140,7 @@ export const ipenStatus = createServerFn({ method: "GET" })
       .maybeSingle();
     if (!data) return { connected: false };
     return {
-      connected: Boolean(data.access_token),
+      connected: Boolean(data.access_token) && !data.mfa_required,
       mfa_required: data.mfa_required,
       ipen_email: data.ipen_email,
       last_login_at: data.last_login_at,
@@ -209,19 +210,20 @@ export const registerIpen = createServerFn({ method: "POST" })
     });
     if (!res.ok) throw new Error(res.error ?? "IPEN registration failed");
     const t = extractTokens(res.data);
+    const mfaRequired = Boolean(t.mfaRequired || t.mfaToken);
 
     const now = new Date().toISOString();
     const row: Record<string, unknown> = {
       user_id: userId as string,
       ipen_email: data.email,
-      access_token: t.accessToken ?? null,
-      refresh_token: t.refreshToken ?? null,
-      token_expires_at: t.expiresIn
+      access_token: mfaRequired ? null : (t.accessToken ?? null),
+      refresh_token: mfaRequired ? null : (t.refreshToken ?? null),
+      token_expires_at: !mfaRequired && t.expiresIn
         ? new Date(Date.now() + t.expiresIn * 1000).toISOString()
         : null,
       mfa_token: t.mfaToken ?? null,
-      mfa_required: Boolean(t.mfaRequired),
-      last_login_at: t.accessToken ? now : null,
+      mfa_required: mfaRequired,
+      last_login_at: !mfaRequired && t.accessToken ? now : null,
     };
     const { error } = await supabase
       .from("ipen_credentials")
@@ -230,11 +232,13 @@ export const registerIpen = createServerFn({ method: "POST" })
 
     return {
       registered: true,
-      connected: Boolean(t.accessToken),
-      mfaRequired: Boolean(t.mfaRequired),
+      connected: Boolean(t.accessToken) && !mfaRequired,
+      mfaRequired,
       message: t.accessToken
-        ? "IPEN account created and connected."
-        : t.mfaRequired
+        ? mfaRequired
+          ? "Enter the verification code sent to you."
+          : "IPEN account created and connected."
+        : mfaRequired
           ? "Enter the verification code sent to you."
           : "Account created. Check your email to verify, then sign in below.",
     };

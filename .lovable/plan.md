@@ -1,34 +1,33 @@
-## Fix IPEN Register payload — wrap in `registerUserDto` and add missing required fields
+## What this will fix
 
-The new error tells us two things:
+The OTP from Ecobank is the IPEN/Africa Bima verification code. Their backend appears to send OTP messages under an Ecobank sender/name, so the app needs to guide you to enter that code before it treats IPEN as usable.
 
-1. The endpoint expects the body **wrapped** in a `registerUserDto` object (not fields at the top level).
-2. That DTO requires additional fields we're not sending: **`registerAs`**, **`idNumber`**, **`identificationTypeId`** (in addition to the name/email/password/phone we already send).
+Right now the app can show “Connected” too early if IPEN returned a pending MFA/OTP challenge along with partial token data. That makes live quotes, reference data, policies, claims, and payments fail because the account has not finished verification.
 
-### Changes
+## Plan
 
-**1. `src/lib/ipen/auth.functions.ts`**
+1. **Correct IPEN connection status**
+   - Treat any `mfa_required` / `mfaToken` response as “verification pending,” not “connected.”
+   - Do not store usable access tokens until the OTP has been verified.
 
-- Extend the Zod input schema with the new required fields:
-  - `registerAs` (string — likely `"Individual"` or `"Corporate"`; default `"Individual"`)
-  - `idNumber` (string, required — currently optional)
-  - `identificationTypeId` (number or string — e.g. `1` for National ID)
-- Build the inner DTO with both camelCase and PascalCase keys (keep the existing `dual()` helper).
-- Wrap the DTO under a top-level `registerUserDto` / `RegisterUserDto` key before POSTing to `/api/Auth/Register`.
+2. **Show the OTP entry UI clearly**
+   - On the Admin → IPEN page, show the verification-code form whenever IPEN verification is pending.
+   - Add clear copy explaining that the Ecobank OTP is the IPEN verification code.
+   - Keep the existing Verify and Resend actions.
 
-**2. `src/components/... admin.ipen.tsx` registration form**
+3. **Prevent silent failures in live IPEN features**
+   - If a user tries live quotes/reference data/policies/claims while OTP verification is pending, return a clear message telling them to finish verification in Admin → IPEN.
+   - This avoids the current “connected but nothing works” state.
 
-- Add three new inputs to the "Create IPEN account" form:
-  - **Register as** — select: Individual / Corporate
-  - **ID number** — text input (required)
-  - **ID type** — select (National ID, Passport, Alien ID) mapped to the numeric `identificationTypeId` the API expects
-- Pass the new values into the `registerIpen` server-fn call.
+4. **Add an obvious connection test**
+   - Add a “Test connection” action on the connected IPEN card that calls a lightweight IPEN lookup and shows success or the exact failure message.
+   - This gives immediate confirmation that live IPEN calls are really working.
 
-### Open question
+5. **Current-account recovery**
+   - If your current stored IPEN connection is stuck in the wrong state, signing in again with the IPEN email/password should request a fresh OTP and move the page into the verification-code state.
 
-I'm guessing the valid values for `registerAs` (`"Individual"` / `"Corporate"`) and `identificationTypeId` (`1` = National ID, `2` = Passport, `3` = Alien) from typical Kenyan insurance schemas. If Africa Bima's docs give exact enum values/IDs, share them and I'll wire the correct constants. Otherwise I'll ship the sensible defaults above and we can adjust once the next error (if any) tells us the accepted set.
+## Files to update
 
-### Files touched
-
-- Edit: `src/lib/ipen/auth.functions.ts` — schema + wrap body in `registerUserDto`.
-- Edit: `src/routes/_authenticated/admin.ipen.tsx` — add the three new form fields.
+- `src/lib/ipen/auth.functions.ts`
+- `src/lib/ipen/ipen-fetch.server.ts`
+- `src/routes/_authenticated/admin.ipen.tsx`
