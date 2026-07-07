@@ -64,10 +64,18 @@ export const verifyIpenMfa = createServerFn({ method: "POST" })
     if (cErr) throw new Error(cErr.message);
     if (!cred) throw new Error("Sign in with your IPEN account first, then enter the OTP.");
 
-    const body: Record<string, unknown> = { code: data.code, otp: data.code };
+    const body: Record<string, unknown> = {
+      code: data.code,
+      Code: data.code,
+      otp: data.code,
+      Otp: data.code,
+      OTP: data.code,
+    };
     if (cred.mfa_token) {
       body.mfaToken = cred.mfa_token;
       body.MfaToken = cred.mfa_token;
+      body.token = cred.mfa_token;
+      body.Token = cred.mfa_token;
     }
     if (cred.ipen_email) {
       body.email = cred.ipen_email;
@@ -83,8 +91,11 @@ export const verifyIpenMfa = createServerFn({ method: "POST" })
     let lastErr: string | undefined;
     for (const path of paths) {
       res = await ipenPublic<any>({ path, method: "POST", body, noAuth: true });
+      try {
+        console.log("[ipen] verify-mfa", path, res.status, res.ok, res.error, res.data);
+      } catch {}
       if (res.ok) break;
-      lastErr = res.error;
+      lastErr = res.error ?? `IPEN ${res.status}`;
       if (res.status !== 404 && res.status !== 405) break;
     }
     if (!res || !res.ok) throw new Error(lastErr ?? "MFA verification failed");
