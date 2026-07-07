@@ -43,7 +43,18 @@ async function rawFetch<T>(
   init: RequestInit,
   query?: IpenFetchOptions["query"],
 ): Promise<IpenResponse<T>> {
-  const res = await fetch(buildUrl(path, query), init);
+  let res: Response;
+  try {
+    res = await fetch(buildUrl(path, query), init);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown network error";
+    return {
+      ok: false,
+      status: 502,
+      data: null,
+      error: `IPEN service could not be reached: ${message}`,
+    };
+  }
   const text = await res.text();
   let data: any = null;
   if (text) {
@@ -70,7 +81,11 @@ async function rawFetch<T>(
     } else if (typeof data === "string" && data) {
       msg = data;
     }
-    return { ok: false, status: res.status, data, error: msg ?? `IPEN ${res.status}` };
+    const fallback =
+      res.status >= 500
+        ? `IPEN service error (${res.status}). Please request a new OTP and try again.`
+        : `IPEN ${res.status}`;
+    return { ok: false, status: res.status, data, error: msg ?? fallback };
   }
   return { ok: true, status: res.status, data: data as T };
 }
