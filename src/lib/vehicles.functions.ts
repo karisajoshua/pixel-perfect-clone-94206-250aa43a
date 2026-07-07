@@ -143,3 +143,67 @@ export const extractLogbookFields = createServerFn({ method: "POST" })
     if (typeof out.registration_no === "string") out.registration_no = out.registration_no.toUpperCase().replace(/\s+/g, "");
     return out;
   });
+
+export const transferVehicleOwnership = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      vehicle_id: z.string().uuid(),
+      new_client_id: z.string().uuid(),
+      reason: z.string().trim().max(1000).optional(),
+    }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    // admin or manager only
+    let allowed = false;
+    for (const r of ["admin", "manager"] as const) {
+      const { data: ok } = await supabase.rpc("has_role", { _user_id: userId, _role: r });
+      if (ok) { allowed = true; break; }
+    }
+    if (!allowed) throw new Error("Forbidden: only admins and managers can transfer vehicles");
+
+    const { data: vehicle, error: vErr } = await supabase
+      .from("vehicles")
+      .select("id, client_id, notes, registration_no")
+      .eq("id", data.vehicle_id).single();
+    if (vErr || !vehicle) throw new Error(vErr?.message ?? "Vehicle not found");
+    if (vehicle.client_id === data.new_client_id) throw new Error("Vehicle is already owned by this client");
+
+    const { data: newClient, error: ncErr } = await supabase
+      .from("clients")
+      .select("id, full_name, company_name, client_type, branch_id")
+      .eq("id", data.new_client_id).single();
+    if (ncErr || !newClient) throw new Error(ncErr?.message ?? "New client not found");
+
+    const { data: oldClient } = await supabase
+      .from("clients")
+      .select("id, full_name, company_name, client_type")
+      .eq("id", vehicle.client_id).maybeSingle();
+
+    const labelOf = (c: any) => c ? (c.client_type === "corporate" ? (c.company_name ?? c.full_name) : c.full_name) : "unknown";
+    const stamp = new Date().toISOString().slice(0, 10);
+    const line = `Transferred from ${labelOf(oldClient)} to ${labelOf(newClient)} on ${stamp}${data.reason ? `: ${data.reason}` : ""}`;
+    const nextNotes = vehicle.notes ? `${vehicle.notes}\n${line}` : line;
+
+    const { error: uErr } = await supabase
+      .from("vehicles")
+      .update({ client_id: data.new_client_id, branch_id: newClient.branch_id ?? null, notes: nextNotes })
+      .eq("id", data.vehicle_id);
+    if (uErr) throw new Error(uErr.message);
+
+    await supabase.from("audit_log").insert({
+      user_id: userId,
+      action: "vehicle.transfer",
+      entity_type: "vehicle",
+      entity_id: data.vehicle_id,
+      metadata: {
+        registration_no: vehicle.registration_no,
+        from_client_id: vehicle.client_id,
+        to_client_id: data.new_client_id,
+        reason: data.reason ?? null,
+      } as any,
+    } as any);
+
+    return { ok: true };
+  });

@@ -5,12 +5,14 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Pencil, RefreshCw } from "lucide-react";
+import { ArrowLeft, Pencil, RefreshCw, Ban } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { PolicyFormDialog } from "@/components/policies/policy-form-dialog";
 import { IpenPolicyLiveDrawer } from "@/components/ipen/policy-live-drawer";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/_authenticated/policies/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: PolicyDetail });
 
@@ -20,6 +22,9 @@ function PolicyDetail() {
   const [edit, setEdit] = useState(false);
   const [renew, setRenew] = useState(false);
   const [ipenOpen, setIpenOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
 
   const { data: p, isLoading } = useQuery({
     queryKey: ["policy", id],
@@ -46,6 +51,26 @@ function PolicyDetail() {
     qc.invalidateQueries({ queryKey: ["policies"] });
   };
 
+  const submitCancel = async () => {
+    const reason = cancelReason.trim();
+    if (!reason) return toast.error("Please provide a reason for cancellation");
+    setCancelling(true);
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase.from("policies").update({
+      status: "cancelled",
+      cancellation_reason: reason,
+      cancelled_at: new Date().toISOString(),
+      cancelled_by: u.user?.id ?? null,
+    } as any).eq("id", id);
+    setCancelling(false);
+    if (error) return toast.error(error.message);
+    toast.success("Policy cancelled");
+    setCancelOpen(false); setCancelReason("");
+    qc.invalidateQueries({ queryKey: ["policy", id] });
+    qc.invalidateQueries({ queryKey: ["policies"] });
+    qc.invalidateQueries({ queryKey: ["dashboard", "summary"] });
+  };
+
   return (
     <div className="p-8 space-y-6">
       <Button asChild variant="ghost" size="sm"><Link to="/policies"><ArrowLeft className="h-4 w-4 mr-1" /> All policies</Link></Button>
@@ -60,11 +85,24 @@ function PolicyDetail() {
                 <Button variant="outline" onClick={() => setIpenOpen(true)}>View live IPEN details</Button>
               </>
             )}
+            {p.status !== "cancelled" && (
+              <Button variant="outline" onClick={() => setCancelOpen(true)}><Ban className="h-4 w-4 mr-1" /> Cancel policy</Button>
+            )}
             <Button variant="outline" onClick={() => setRenew(true)}><RefreshCw className="h-4 w-4 mr-1" /> Renew</Button>
             <Button onClick={() => setEdit(true)}><Pencil className="h-4 w-4 mr-1" /> Edit</Button>
           </div>
         }
       />
+
+      {p.status === "cancelled" && (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardHeader><CardTitle className="text-destructive text-base">Policy cancelled</CardTitle></CardHeader>
+          <CardContent className="text-sm space-y-1">
+            <div><span className="text-muted-foreground">Cancelled on:</span> {p.cancelled_at ? new Date(p.cancelled_at).toLocaleString() : "—"}</div>
+            <div><span className="text-muted-foreground">Reason:</span> {p.cancellation_reason || "—"}</div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2">
@@ -107,6 +145,20 @@ function PolicyDetail() {
       {p.ipen_policy_id && (
         <IpenPolicyLiveDrawer open={ipenOpen} onOpenChange={setIpenOpen} ipenPolicyId={String(p.ipen_policy_id)} />
       )}
+
+      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Cancel policy</DialogTitle>
+            <DialogDescription>This marks the policy as cancelled. Please give a reason — it will be recorded and shown on the dashboard.</DialogDescription>
+          </DialogHeader>
+          <Textarea rows={4} value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} placeholder="Reason for cancellation…" />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCancelOpen(false)}>Back</Button>
+            <Button variant="destructive" onClick={submitCancel} disabled={cancelling || !cancelReason.trim()}>{cancelling ? "Cancelling…" : "Confirm cancellation"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

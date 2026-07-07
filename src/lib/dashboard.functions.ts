@@ -10,6 +10,8 @@ export type DashboardSummary = {
     revenue: number;
     revenueThisMonth: number;
     activeCoverPremium: number;
+    cancelledPolicies: number;
+    cancelledThisMonth: number;
   };
   byBranch: {
     branchId: string | null;
@@ -18,6 +20,13 @@ export type DashboardSummary = {
     share: number;
     policies: number;
     activeCoverPremium: number;
+  }[];
+  recentCancellations: {
+    id: string;
+    policy_no: string;
+    client_name: string;
+    cancelled_at: string | null;
+    cancellation_reason: string | null;
   }[];
 };
 
@@ -40,7 +49,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
     const today = new Date().toISOString().slice(0, 10);
 
     const [policiesRes, claimsRes, renewalsRes, clientsRes, branchesRes, paymentsRes] = await Promise.all([
-      scope(supabase.from("policies").select("id, status, branch_id, premium_gross, start_date")),
+      scope(supabase.from("policies").select("id, status, branch_id, premium_gross, start_date, cancelled_at")),
       scope(supabase.from("claims").select("id, status, branch_id")),
       scope(supabase.from("policies").select("id", { count: "exact", head: true }).gte("end_date", today).lte("end_date", in30).eq("status", "active")),
       scope(supabase.from("clients").select("id", { count: "exact", head: true })),
@@ -59,6 +68,8 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       : paymentsRaw;
 
     const activePolicies = policies.filter((p) => p.status === "active");
+    const cancelledPolicies = policies.filter((p) => p.status === "cancelled");
+    const cancelledThisMonth = cancelledPolicies.filter((p) => p.cancelled_at && p.cancelled_at >= monthStart).length;
     const activeCoverPremium = activePolicies.reduce((s, p) => s + Number(p.premium_gross ?? 0), 0);
     const revenue = payments.reduce((s, p) => s + Number(p.amount ?? 0), 0);
     const revenueThisMonth = payments
@@ -94,6 +105,21 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       };
     }).sort((a, b) => b.activeCoverPremium - a.activeCoverPremium);
 
+    const { data: recentRaw } = await scope(
+      supabase.from("policies")
+        .select("id, policy_no, cancelled_at, cancellation_reason, clients(full_name, company_name, client_type)")
+        .eq("status", "cancelled")
+        .order("cancelled_at", { ascending: false })
+        .limit(5)
+    );
+    const recentCancellations = ((recentRaw ?? []) as any[]).map((r) => ({
+      id: r.id,
+      policy_no: r.policy_no,
+      client_name: r.clients?.client_type === "corporate" ? (r.clients?.company_name ?? r.clients?.full_name ?? "—") : (r.clients?.full_name ?? "—"),
+      cancelled_at: r.cancelled_at,
+      cancellation_reason: r.cancellation_reason,
+    }));
+
     return {
       totals: {
         clients: clientsRes.count ?? 0,
@@ -103,7 +129,10 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
         revenue,
         revenueThisMonth,
         activeCoverPremium,
+        cancelledPolicies: cancelledPolicies.length,
+        cancelledThisMonth,
       },
       byBranch,
+      recentCancellations,
     };
   });

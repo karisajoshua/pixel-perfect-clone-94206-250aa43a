@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
-import { Plus, Search, Pencil } from "lucide-react";
+import { Plus, Search, Pencil, ArrowRightLeft } from "lucide-react";
 import { VehicleFormDialog } from "@/components/vehicles/vehicle-form-dialog";
+import { TransferOwnershipDialog } from "@/components/vehicles/transfer-ownership-dialog";
+import { useMyRoles } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/vehicles")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: VehiclesList });
 
@@ -18,6 +20,9 @@ function VehiclesList() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<any>(null);
+  const [transferVehicle, setTransferVehicle] = useState<any>(null);
+  const { data: roles } = useMyRoles();
+  const canTransfer = !!roles?.some((r) => r === "admin" || r === "manager");
 
   const { data: vehicles, isLoading } = useQuery({
     queryKey: ["vehicles", search],
@@ -76,6 +81,12 @@ function VehiclesList() {
                         : <span className="text-muted-foreground">—</span>}
                     </td>
                     <td className="px-4 py-3 text-right">
+                      {canTransfer && (
+                        <Button size="sm" variant="ghost" title="Transfer ownership"
+                          onClick={() => setTransferVehicle({ id: v.id, registration_no: v.registration_no, client_id: v.client_id, currentOwnerLabel: clientName })}>
+                          <ArrowRightLeft className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button size="sm" variant="ghost" onClick={() => { setEdit(v); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                     </td>
                   </tr>
@@ -86,6 +97,12 @@ function VehiclesList() {
         </div>
       </Card>
       <VehicleFormDialog open={open} onOpenChange={setOpen} initial={edit} onSaved={() => qc.invalidateQueries({ queryKey: ["vehicles"] })} />
+      <TransferOwnershipDialog
+        open={!!transferVehicle}
+        onOpenChange={(v) => { if (!v) setTransferVehicle(null); }}
+        vehicle={transferVehicle}
+        onDone={() => qc.invalidateQueries({ queryKey: ["vehicles"] })}
+      />
     </div>
   );
 }

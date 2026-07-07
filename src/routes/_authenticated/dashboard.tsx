@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, FileText, ScrollText, BellRing, DollarSign } from "lucide-react";
+import { Users, FileText, ScrollText, BellRing, DollarSign, Ban } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { getDashboardSummary } from "@/lib/dashboard.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -41,6 +41,7 @@ function Dashboard() {
     { label: "Active policies", value: t?.activePolicies ?? "—", icon: FileText, href: "/policies" },
     { label: "Open claims", value: t?.openClaims ?? "—", icon: ScrollText, href: "/claims" },
     { label: "Due renewals (30d)", value: t?.dueRenewals ?? "—", icon: BellRing, href: "/renewals" },
+    { label: "Cancelled policies", value: t?.cancelledPolicies ?? "—", icon: Ban, href: "/policies" },
   ];
 
   return (
@@ -86,11 +87,46 @@ function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{t.value}</div>
+                {t.label === "Cancelled policies" && data?.totals && (
+                  <p className="text-xs text-muted-foreground mt-1">{data.totals.cancelledThisMonth} this month</p>
+                )}
               </CardContent>
             </Card>
           </Link>
         ))}
       </div>
+
+      <Card>
+        <CardHeader><CardTitle>Recent cancellations</CardTitle></CardHeader>
+        <CardContent>
+          {!data?.recentCancellations?.length ? (
+            <p className="text-sm text-muted-foreground">No cancelled policies.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Policy</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Cancelled</TableHead>
+                  <TableHead>Reason</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.recentCancellations.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-mono">
+                      <Link to="/policies/$id" params={{ id: r.id }} className="hover:underline">{r.policy_no}</Link>
+                    </TableCell>
+                    <TableCell>{r.client_name}</TableCell>
+                    <TableCell>{r.cancelled_at ? new Date(r.cancelled_at).toLocaleDateString() : "—"}</TableCell>
+                    <TableCell className="max-w-md truncate" title={r.cancellation_reason ?? ""}>{r.cancellation_reason ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       {isAdmin && (
         <Card>
