@@ -1,52 +1,39 @@
-## Problem
+## Goal
 
-When a client signs in with the generated portal credentials, they land on the agency onboarding wizard instead of the client portal.
+Let admins and managers view (and reset) the portal login for any client that already has one — directly from the client detail page.
 
-Root cause: a RESTRICTIVE policy on `user_roles` (migration `20260705114247…`) requires the row's user profile to share the current tenant. Client users don't belong to a tenant, so `select role from user_roles` returns **zero rows** for them. In `src/routes/index.tsx` and `src/routes/_authenticated/route.tsx` the redirect logic then sees "no client role, no tenant membership, not super admin" and sends them to `/onboarding`.
+## UX
 
-## Fix
+On `src/routes/_authenticated/clients.$id.tsx`, when `client.auth_user_id` exists, replace the current "no portal button" state with a **"View portal login"** button (visible to admin + manager). Clicking opens a dialog showing:
 
-Two small, targeted changes — no business-logic changes elsewhere.
+- Login identifier: the client's `phone` (preferred) or `email`, with a copy button
+- Portal URL with copy button
+- A **"Reset password"** button that generates a new temporary password, shows it once (reusing existing `CredentialsDialog` reveal UI), and invalidates the old one
+- "Copy all" button (same format as generation flow)
 
-### 1. Migration: let users read their own roles
+No stored/retrievable password — matches Supabase auth's hashed-only model.
 
-Amend the restrictive policy on `public.user_roles` so a user can always see their own row, while preserving tenant isolation for viewing other users' roles.
+## Backend
 
-```sql
-DROP POLICY IF EXISTS user_roles_tenant_isolation ON public.user_roles;
-CREATE POLICY user_roles_tenant_isolation ON public.user_roles
-  AS RESTRICTIVE FOR ALL TO authenticated
-  USING (
-    public.is_super_admin()
-    OR user_roles.user_id = auth.uid()
-    OR EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.id = user_roles.user_id
-        AND p.tenant_id = public.current_tenant_id()
-    )
-  )
-  WITH CHECK (
-    public.is_super_admin()
-    OR EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.id = user_roles.user_id
-        AND p.tenant_id = public.current_tenant_id()
-    )
-  );
-```
+New server function in `src/lib/admin-users.functions.ts`:
 
-WITH CHECK stays strict so no one can grant themselves a role outside their tenant.
+- `getClientPortalInfo({ client_id })` — admin/manager only. Returns `{ email, phone, has_login: boolean }` derived from `clients.auth_user_id` + auth user lookup. No password.
+- `resetClientPortalPassword({ client_id })` — admin/manager only. Verifies the client has an `auth_user_id` and role `client`, generates a new password via existing `generatePassword`, calls `supabaseAdmin.auth.admin.updateUserById(uid, { password })`, writes an `audit_log` entry (`client.portal_password_reset`), and returns `{ email, phone, password }` shaped like `PortalCreds` so the existing `CredentialsDialog` renders it.
 
-### 2. Defensive fallback in the post-sign-in redirect
+Both reuse `assertAdminOrManager`.
 
-In `src/routes/index.tsx` (both the `useEffect` session check and the `signIn` handler) and in `src/routes/_authenticated/route.tsx` `beforeLoad`, after fetching roles/membership, if the user has no roles and no tenant membership, look up `clients` by `auth_user_id = uid`. If a client row exists → redirect to `/portal`. Only if that also fails → `/onboarding`.
+## Frontend
 
-This guarantees that even if role reads are ever blocked again, existing client accounts still route correctly.
+`src/routes/_authenticated/clients.$id.tsx`:
 
-Only agency signups (created via `/` → "Create account" tab) — who have no linked client record and no tenant membership — will reach `/onboarding`.
+- Add a "View portal login" button next to "Generate portal login" (mutually exclusive based on `client.auth_user_id`).
+- New small `PortalLoginDialog` (inline or new file `src/components/clients/portal-login-dialog.tsx`) that fetches `getClientPortalInfo` and shows identifier + reset button. On reset confirm, calls `resetClientPortalPassword` and pipes result into the existing `CredentialsDialog` to reveal the new password.
+- Confirm prompt before reset: "This will invalidate the client's current password."
 
-## Files touched
+No changes to generation flow or `client-form-dialog.tsx`.
 
-- `supabase/migrations/<new timestamp>_client_can_read_own_role.sql` (new)
-- `src/routes/index.tsx`
-- `src/routes/_authenticated/route.tsx`
+## Files
+
+- `src/lib/admin-users.functions.ts` — add two server functions
+- `src/routes/_authenticated/clients.$id.tsx` — new button + dialog wiring
+- `src/components/clients/portal-login-dialog.tsx` — new component

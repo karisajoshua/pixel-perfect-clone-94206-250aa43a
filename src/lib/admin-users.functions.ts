@@ -107,6 +107,67 @@ export const createClientPortalAccount = createServerFn({ method: "POST" })
     return { email, phone, password, linked: false };
   });
 
+export const getClientPortalInfo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ client_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdminOrManager(supabase, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: client, error } = await supabaseAdmin
+      .from("clients")
+      .select("id, email, phone, auth_user_id")
+      .eq("id", data.client_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!client) throw new Error("Client not found");
+    if (!client.auth_user_id) return { has_login: false, email: null, phone: null };
+
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(client.auth_user_id);
+    const email = authUser?.user?.email ?? client.email ?? null;
+    const rawPhone = authUser?.user?.phone ? "+" + String(authUser.user.phone).replace(/\D/g, "") : null;
+    const phone = rawPhone ?? client.phone ?? null;
+    return { has_login: true, email, phone };
+  });
+
+export const resetClientPortalPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ client_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdminOrManager(supabase, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: client, error } = await supabaseAdmin
+      .from("clients")
+      .select("id, email, phone, auth_user_id")
+      .eq("id", data.client_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!client) throw new Error("Client not found");
+    if (!client.auth_user_id) throw new Error("This client has no portal login yet");
+
+    const password = generatePassword(14);
+    const { error: uErr } = await supabaseAdmin.auth.admin.updateUserById(client.auth_user_id, { password });
+    if (uErr) throw new Error(uErr.message);
+
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(client.auth_user_id);
+    const email = authUser?.user?.email ?? client.email ?? null;
+    const rawPhone = authUser?.user?.phone ? "+" + String(authUser.user.phone).replace(/\D/g, "") : null;
+    const phone = rawPhone ?? client.phone ?? null;
+
+    await (supabaseAdmin.from("audit_log") as any).insert({
+      user_id: userId,
+      action: "client.portal_password_reset",
+      entity_type: "clients",
+      entity_id: client.id,
+      metadata: {},
+    });
+
+    return { email, phone, password, linked: false };
+  });
+
 export const updateUserProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { userId: string; fullName?: string | null; email?: string | null; phone?: string | null }) => d)
