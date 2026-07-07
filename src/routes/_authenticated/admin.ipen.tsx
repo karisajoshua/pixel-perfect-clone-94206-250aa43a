@@ -106,7 +106,7 @@ function IpenAdminPage() {
     <div className="space-y-6 p-4 md:p-8">
       <PageHeader
         title="IPEN integration"
-        description="Connect your Africa Bima / IPEN account to fetch live quotes, policies, claims, and process M-Pesa payments."
+        subtitle="Connect your Africa Bima / IPEN account to fetch live quotes, policies, claims, and process M-Pesa payments."
       />
 
       <Card>
