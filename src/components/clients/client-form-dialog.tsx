@@ -13,6 +13,8 @@ import { createClientPortalAccount } from "@/lib/admin-users.functions";
 import { Copy } from "lucide-react";
 import { normalizePhone } from "@/lib/phone";
 import { useMyRoles } from "@/hooks/use-auth";
+import { checkPinByIdNumber, type KraIdType } from "@/lib/kra.functions";
+import { CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 
 export type PortalCreds = {
   email: string | null;
@@ -36,15 +38,54 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
   const portalFn = useServerFn(createClientPortalAccount);
   const { data: roles } = useMyRoles();
   const isAdmin = (roles ?? []).includes("admin");
+  const kraFn = useServerFn(checkPinByIdNumber);
+  const [kraChecking, setKraChecking] = useState(false);
+  const [kraResult, setKraResult] = useState<
+    | { ok: true; pin: string; taxpayer_name: string; status: string }
+    | { ok: false; message: string }
+    | null
+  >(null);
 
   useEffect(() => {
     if (open) {
       setForm(initial ?? { client_type: "individual" });
       supabase.from("branches").select("id, name").order("name").then(({ data }) => setBranches(data ?? []));
+      setKraResult(null);
     }
   }, [open, initial]);
 
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
+
+  const checkKra = async () => {
+    if (!form.id_number) return;
+    setKraChecking(true);
+    setKraResult(null);
+    try {
+      const r = await kraFn({
+        data: {
+          id_number: String(form.id_number).trim(),
+          id_type: (form.kra_id_type as KraIdType) ?? "national_id",
+        },
+      });
+      if (r.ok) {
+        setKraResult({ ok: true, pin: r.pin, taxpayer_name: r.taxpayer_name, status: r.status });
+        setForm((f: any) => ({
+          ...f,
+          kra_pin: r.pin,
+          kra_id_type: r.id_type,
+          kra_verified_name: r.taxpayer_name,
+          kra_verification_status: "verified",
+          kra_verified_at: new Date().toISOString(),
+        }));
+      } else {
+        setKraResult({ ok: false, message: r.message });
+      }
+    } catch (e: any) {
+      setKraResult({ ok: false, message: e?.message ?? "Lookup failed" });
+    } finally {
+      setKraChecking(false);
+    }
+  };
 
   const submit = async () => {
     setSaving(true);
@@ -55,6 +96,10 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
       company_name: form.company_name ?? null,
       id_number: form.id_number ?? null,
       kra_pin: form.kra_pin ?? null,
+      kra_id_type: form.kra_id_type ?? null,
+      kra_verified_name: form.kra_verified_name ?? null,
+      kra_verification_status: form.kra_verification_status ?? null,
+      kra_verified_at: form.kra_verified_at ?? null,
       email: form.email ?? null,
       phone: normalizePhone(form.phone) ?? form.phone ?? null,
       alt_phone: normalizePhone(form.alt_phone) ?? form.alt_phone ?? null,
