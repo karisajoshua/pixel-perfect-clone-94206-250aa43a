@@ -54,10 +54,23 @@ async function rawFetch<T>(
     }
   }
   if (!res.ok) {
-    const msg =
-      (data && typeof data === "object" && (data.message || data.title || data.error)) ||
-      (typeof data === "string" ? data : `IPEN ${res.status}`);
-    return { ok: false, status: res.status, data, error: String(msg) };
+    let msg: string | null = null;
+    if (data && typeof data === "object") {
+      // ASP.NET ValidationProblemDetails: { title, errors: { Field: ["msg", ...] } }
+      const errs = (data as any).errors;
+      if (errs && typeof errs === "object") {
+        const parts: string[] = [];
+        for (const [field, val] of Object.entries(errs)) {
+          const items = Array.isArray(val) ? val : [val];
+          parts.push(`${field}: ${items.join(" ")}`);
+        }
+        if (parts.length) msg = parts.join("; ");
+      }
+      if (!msg) msg = (data as any).message || (data as any).title || (data as any).error || null;
+    } else if (typeof data === "string" && data) {
+      msg = data;
+    }
+    return { ok: false, status: res.status, data, error: msg ?? `IPEN ${res.status}` };
   }
   return { ok: true, status: res.status, data: data as T };
 }
