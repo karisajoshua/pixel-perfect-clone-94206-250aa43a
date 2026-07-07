@@ -204,7 +204,23 @@ function IpenAdminPage() {
             actions.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          <OtpBox
+            code={code}
+            setCode={setCode}
+            onVerify={doVerify}
+            busy={busy || isLoading}
+            showResend={Boolean(mfaPending)}
+            onResend={async () => {
+              try {
+                await resendFn();
+                toast.success("Code re-sent");
+              } catch (e: any) {
+                toast.error(e.message);
+              }
+            }}
+          />
+
           {isLoading ? (
             <div className="text-sm text-muted-foreground">Loading status…</div>
           ) : connected ? (
@@ -227,39 +243,7 @@ function IpenAdminPage() {
                   Test connection
                 </Button>
               </div>
-
-              <OtpBox
-                code={code}
-                setCode={setCode}
-                onVerify={doVerify}
-                busy={busy}
-                showResend={Boolean(mfaPending)}
-                onResend={async () => {
-                  try {
-                    await resendFn();
-                    toast.success("Code re-sent");
-                  } catch (e: any) {
-                    toast.error(e.message);
-                  }
-                }}
-              />
             </div>
-          ) : mfaPending ? (
-            <OtpBox
-              code={code}
-              setCode={setCode}
-              onVerify={doVerify}
-              busy={busy}
-              showResend
-              onResend={async () => {
-                try {
-                  await resendFn();
-                  toast.success("Code re-sent");
-                } catch (e: any) {
-                  toast.error(e.message);
-                }
-              }}
-            />
           ) : (
             <Tabs value={authTab} onValueChange={(v) => setAuthTab(v as "signin" | "register")}>
               <TabsList>
