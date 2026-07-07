@@ -19,7 +19,10 @@ export const connectIpen = createServerFn({ method: "POST" })
       body: { email: data.email, password: data.password },
       noAuth: true,
     });
-    if (!res.ok) throw new Error(res.error ?? "IPEN login failed");
+    if (!res.ok) {
+      // Preserve the friendly upstream-outage message from rawFetch verbatim.
+      throw new Error(res.error ?? "IPEN login failed");
+    }
     try {
       const redact = (value: any): any => {
         if (Array.isArray(value)) return value.map(redact);
