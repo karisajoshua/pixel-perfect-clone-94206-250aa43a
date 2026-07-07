@@ -80,6 +80,7 @@ type CredRow = {
   access_token: string | null;
   refresh_token: string | null;
   token_expires_at: string | null;
+  mfa_required: boolean | null;
 };
 
 async function loadCredentials(
@@ -88,7 +89,7 @@ async function loadCredentials(
 ): Promise<CredRow | null> {
   const { data, error } = await supabase
     .from("ipen_credentials")
-    .select("user_id, access_token, refresh_token, token_expires_at")
+    .select("user_id, access_token, refresh_token, token_expires_at, mfa_required")
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -159,6 +160,14 @@ export async function ipenFetch<T = any>(
   }
 
   const creds = await loadCredentials(supabase, userId);
+  if (creds?.mfa_required) {
+    return {
+      ok: false,
+      status: 401,
+      data: null,
+      error: "IPEN verification pending. Enter the OTP from Ecobank in Admin → IPEN to finish connecting.",
+    };
+  }
   if (!creds?.access_token) {
     return {
       ok: false,

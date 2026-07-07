@@ -46,6 +46,7 @@ function IpenAdminPage() {
   const resendFn = useServerFn(resendIpenMfa);
   const disconnectFn = useServerFn(disconnectIpen);
   const registerFn = useServerFn(registerIpen);
+  const testConnectionFn = useServerFn(listCountries);
 
   const { data: status, isLoading } = useQuery({
     queryKey: ["ipen-status"],
@@ -115,6 +116,19 @@ function IpenAdminPage() {
     }
   };
 
+  const doTestConnection = async () => {
+    setBusy(true);
+    try {
+      const result = await testConnectionFn();
+      const rows = Array.isArray(result) ? result : (result?.data ?? result?.items ?? []);
+      toast.success(`IPEN live connection working${Array.isArray(rows) ? ` (${rows.length} countries)` : ""}`);
+    } catch (e: any) {
+      toast.error(e.message ?? "IPEN connection test failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const doRegister = async () => {
     if (reg.password !== reg.confirmPassword) {
       toast.error("Passwords do not match");
@@ -162,7 +176,7 @@ function IpenAdminPage() {
   };
 
   const connected = status?.connected;
-  const mfaPending = status?.mfa_required && !connected;
+  const mfaPending = status?.mfa_required;
 
   return (
     <div className="space-y-6 p-4 md:p-8">
@@ -199,12 +213,19 @@ function IpenAdminPage() {
               <Button variant="outline" size="sm" onClick={doDisconnect} disabled={busy}>
                 Disconnect
               </Button>
+              <Button variant="outline" size="sm" onClick={doTestConnection} disabled={busy}>
+                {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Test connection
+              </Button>
             </div>
           ) : mfaPending ? (
             <div className="space-y-3">
               <p className="text-sm">
-                A verification code was sent to <strong>{status?.ipen_email}</strong>. Enter it below
-                to finish signing in.
+                A verification code was sent to <strong>{status?.ipen_email}</strong>. Enter the OTP
+                below to finish connecting IPEN.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                IPEN may send this code from Ecobank or Ecobank.Api.Backend. Use that OTP here.
               </p>
               <div className="flex flex-wrap items-end gap-2">
                 <div className="grid gap-1.5">
