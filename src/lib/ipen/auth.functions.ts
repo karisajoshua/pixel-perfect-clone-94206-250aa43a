@@ -132,6 +132,11 @@ export const verifyIpenMfa = createServerFn({ method: "POST" })
       } catch {}
       if (res.ok) break;
       lastErr = res.error ?? `IPEN ${res.status}`;
+      // Upstream outage (5xx, schema-broken, network) — do NOT clear the
+      // stored mfa_token; user will just retry once IPEN recovers.
+      if ((res as any).upstreamOutage) {
+        throw new Error(lastErr);
+      }
       const expired = /expired|invalid|challenge|mfa/i.test(lastErr);
       if (expired) {
         await supabase
