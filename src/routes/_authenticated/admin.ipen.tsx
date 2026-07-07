@@ -228,85 +228,38 @@ function IpenAdminPage() {
                 </Button>
               </div>
 
-              <div className="space-y-3 border-t pt-4">
-                <p className="text-sm">
-                  Use the OTP sent by Ecobank to finish IPEN verification. The Ecobank code is the
-                  IPEN verification code.
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  If this code is from an older attempt, enter your IPEN password first to request a
-                  fresh OTP.
-                </p>
-                <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="connected-otp-password">IPEN password</Label>
-                    <Input
-                      id="connected-otp-password"
-                      type="password"
-                      autoComplete="new-password"
-                      value={otpPassword}
-                      onChange={(e) => setOtpPassword(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="connected-mfa">Ecobank OTP</Label>
-                    <Input
-                      id="connected-mfa"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={doRequestOtp} disabled={busy || !otpPassword}>
-                      {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Request OTP
-                    </Button>
-                    <Button onClick={doVerify} disabled={busy || !code}>
-                      Verify OTP
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              <OtpBox
+                code={code}
+                setCode={setCode}
+                onVerify={doVerify}
+                busy={busy}
+                showResend={Boolean(mfaPending)}
+                onResend={async () => {
+                  try {
+                    await resendFn();
+                    toast.success("Code re-sent");
+                  } catch (e: any) {
+                    toast.error(e.message);
+                  }
+                }}
+              />
             </div>
           ) : mfaPending ? (
-            <div className="space-y-3">
-              <p className="text-sm">
-                A verification code was sent to <strong>{status?.ipen_email}</strong>. Enter the OTP
-                below to finish connecting IPEN.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                IPEN may send this code from Ecobank or Ecobank.Api.Backend. Use that OTP here.
-              </p>
-              <div className="flex flex-wrap items-end gap-2">
-                <div className="grid gap-1.5">
-                  <Label htmlFor="mfa">Verification code</Label>
-                  <Input
-                    id="mfa"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    className="w-40"
-                  />
-                </div>
-                <Button onClick={doVerify} disabled={busy || !code}>
-                  {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Verify
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      await resendFn();
-                      toast.success("Code re-sent");
-                    } catch (e: any) {
-                      toast.error(e.message);
-                    }
-                  }}
-                  disabled={busy}
-                >
-                  Resend
-                </Button>
-              </div>
-            </div>
+            <OtpBox
+              code={code}
+              setCode={setCode}
+              onVerify={doVerify}
+              busy={busy}
+              showResend
+              onResend={async () => {
+                try {
+                  await resendFn();
+                  toast.success("Code re-sent");
+                } catch (e: any) {
+                  toast.error(e.message);
+                }
+              }}
+            />
           ) : (
             <Tabs value={authTab} onValueChange={(v) => setAuthTab(v as "signin" | "register")}>
               <TabsList>
