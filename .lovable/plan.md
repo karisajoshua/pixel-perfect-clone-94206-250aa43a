@@ -1,23 +1,38 @@
-## Changes
+## 1. Vehicle ownership transfer
 
-### 1. Quotation dialog — Third-party fixed premium (`src/routes/_authenticated/quotations.tsx`)
+**UI** (`src/routes/_authenticated/vehicles.tsx` + new `TransferOwnershipDialog`):
+- Add a "Transfer" action (row action + on vehicle edit dialog) visible to admin/manager only.
+- Dialog shows current owner, a searchable client typeahead (same pattern as vehicle form), and an optional "Reason / notes" field.
+- On confirm: update `vehicles.client_id` to new client (branch_id also updated to new client's branch if set). Append a note line like `Transferred from <old> to <new> on <date>: <reason>` into `vehicles.notes`.
+- Audit log entry via existing `audit_log` table (insert action `vehicle.transfer`).
 
-Comprehensive uses `sum_insured × rate %`, but Third Party and TPFT are typically flat premiums with no sum insured. Update `QuoteDialog` so when `cover_type` is `third_party` or `third_party_fire_theft`:
+**Backend** — new server fn `transferVehicleOwnership` in `src/lib/vehicles.functions.ts` using `requireSupabaseAuth`, restricted to admin/manager via `has_role`. Does the update + audit insert.
 
-- Hide the Sum insured and Rate % inputs.
-- Show a single "Premium (KES)" input bound to a new `line_items.flat_premium` field.
-- Recompute totals: `basePremium = flat_premium`, `benefitPremium = 0` (benefits section also hidden for third-party since it's sum-insured-based), `levies = premiumGross × 0.0045 + 40`, `total = premiumGross + levies`.
-- Persist `premium_gross = flat_premium`, `premium_net = flat_premium`, `sum_insured = null`, `line_items = { flat_premium, levies }`.
+Note: existing policies keep their original `client_id` (historical accuracy); only the vehicle record moves. This is called out in the dialog copy.
 
-Comprehensive behavior stays exactly as it is today.
+## 2. Policy cancellation with reason
 
-### 2. Vehicle dialog — Searchable client (`src/components/vehicles/vehicle-form-dialog.tsx`)
+**Schema migration**:
+- Add `cancelled_at timestamptz`, `cancellation_reason text`, `cancelled_by uuid` to `public.policies`.
+- Extend allowed `status` values to include `cancelled` (status is free text today, no CHECK — nothing to alter, just start using it).
 
-Replace the client `<Select>` (only shown when `lockedClient` is null) with the same searchable typeahead pattern already used in `QuoteDialog`:
+**UI** (`src/routes/_authenticated/policies.$id.tsx`):
+- Add "Cancel policy" button (admin/manager/agent, only when status is not already `cancelled`).
+- Dialog: required textarea for reason, confirm button.
+- Sets `status='cancelled'`, `cancelled_at=now()`, `cancellation_reason`, `cancelled_by=auth.uid()`.
+- Show cancellation info block on the detail page when cancelled.
 
-- Text input with client name; dropdown of up to 8 matches filtered by typed text.
-- Selecting a suggestion sets `form.client_id`.
-- Unlike the quote dialog, this does NOT auto-create a new client — Save stays disabled until an existing client is picked (matches current required-client behavior).
-- Locked-client mode (when opened from a client detail page) remains a read-only input, unchanged.
+## 3. Dashboard surfacing
 
-No schema changes, no other files touched.
+**Backend** (`src/lib/dashboard.functions.ts`):
+- Add to `totals`: `cancelledPolicies` count and `cancelledThisMonth` count (scoped same as other metrics).
+- Add `recentCancellations`: last 5 cancelled policies with `policy_no`, client name, `cancelled_at`, `cancellation_reason`.
+
+**UI** (`src/routes/_authenticated/dashboard.tsx`):
+- New tile "Cancelled policies" alongside existing tiles.
+- New card "Recent cancellations" listing the 5 most recent with reason (admin/manager visible).
+
+## Technical notes
+- Migration file adds three columns to `policies`; no CHECK constraints; existing RLS covers writes.
+- No changes to types file needed by hand — regenerated post-migration.
+- Roles are checked both server-side (server fn) and client-side (button visibility) using existing `useMyRoles` / `has_role`.
