@@ -64,6 +64,8 @@ function IpenAdminPage() {
     email: "",
     phoneNumber: "",
     idNumber: "",
+    identificationTypeId: "1",
+    registerAs: "Individual",
     companyName: "",
     password: "",
     confirmPassword: "",
@@ -127,7 +129,9 @@ function IpenAdminPage() {
           lastName: reg.lastName,
           email: reg.email,
           phoneNumber: reg.phoneNumber,
-          idNumber: reg.idNumber || undefined,
+          idNumber: reg.idNumber,
+          identificationTypeId: Number(reg.identificationTypeId),
+          registerAs: reg.registerAs,
           companyName: reg.companyName || undefined,
           password: reg.password,
           confirmPassword: reg.confirmPassword,
@@ -142,6 +146,8 @@ function IpenAdminPage() {
         email: "",
         phoneNumber: "",
         idNumber: "",
+        identificationTypeId: "1",
+        registerAs: "Individual",
         companyName: "",
         password: "",
         confirmPassword: "",
@@ -313,12 +319,37 @@ function IpenAdminPage() {
                     />
                   </div>
                   <div className="grid gap-1.5">
-                    <Label htmlFor="reg-id">ID number (optional)</Label>
+                    <Label htmlFor="reg-id">ID number</Label>
                     <Input
                       id="reg-id"
                       value={reg.idNumber}
                       onChange={(e) => setReg({ ...reg, idNumber: e.target.value })}
                     />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="reg-idtype">ID type</Label>
+                    <select
+                      id="reg-idtype"
+                      className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                      value={reg.identificationTypeId}
+                      onChange={(e) => setReg({ ...reg, identificationTypeId: e.target.value })}
+                    >
+                      <option value="1">National ID</option>
+                      <option value="2">Passport</option>
+                      <option value="3">Alien ID</option>
+                    </select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="reg-as">Register as</Label>
+                    <select
+                      id="reg-as"
+                      className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                      value={reg.registerAs}
+                      onChange={(e) => setReg({ ...reg, registerAs: e.target.value })}
+                    >
+                      <option value="Individual">Individual</option>
+                      <option value="Corporate">Corporate</option>
+                    </select>
                   </div>
                   <div className="grid gap-1.5 sm:col-span-3">
                     <Label htmlFor="reg-co">Company (optional)</Label>
@@ -358,6 +389,7 @@ function IpenAdminPage() {
                       !reg.lastName ||
                       !reg.email ||
                       !reg.phoneNumber ||
+                      !reg.idNumber ||
                       !reg.password ||
                       !reg.confirmPassword
                     }
