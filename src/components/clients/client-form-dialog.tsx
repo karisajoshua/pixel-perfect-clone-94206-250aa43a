@@ -164,6 +164,23 @@ export function CredentialsDialog({ creds, onClose }: { creds: PortalCreds | nul
   const copy = (text: string) => { navigator.clipboard.writeText(text); toast.success("Copied"); };
   const identifier = creds?.phone || creds?.email || "";
   const identifierLabel = creds?.phone ? "Phone" : "Email";
+
+  const copyAll = () => {
+    if (!creds) return;
+    const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/portal` : "https://app.zestinsurance.co.ke/portal";
+    const lines = [
+      "Your Zest Insurance portal login details:",
+      "",
+      `Login link: ${portalUrl}`,
+      ...(creds.phone ? [`Phone: ${creds.phone}`] : []),
+      ...(creds.email ? [`Email: ${creds.email}`] : []),
+      ...(creds.password ? [`Temporary password: ${creds.password}`] : []),
+      "",
+      "Please keep this information secure and change your password after signing in.",
+    ];
+    copy(lines.join("\n"));
+  };
+
   return (
     <Dialog open={!!creds} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
@@ -172,7 +189,12 @@ export function CredentialsDialog({ creds, onClose }: { creds: PortalCreds | nul
           <p className="text-sm text-muted-foreground">An existing account was found and linked to this client. They can log in with their existing password.</p>
         ) : (
           <div className="space-y-3 text-sm">
-            <p className="text-muted-foreground">Share these credentials with the client. They can sign in with either their phone or email. The password is shown only once.</p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-muted-foreground">Share these credentials with the client. They can sign in with either their phone or email. The password is shown only once.</p>
+              <Button variant="outline" size="sm" className="shrink-0" onClick={copyAll}>
+                <Copy className="h-4 w-4 mr-1" /> Copy all
+              </Button>
+            </div>
             <div className="space-y-1.5">
               <Label>{identifierLabel}</Label>
               <div className="flex gap-2"><Input readOnly value={identifier} /><Button variant="outline" size="icon" onClick={() => copy(identifier)}><Copy className="h-4 w-4" /></Button></div>
