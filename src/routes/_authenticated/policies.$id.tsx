@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Pencil, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { PolicyFormDialog } from "@/components/policies/policy-form-dialog";
+import { IpenPolicyLiveDrawer } from "@/components/ipen/policy-live-drawer";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/policies/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: PolicyDetail });
@@ -17,6 +19,7 @@ function PolicyDetail() {
   const qc = useQueryClient();
   const [edit, setEdit] = useState(false);
   const [renew, setRenew] = useState(false);
+  const [ipenOpen, setIpenOpen] = useState(false);
 
   const { data: p, isLoading } = useQuery({
     queryKey: ["policy", id],
@@ -51,6 +54,12 @@ function PolicyDetail() {
         subtitle={`${clientName} • ${p.product_class} • ${p.cover_type}`}
         actions={
           <div className="flex gap-2">
+            {p.ipen_policy_id && (
+              <>
+                <Badge variant="secondary" className="self-center">IPEN</Badge>
+                <Button variant="outline" onClick={() => setIpenOpen(true)}>View live IPEN details</Button>
+              </>
+            )}
             <Button variant="outline" onClick={() => setRenew(true)}><RefreshCw className="h-4 w-4 mr-1" /> Renew</Button>
             <Button onClick={() => setEdit(true)}><Pencil className="h-4 w-4 mr-1" /> Edit</Button>
           </div>
@@ -95,6 +104,9 @@ function PolicyDetail() {
         qc.invalidateQueries({ queryKey: ["policies"] });
         if (newId) toast.success("Renewal policy created");
       }} />
+      {p.ipen_policy_id && (
+        <IpenPolicyLiveDrawer open={ipenOpen} onOpenChange={setIpenOpen} ipenPolicyId={String(p.ipen_policy_id)} />
+      )}
     </div>
   );
 }
