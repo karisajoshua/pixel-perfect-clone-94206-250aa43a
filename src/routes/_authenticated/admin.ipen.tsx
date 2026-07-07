@@ -36,7 +36,36 @@ export const Route = createFileRoute("/_authenticated/admin/ipen")({
   beforeLoad: requireRole(["admin", "manager", "agent"]),
   head: () => ({ meta: [{ title: "IPEN integration" }] }),
   component: IpenAdminPage,
+  errorComponent: IpenRouteError,
 });
+
+function IpenRouteError({ error, reset }: { error: Error; reset: () => void }) {
+  const isDev =
+    typeof window !== "undefined" &&
+    /localhost|lovableproject\.com|-dev\.lovable\.app/.test(window.location.hostname);
+  return (
+    <div className="space-y-4 p-4 md:p-8">
+      <PageHeader title="IPEN integration" subtitle="This panel hit an error while loading." />
+      <Card>
+        <CardHeader>
+          <CardTitle>Couldn't load the IPEN panel</CardTitle>
+          <CardDescription>{error?.message ?? "Unknown error"}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button onClick={() => reset()}>Try again</Button>
+          {isDev && error?.stack && (
+            <details className="rounded-md border border-border bg-muted/40 p-3 text-xs">
+              <summary className="cursor-pointer font-medium">Stack (dev only)</summary>
+              <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-muted-foreground">
+                {error.stack}
+              </pre>
+            </details>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 function IpenAdminPage() {
   const qc = useQueryClient();
@@ -51,6 +80,7 @@ function IpenAdminPage() {
   const { data: status, isLoading } = useQuery({
     queryKey: ["ipen-status"],
     queryFn: () => statusFn(),
+    retry: false,
   });
 
   const [email, setEmail] = useState("");
