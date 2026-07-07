@@ -21,10 +21,20 @@ export const connectIpen = createServerFn({ method: "POST" })
     });
     if (!res.ok) throw new Error(res.error ?? "IPEN login failed");
     try {
+      const redact = (value: any): any => {
+        if (Array.isArray(value)) return value.map(redact);
+        if (!value || typeof value !== "object") return value;
+        return Object.fromEntries(
+          Object.entries(value).map(([key, item]) => [
+            key,
+            /token|password/i.test(key) ? "[redacted]" : redact(item),
+          ]),
+        );
+      };
       console.log(
         "[ipen] login response keys",
         res.data && typeof res.data === "object" ? Object.keys(res.data) : typeof res.data,
-        res.data,
+        redact(res.data),
       );
     } catch {}
     const t = extractTokens(res.data);
@@ -64,41 +74,80 @@ export const verifyIpenMfa = createServerFn({ method: "POST" })
     if (cErr) throw new Error(cErr.message);
     if (!cred) throw new Error("Sign in with your IPEN account first, then enter the OTP.");
 
-    const body: Record<string, unknown> = {
-      code: data.code,
-      Code: data.code,
-      otp: data.code,
-      Otp: data.code,
-      OTP: data.code,
-    };
-    if (cred.mfa_token) {
-      body.mfaToken = cred.mfa_token;
-      body.MfaToken = cred.mfa_token;
-      body.token = cred.mfa_token;
-      body.Token = cred.mfa_token;
-    }
-    if (cred.ipen_email) {
-      body.email = cred.ipen_email;
-      body.Email = cred.ipen_email;
+    if (!cred.mfa_token) {
+      throw new Error("Your IPEN OTP session has expired. Reconnect to request a new OTP.");
     }
 
-    const paths = [
-      "/api/Auth/login/verify-mfa",
-      "/api/Auth/verify-mfa",
-      "/api/Auth/verify-otp",
+    const code = data.code.trim();
+    const dto = {
+      mfaToken: cred.mfa_token,
+      code,
+      email: cred.ipen_email ?? undefined,
+    };
+    const pascalDto = {
+      MfaToken: cred.mfa_token,
+      Code: code,
+      Email: cred.ipen_email ?? undefined,
+    };
+    const attempts: Array<{ path: string; body: Record<string, unknown>; label: string }> = [
+      { path: "/api/Auth/login/verify-mfa", body: dto, label: "camel" },
+      { path: "/api/Auth/login/verify-mfa", body: pascalDto, label: "pascal" },
+      {
+        path: "/api/Auth/login/verify-mfa",
+        body: { verifyMfaDto: dto, VerifyMfaDto: pascalDto },
+        label: "wrapped",
+      },
+      { path: "/api/Auth/verify-mfa", body: dto, label: "legacy-camel" },
+      { path: "/api/Auth/verify-otp", body: dto, label: "legacy-otp" },
     ];
     let res: Awaited<ReturnType<typeof ipenPublic<any>>> | null = null;
     let lastErr: string | undefined;
-    for (const path of paths) {
-      res = await ipenPublic<any>({ path, method: "POST", body, noAuth: true });
+    for (const attempt of attempts) {
+      res = await ipenPublic<any>({
+        path: attempt.path,
+        method: "POST",
+        body: attempt.body,
+        noAuth: true,
+      });
       try {
-        console.log("[ipen] verify-mfa", path, res.status, res.ok, res.error, res.data);
+        const redact = (value: any): any => {
+          if (Array.isArray(value)) return value.map(redact);
+          if (!value || typeof value !== "object") return value;
+          return Object.fromEntries(
+            Object.entries(value).map(([key, item]) => [
+              key,
+              /token|password/i.test(key) ? "[redacted]" : redact(item),
+            ]),
+          );
+        };
+        console.log(
+          "[ipen] verify-mfa",
+          attempt.path,
+          attempt.label,
+          res.status,
+          res.ok,
+          res.error,
+          redact(res.data),
+        );
       } catch {}
       if (res.ok) break;
       lastErr = res.error ?? `IPEN ${res.status}`;
-      if (res.status !== 404 && res.status !== 405) break;
+      const expired = /expired|invalid|challenge|mfa/i.test(lastErr);
+      if (expired) {
+        await supabase
+          .from("ipen_credentials")
+          .update({ mfa_token: null, mfa_required: false })
+          .eq("user_id", userId);
+        throw new Error("The IPEN OTP challenge expired or was replaced. Reconnect to request a new OTP.");
+      }
+      if (![400, 404, 405, 415, 422, 500, 502].includes(res.status)) break;
     }
-    if (!res || !res.ok) throw new Error(lastErr ?? "MFA verification failed");
+    if (!res || !res.ok) {
+      const message = lastErr?.includes("502")
+        ? "IPEN rejected the OTP verification request. Reconnect to request a fresh OTP and try again."
+        : (lastErr ?? "MFA verification failed");
+      throw new Error(message);
+    }
     const t = extractTokens(res.data);
     if (!t.accessToken) throw new Error("MFA response missing access token");
 

@@ -80,7 +80,7 @@ function IpenAdminPage() {
       const r = await connectFn({ data: { email, password } });
       toast.success(
         r.mfaRequired
-          ? "Enter the Ecobank OTP in the verification section below."
+          ? "A new Ecobank OTP was sent. Use the newest code below."
           : "IPEN sign-in submitted. If you received an Ecobank OTP, enter it below.",
       );
       setPassword("");
@@ -157,7 +157,7 @@ function IpenAdminPage() {
       });
       toast.success(
         r.mfaRequired
-          ? "Enter the Ecobank OTP in the verification section below."
+          ? "A new Ecobank OTP was sent. Use the newest code below."
           : "IPEN registration submitted. If you received an Ecobank OTP, enter it below.",
       );
       setEmail(reg.email);
@@ -514,7 +514,7 @@ type OtpBoxProps = {
 function OtpBox({ code, setCode, onVerify, onResend, busy, showResend }: OtpBoxProps) {
   return (
     <div className="space-y-3 border-t pt-4">
-      <p className="text-sm">Paste the code from the Ecobank / IPEN SMS or email.</p>
+      <p className="text-sm">Paste the newest code from the Ecobank / IPEN SMS or email.</p>
       <div className="flex flex-wrap items-end gap-2">
         <div className="grid gap-1.5">
           <Label htmlFor="ipen-otp">Ecobank OTP</Label>
