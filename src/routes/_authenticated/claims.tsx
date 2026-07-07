@@ -11,8 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { PageHeader } from "@/components/page-header";
-import { Plus, Pencil, Upload, Trash2, FileText, X, Send } from "lucide-react";
+import { Plus, Pencil, Upload, Trash2, FileText, X, Send, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { IpenFileClaimDialog } from "@/components/ipen/file-claim-dialog";
 
@@ -128,8 +130,8 @@ function ClaimDialog({ open, onOpenChange, initial, onSaved }: any) {
     setTab("incident");
     if (initial?.id) loadDocs(initial.id); else setDocs([]);
     supabase.from("clients").select("id, full_name, company_name, client_type").order("full_name").then(({ data }) => setClients(data ?? []));
-    supabase.from("policies").select("id, policy_no, client_id").then(({ data }) => setPolicies(data ?? []));
-    supabase.from("vehicles").select("id, registration_no, client_id").then(({ data }) => setVehicles(data ?? []));
+    supabase.from("policies").select("id, policy_no, client_id, vehicle_id, status, created_at").order("created_at", { ascending: false }).then(({ data }) => setPolicies(data ?? []));
+    supabase.from("vehicles").select("id, registration_no, client_id, created_at").order("created_at", { ascending: false }).then(({ data }) => setVehicles(data ?? []));
   }, [open, initial]);
 
   const loadDocs = async (claimId: string) => {
@@ -215,6 +217,31 @@ function ClaimDialog({ open, onOpenChange, initial, onSaved }: any) {
   const pForClient = form.client_id ? policies.filter((p) => p.client_id === form.client_id) : policies;
   const vForClient = form.client_id ? vehicles.filter((v) => v.client_id === form.client_id) : vehicles;
 
+  // Auto-prefill policy + vehicle when client changes (new claims only).
+  useEffect(() => {
+    if (!open || initial?.id || !form.client_id) return;
+    const cps = policies.filter((p) => p.client_id === form.client_id);
+    const cvs = vehicles.filter((v) => v.client_id === form.client_id);
+    setForm((f: any) => {
+      const next = { ...f };
+      const currentPolicyOk = next.policy_id && cps.some((p) => p.id === next.policy_id);
+      if (!currentPolicyOk) {
+        const active = cps.find((p) => p.status === "active");
+        next.policy_id = (active ?? cps[0])?.id ?? null;
+      }
+      const chosenPolicy = cps.find((p) => p.id === next.policy_id);
+      const currentVehicleOk = next.vehicle_id && cvs.some((v) => v.id === next.vehicle_id);
+      if (!currentVehicleOk) {
+        next.vehicle_id = chosenPolicy?.vehicle_id ?? (cvs.length === 1 ? cvs[0].id : null);
+      }
+      return next;
+    });
+  }, [form.client_id, policies, vehicles, open, initial?.id]);
+
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
+  const clientLabel = (c: any) => c ? (c.client_type === "corporate" ? c.company_name ?? c.full_name : c.full_name) : "";
+  const selectedClient = clients.find((c) => c.id === form.client_id);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -243,10 +270,33 @@ function ClaimDialog({ open, onOpenChange, initial, onSaved }: any) {
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Client *</Label>
-            <Select value={form.client_id ?? ""} onValueChange={(v) => set("client_id", v)}>
-              <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
-              <SelectContent>{clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.client_type === "corporate" ? c.company_name ?? c.full_name : c.full_name}</SelectItem>)}</SelectContent>
-            </Select>
+            <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button type="button" variant="outline" role="combobox" className="w-full justify-between font-normal">
+                  <span className={selectedClient ? "" : "text-muted-foreground"}>{selectedClient ? clientLabel(selectedClient) : "Search client…"}</span>
+                  <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                <Command>
+                  <CommandInput placeholder="Search by name…" />
+                  <CommandList>
+                    <CommandEmpty>No clients found.</CommandEmpty>
+                    <CommandGroup>
+                      {clients.map((c) => {
+                        const label = clientLabel(c);
+                        return (
+                          <CommandItem key={c.id} value={label} onSelect={() => { set("client_id", c.id); setClientPickerOpen(false); }}>
+                            <Check className={`h-4 w-4 mr-2 ${form.client_id === c.id ? "opacity-100" : "opacity-0"}`} />
+                            {label}
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
           <div className="space-y-1.5">
             <Label>Policy</Label>
