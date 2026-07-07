@@ -12,8 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/page-header";
-import { Plus, Pencil, Upload, Trash2, FileText, X } from "lucide-react";
+import { Plus, Pencil, Upload, Trash2, FileText, X, Send } from "lucide-react";
 import { toast } from "sonner";
+import { IpenFileClaimDialog } from "@/components/ipen/file-claim-dialog";
 
 const STATUSES = ["reported","under_review","approved","rejected","settled","closed"];
 
@@ -24,12 +25,13 @@ function ClaimsPage() {
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<any>(null);
   const [status, setStatus] = useState("all");
+  const [ipenClaim, setIpenClaim] = useState<any>(null);
 
   const { data } = useQuery({
     queryKey: ["claims", status],
     queryFn: async () => {
       let q = supabase.from("claims")
-        .select("*, clients(full_name, company_name, client_type), policies(policy_no), vehicles(registration_no)")
+        .select("*, clients(full_name, company_name, client_type), policies(policy_no, ipen_policy_id), vehicles(registration_no)")
         .order("created_at", { ascending: false }).limit(200);
       if (status !== "all") q = q.eq("status", status);
       const { data, error } = await q;
@@ -73,8 +75,18 @@ function ClaimsPage() {
                     <td className="px-4 py-3 font-mono text-xs">{c.vehicles?.registration_no ?? "—"}</td>
                     <td className="px-4 py-3">{c.incident_date ?? "—"}</td>
                     <td className="px-4 py-3">{c.claim_amount ? `KES ${Number(c.claim_amount).toLocaleString()}` : "—"}</td>
-                    <td className="px-4 py-3"><Badge variant="secondary">{c.status.replace("_"," ")}</Badge></td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1 items-center">
+                        <Badge variant="secondary">{c.status.replace("_"," ")}</Badge>
+                        {c.ipen_claim_id && <Badge>IPEN</Badge>}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-right">
+                      {!c.ipen_claim_id && (
+                        <Button size="sm" variant="ghost" title="File via IPEN" onClick={() => setIpenClaim(c)}>
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button size="sm" variant="ghost" onClick={() => { setEdit(c); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                     </td>
                   </tr>
@@ -85,6 +97,14 @@ function ClaimsPage() {
         </div>
       </Card>
       <ClaimDialog open={open} onOpenChange={setOpen} initial={edit} onSaved={() => qc.invalidateQueries({ queryKey: ["claims"] })} />
+      {ipenClaim && (
+        <IpenFileClaimDialog
+          open={!!ipenClaim}
+          onOpenChange={(o) => { if (!o) setIpenClaim(null); }}
+          claim={ipenClaim}
+          onFiled={() => { setIpenClaim(null); qc.invalidateQueries({ queryKey: ["claims"] }); }}
+        />
+      )}
     </div>
   );
 }
