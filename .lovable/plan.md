@@ -1,24 +1,34 @@
-## Surface the real IPEN validation errors + retry with PascalCase field names
+## Fix IPEN Register payload — wrap in `registerUserDto` and add missing required fields
 
-"One or more validation errors occurred" is the generic ASP.NET `ValidationProblemDetails` title. The real per-field messages live in `errors: { FieldName: ["..."] }` on the response, and our current `ipenPublic` helper only reads `message` / `title` / `error` — so we throw away the useful part. Two small fixes:
+The new error tells us two things:
 
-### 1. `src/lib/ipen/ipen-fetch.server.ts` — flatten `errors` into the thrown message
+1. The endpoint expects the body **wrapped** in a `registerUserDto` object (not fields at the top level).
+2. That DTO requires additional fields we're not sending: **`registerAs`**, **`idNumber`**, **`identificationTypeId`** (in addition to the name/email/password/phone we already send).
 
-In `rawFetch`, when the response is not ok and `data.errors` is an object, join it into the error string:
+### Changes
 
-```
-Registration failed: PhoneNumber: The PhoneNumber field is required.; Password: Passwords must have at least one non alphanumeric character.
-```
+**1. `src/lib/ipen/auth.functions.ts`**
 
-Fallback to the existing `message` / `title` / `error` when `errors` is absent. This benefits every IPEN call, not just registration.
+- Extend the Zod input schema with the new required fields:
+  - `registerAs` (string — likely `"Individual"` or `"Corporate"`; default `"Individual"`)
+  - `idNumber` (string, required — currently optional)
+  - `identificationTypeId` (number or string — e.g. `1` for National ID)
+- Build the inner DTO with both camelCase and PascalCase keys (keep the existing `dual()` helper).
+- Wrap the DTO under a top-level `registerUserDto` / `RegisterUserDto` key before POSTing to `/api/Auth/Register`.
 
-### 2. `src/lib/ipen/auth.functions.ts` — send both casings in the Register body
+**2. `src/components/... admin.ipen.tsx` registration form**
 
-ASP.NET model binding is case-insensitive by default but some Africa Bima endpoints have shown to require PascalCase. To be safe, include both keys in the request body (e.g. `email` + `Email`, `firstName` + `FirstName`, `phoneNumber` + `PhoneNumber`, `confirmPassword` + `ConfirmPassword`). Duplicate keys cost nothing; the server keeps whichever it recognises.
+- Add three new inputs to the "Create IPEN account" form:
+  - **Register as** — select: Individual / Corporate
+  - **ID number** — text input (required)
+  - **ID type** — select (National ID, Passport, Alien ID) mapped to the numeric `identificationTypeId` the API expects
+- Pass the new values into the `registerIpen` server-fn call.
 
-No UI changes — the existing toast will now show the specific fields that failed, and we can iterate from there.
+### Open question
+
+I'm guessing the valid values for `registerAs` (`"Individual"` / `"Corporate"`) and `identificationTypeId` (`1` = National ID, `2` = Passport, `3` = Alien) from typical Kenyan insurance schemas. If Africa Bima's docs give exact enum values/IDs, share them and I'll wire the correct constants. Otherwise I'll ship the sensible defaults above and we can adjust once the next error (if any) tells us the accepted set.
 
 ### Files touched
 
-- Edit: `src/lib/ipen/ipen-fetch.server.ts` — richer error extraction.
-- Edit: `src/lib/ipen/auth.functions.ts` — dual-case Register payload.
+- Edit: `src/lib/ipen/auth.functions.ts` — schema + wrap body in `registerUserDto`.
+- Edit: `src/routes/_authenticated/admin.ipen.tsx` — add the three new form fields.
