@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Pencil, Upload, MessageSquarePlus } from "lucide-react";
+import { ArrowLeft, Pencil, Upload, MessageSquarePlus, FileText } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ClientFormDialog, CredentialsDialog, type PortalCreds } from "@/components/clients/client-form-dialog";
 import { ClientDocuments } from "@/components/clients/client-documents";
@@ -23,6 +23,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { normalizePhone } from "@/lib/phone";
+import { IpenMotorQuoteWizard } from "@/components/ipen/motor-quote-wizard";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]),
   component: ClientDetail,
@@ -43,6 +44,7 @@ function ClientDetail() {
   const [branchOpen, setBranchOpen] = useState(false);
   const [branchSel, setBranchSel] = useState<string>("");
   const [branchBusy, setBranchBusy] = useState(false);
+  const [ipenOpen, setIpenOpen] = useState(false);
 
   const { data: branches } = useQuery({
     queryKey: ["branches-list"],
@@ -95,6 +97,9 @@ function ClientDetail() {
                 Change branch
               </Button>
             )}
+            <Button variant="outline" onClick={() => setIpenOpen(true)}>
+              <FileText className="h-4 w-4 mr-1" /> IPEN motor quote
+            </Button>
             {!client.auth_user_id && (
               <Button
                 variant="outline"
@@ -157,6 +162,7 @@ function ClientDetail() {
       </Tabs>
 
       <ClientFormDialog open={edit} onOpenChange={setEdit} initial={client} onSaved={() => qc.invalidateQueries({ queryKey: ["client", id] })} />
+      <IpenMotorQuoteWizard open={ipenOpen} onOpenChange={setIpenOpen} client={{ id, email: client.email, phone: client.phone, full_name: client.client_type === "corporate" ? client.company_name ?? client.full_name : client.full_name }} />
       <CredentialsDialog creds={creds} onClose={() => setCreds(null)} />
       <Dialog open={branchOpen} onOpenChange={(o) => { if (!o) setBranchOpen(false); }}>
         <DialogContent>
