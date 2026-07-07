@@ -41,6 +41,7 @@ import { Route as PlatformPlatformAuditRouteImport } from './routes/_platform/pl
 import { Route as PlatformPlatformAgenciesRouteImport } from './routes/_platform/platform/agencies'
 import { Route as AuthenticatedPoliciesIdRouteImport } from './routes/_authenticated/policies.$id'
 import { Route as AuthenticatedInvoicesIdRouteImport } from './routes/_authenticated/invoices.$id'
+import { Route as AuthenticatedClientsKraCheckerRouteImport } from './routes/_authenticated/clients.kra-checker'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedAdminTenantRouteImport } from './routes/_authenticated/admin.tenant'
@@ -224,6 +225,12 @@ const AuthenticatedInvoicesIdRoute = AuthenticatedInvoicesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedInvoicesRoute,
 } as any)
+const AuthenticatedClientsKraCheckerRoute =
+  AuthenticatedClientsKraCheckerRouteImport.update({
+    id: '/kra-checker',
+    path: '/kra-checker',
+    getParentRoute: () => AuthenticatedClientsRoute,
+  } as any)
 const AuthenticatedClientsIdRoute = AuthenticatedClientsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -390,6 +397,7 @@ export interface FileRoutesByFullPath {
   '/admin/tenant': typeof AuthenticatedAdminTenantRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
+  '/clients/kra-checker': typeof AuthenticatedClientsKraCheckerRoute
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/policies/$id': typeof AuthenticatedPoliciesIdRoute
   '/platform/agencies': typeof PlatformPlatformAgenciesRouteWithChildren
@@ -445,6 +453,7 @@ export interface FileRoutesByTo {
   '/admin/tenant': typeof AuthenticatedAdminTenantRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
+  '/clients/kra-checker': typeof AuthenticatedClientsKraCheckerRoute
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/policies/$id': typeof AuthenticatedPoliciesIdRoute
   '/platform/agencies': typeof PlatformPlatformAgenciesRouteWithChildren
@@ -504,6 +513,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/tenant': typeof AuthenticatedAdminTenantRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
+  '/_authenticated/clients/kra-checker': typeof AuthenticatedClientsKraCheckerRoute
   '/_authenticated/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/_authenticated/policies/$id': typeof AuthenticatedPoliciesIdRoute
   '/_platform/platform/agencies': typeof PlatformPlatformAgenciesRouteWithChildren
@@ -561,6 +571,7 @@ export interface FileRouteTypes {
     | '/admin/tenant'
     | '/admin/users'
     | '/clients/$id'
+    | '/clients/kra-checker'
     | '/invoices/$id'
     | '/policies/$id'
     | '/platform/agencies'
@@ -616,6 +627,7 @@ export interface FileRouteTypes {
     | '/admin/tenant'
     | '/admin/users'
     | '/clients/$id'
+    | '/clients/kra-checker'
     | '/invoices/$id'
     | '/policies/$id'
     | '/platform/agencies'
@@ -674,6 +686,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/tenant'
     | '/_authenticated/admin/users'
     | '/_authenticated/clients/$id'
+    | '/_authenticated/clients/kra-checker'
     | '/_authenticated/invoices/$id'
     | '/_authenticated/policies/$id'
     | '/_platform/platform/agencies'
@@ -946,6 +959,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInvoicesIdRouteImport
       parentRoute: typeof AuthenticatedInvoicesRoute
     }
+    '/_authenticated/clients/kra-checker': {
+      id: '/_authenticated/clients/kra-checker'
+      path: '/kra-checker'
+      fullPath: '/clients/kra-checker'
+      preLoaderRoute: typeof AuthenticatedClientsKraCheckerRouteImport
+      parentRoute: typeof AuthenticatedClientsRoute
+    }
     '/_authenticated/clients/$id': {
       id: '/_authenticated/clients/$id'
       path: '/$id'
@@ -1119,10 +1139,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedClientsRouteChildren {
   AuthenticatedClientsIdRoute: typeof AuthenticatedClientsIdRoute
+  AuthenticatedClientsKraCheckerRoute: typeof AuthenticatedClientsKraCheckerRoute
 }
 
 const AuthenticatedClientsRouteChildren: AuthenticatedClientsRouteChildren = {
   AuthenticatedClientsIdRoute: AuthenticatedClientsIdRoute,
+  AuthenticatedClientsKraCheckerRoute: AuthenticatedClientsKraCheckerRoute,
 }
 
 const AuthenticatedClientsRouteWithChildren =
