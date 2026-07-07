@@ -1,31 +1,21 @@
-## Problem
+## Plan to fix the IPEN reconnect 502
 
-After connecting IPEN, hitting the reference-data tabs (or "Test connection") throws:
+1. **Stop treating IPEN 502 as an app crash**
+   - Update the IPEN HTTP client/error handling so upstream 5xx responses are returned as clear user-facing errors instead of a generic `code: 502`.
+   - Preserve the real IPEN response body in server logs for debugging, without exposing tokens to the UI.
 
-> Cannot read properties of undefined (reading 'from')
+2. **Correct the MFA verification payload**
+   - Change `verifyIpenMfa` to try the DTO shape indicated by IPEN’s own login message: `/api/Auth/login/verify-mfa`.
+   - Send the MFA token and OTP in a small set of likely exact field combinations instead of one oversized payload containing many aliases, because ASP.NET APIs can reject unexpected/conflicting fields.
 
-## Root cause
+3. **Handle expired/replaced MFA challenges cleanly**
+   - If the saved challenge is expired or invalid, clear the pending MFA state and return a message telling the user to reconnect and use the newest OTP.
+   - On reconnect, overwrite any previous pending token so the OTP screen always uses the latest challenge.
 
-`src/lib/ipen/common.functions.ts` builds every list server function through a `makeListFn(key, path)` factory that internally calls `createServerFn(...).middleware([requireSupabaseAuth]).handler(...)`. Two things go wrong with that shape:
+4. **Improve reconnect flow feedback**
+   - Make reconnect/login success explicitly show that a new OTP was sent and that the previous OTP is no longer valid.
+   - Keep the existing UI and database shape; only adjust the IPEN auth flow.
 
-1. TanStack's server-fn Vite splitter expects `createServerFn` chains at module top level. When the chain is produced inside a factory, the middleware wiring is not preserved in the built server bundle, so `context` arrives without `supabase` / `userId`.
-2. The handler also closes over module-scope helpers (`cached`, `CACHE`, `key`) — the splitter drops those references, leaving `supabase` undefined.
-
-`ipenFetch` then calls `supabase.from("ipen_credentials")` → `undefined.from` → the exact error the user sees. The connection isn't broken; the read path is.
-
-The other IPEN files that already work (`auth.functions.ts`, `listCustomerVehicles`, `listRiskClasses`, `listVehicleUses`, `listProducts`) all declare `createServerFn` at top level — confirming the diagnosis.
-
-## Fix
-
-Rewrite `src/lib/ipen/common.functions.ts` so every exported server function is declared at top level, with all logic inline in the handler.
-
-- Remove the `makeListFn` factory.
-- Move the in-memory `CACHE` map and the `cached()` helper into a new server-only module `src/lib/ipen/common-cache.server.ts` (imported by the handlers; server-only helpers are allowed as imports inside handlers).
-- For each existing export (`listCountries`, `listIdentificationDocuments`, `listGenders`, `listRiskClassCategories`, `listVehicleMakes`, `listVehicleModels`, `listMotorTypes`, `listRelationships`, `listCoverOptions`), write an explicit `createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).inputValidator(...).handler(...)` with the path hardcoded inside the handler.
-- Keep the existing `listCustomerVehicles`, `listRiskClasses`, `listVehicleUses`, `listProducts` unchanged (already correct shape).
-- No changes to `auth.functions.ts`, `ipen-fetch.server.ts`, the admin UI, or the database.
-
-## Verification
-
-- After the edit, the admin IPEN page's "Test connection" button and each Reference-data tab should return live rows instead of the `.from` error.
-- The existing MFA/connect flow is untouched.
+5. **Verify after implementation**
+   - Check server logs for the exact `verify-mfa` result.
+   - Confirm reconnect no longer fails with a raw 502 and instead either completes or shows a specific recoverable IPEN error.
