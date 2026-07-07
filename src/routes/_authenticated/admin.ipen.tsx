@@ -438,49 +438,6 @@ function IpenAdminPage() {
 }
 
 function ReferenceExplorer() {
-  return null as any;
-}
-
-type OtpBoxProps = {
-  code: string;
-  setCode: (v: string) => void;
-  onVerify: () => void;
-  onResend: () => void;
-  busy: boolean;
-  showResend: boolean;
-};
-
-function OtpBox({ code, setCode, onVerify, onResend, busy, showResend }: OtpBoxProps) {
-  return (
-    <div className="space-y-3 border-t pt-4">
-      <p className="text-sm">Paste the code from the Ecobank / IPEN SMS or email.</p>
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="grid gap-1.5">
-          <Label htmlFor="ipen-otp">Ecobank OTP</Label>
-          <Input
-            id="ipen-otp"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            className="w-48"
-            autoComplete="one-time-code"
-            inputMode="numeric"
-          />
-        </div>
-        <Button onClick={onVerify} disabled={busy || !code}>
-          {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Verify
-        </Button>
-        {showResend && (
-          <Button variant="ghost" size="sm" onClick={onResend} disabled={busy}>
-            Resend code
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ReferenceExplorerReal() {
   const tabs = [
     { key: "countries", label: "Countries", fn: listCountries },
     { key: "genders", label: "Genders", fn: listGenders },
