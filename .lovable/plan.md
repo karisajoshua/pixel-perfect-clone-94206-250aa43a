@@ -1,74 +1,36 @@
-## KRA PIN checker (lookup PIN by ID number)
+## Add "Register" to the IPEN connection screen
 
-The endpoint you linked (GavaConnect DTD_PINChecker) is KRA's official Enterprise API. It uses OAuth2 client-credentials — you register an app on `developer.go.ke`, receive a **client ID + client secret**, then call the PIN-by-ID endpoint with a bearer token. Same shape used by every wrapper (Salami Gateway, gavaconnect-sdk, kra-php-sdk).
+Right now `Admin → IPEN` only lets a user log in with existing IPEN credentials. Africa Bima's docs require calling the **Register** endpoint first to create the account, so I'll add that flow next to the existing login card — no schema or navigation changes needed.
 
-I'll wire it up end-to-end and let you paste the credentials in at the end.
+### 1. Server function — `src/lib/ipen/auth.functions.ts`
 
-## 1. Secrets (I'll request via secrets tool)
+New `registerIpen` (createServerFn, requireSupabaseAuth):
+- Input (Zod): `email`, `password`, `confirmPassword`, `firstName`, `lastName`, `phoneNumber`, optional `middleName`, `idNumber`, `companyName`.
+- Calls `POST {IPEN_API_BASE_URL}/api/Auth/Register` via the existing `ipenPublic` helper (no bearer, JSON body — snake_case + camelCase tolerated by our `extractTokens`).
+- On success:
+  - If the response returns tokens → persist to `ipen_credentials` the same way `connectIpen` does and return `{ registered: true, connected: true, mfaRequired: false }`.
+  - If the response returns an `mfaToken` (email verification) → persist `mfa_token` + `ipen_email` and return `{ registered: true, mfaRequired: true }` so the existing MFA UI takes over.
+  - If neither → return `{ registered: true, connected: false, mfaRequired: false, message: "Check your email to verify, then sign in below." }`.
+- Errors bubble up the IPEN error message verbatim (never leak our secrets).
 
-- `KRA_GAVACONNECT_CLIENT_ID`
-- `KRA_GAVACONNECT_CLIENT_SECRET`
-- `KRA_GAVACONNECT_BASE_URL` (default `https://api.gavaconnect.go.ke`, overridable if KRA gave you a sandbox URL)
+### 2. UI — `src/routes/_authenticated/admin.ipen.tsx`
 
-## 2. Schema — one migration
+Wrap the current connection card body in a two-tab switch **Sign in / Register** (shadcn `Tabs`), only visible when not already connected and not mid-MFA.
 
-Add to `public.clients`:
+Register tab fields (all required unless noted):
+- First name, Last name, Middle name (optional)
+- Email, Phone number
+- ID number (optional), Company (optional)
+- Password, Confirm password (client-side match check)
+- **Create IPEN account** button → `registerIpen` → reuses `refresh()` + the existing MFA panel when `mfaRequired` comes back; otherwise toasts success and either shows "Connected" or drops the user into the Sign in tab with the email pre-filled.
 
-- `kra_id_type text` (`national_id` | `passport` | `service_id` | `alien_id`) — remembers what we verified against
-- `kra_verified_name text` — taxpayer name returned by KRA
-- `kra_verified_at timestamptz` — verification timestamp
-- `kra_verification_status text` — `verified` | `mismatch` | `not_found` | `error`
+No changes to the reference-data explorer or any other IPEN pages.
 
-No policy changes — inherits existing clients policies.
+### 3. Files touched
 
-## 3. Server function — `src/lib/kra.functions.ts`
+- Edit: `src/lib/ipen/auth.functions.ts` — add `registerIpen`.
+- Edit: `src/routes/_authenticated/admin.ipen.tsx` — Sign in / Register tabs + form.
 
-`checkPinByIdNumber` (createServerFn, requireSupabaseAuth):
-- Input: `{ id_number: string, id_type: 'national_id'|'passport'|'service_id'|'alien_id' }`
-- Fetch (and cache in module-scope for ~50 min) OAuth2 token via `POST {BASE_URL}/oauth2/token` with `grant_type=client_credentials`
-- Call `POST {BASE_URL}/checker/v1/pin-by-id` with `{ TaxpayerID, TaxpayerType }` (codes 1/2/3/4)
-- Normalise response to `{ pin, taxpayer_name, status, raw }`
-- Errors surface as `{ ok:false, code, message }` (never leak credentials)
+### Assumption to confirm
 
-`savePinVerification` (admin/manager/agent role):
-- Input: `{ clientId, id_type, pin, taxpayer_name, status }`
-- Writes `kra_pin`, `kra_id_type`, `kra_verified_name`, `kra_verified_at=now()`, `kra_verification_status`
-- Writes `audit_log` row `client.kra_verified`
-
-## 4. UI
-
-### a) Inline in the client form (`src/components/clients/client-form-dialog.tsx`)
-
-- Small **ID type** Select next to the existing `id_number` field (defaults to National ID).
-- **"Check KRA PIN"** button — disabled until an ID number is entered.
-- On success: auto-fill `kra_pin`, show a green pill `Verified — <TAXPAYER NAME>` under the PIN field.
-- On mismatch (user typed a PIN that doesn't match the one returned): show amber "PIN mismatch — expected `A123456789Z`" with an **Apply KRA PIN** button.
-- On not-found / error: red inline hint with the KRA message.
-- Verification is persisted on Save (part of the existing insert/update payload).
-
-### b) Standalone page — `/clients/kra-checker`
-
-- New route `src/routes/_authenticated/clients.kra-checker.tsx` (role: admin/manager/agent).
-- ID type + ID number inputs → **Check** button → result card with KRA PIN, taxpayer name, status.
-- If the ID matches an existing client (`clients.id_number = ?`), show that client with an **"Update client"** button that calls `savePinVerification`.
-- If not, show **"Create new client with this PIN"** button that opens `ClientFormDialog` pre-filled.
-- Recent lookups list (last 20) from a lightweight in-memory query cache — no new table.
-
-### c) Navigation
-
-- Add "KRA PIN checker" link under the Clients group in `src/components/app-shell.tsx`.
-
-## 5. Files touched
-
-- New: `src/lib/kra.functions.ts`
-- New: `src/routes/_authenticated/clients.kra-checker.tsx`
-- Edit: `src/components/clients/client-form-dialog.tsx`
-- Edit: `src/components/app-shell.tsx`
-- New migration: add KRA verification columns to `public.clients`
-- Secrets: request `KRA_GAVACONNECT_CLIENT_ID`, `KRA_GAVACONNECT_CLIENT_SECRET`, `KRA_GAVACONNECT_BASE_URL`
-
-## Assumptions to confirm (build proceeds with these unless you say otherwise)
-
-- Endpoint path is `POST /checker/v1/pin-by-id`; if KRA gave you a different path when you registered the app I'll swap it in one line.
-- Token endpoint is `POST /oauth2/token` (client-credentials, Basic auth header).
-- Only admin/manager/agent can run the lookup; portal (`client`) role cannot.
+The Register endpoint path is `POST /api/Auth/Register` (matches the `/api/Auth/Login`, `/api/Auth/refresh-token`, `/api/Auth/logout` paths already wired). If your docs use a different path or a different field name (e.g. `PhoneNumber` vs `phone_number`), tell me and I'll adjust the payload in one spot.
