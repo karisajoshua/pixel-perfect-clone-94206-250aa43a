@@ -54,7 +54,12 @@ function AuthPage() {
       const clientOnly = list.length > 0 && list.every((r) => r === "client");
       const isSuper = list.includes("super_admin");
       if (clientOnly) return navigate({ to: "/portal" });
-      if (!member && !isSuper) return navigate({ to: "/onboarding" });
+      if (!member && !isSuper) {
+        const { data: clientRow } = await supabase
+          .from("clients").select("id").eq("auth_user_id", uid).maybeSingle();
+        if (clientRow) return navigate({ to: "/portal" });
+        return navigate({ to: "/onboarding" });
+      }
       navigate({ to: "/dashboard" });
     });
   }, [navigate]);
@@ -90,7 +95,12 @@ function AuthPage() {
     const clientOnly = list.length > 0 && list.every((r) => r === "client");
     const isSuper = list.includes("super_admin");
     if (clientOnly) return navigate({ to: "/portal" });
-    if (!member && !isSuper) return navigate({ to: "/onboarding" });
+    if (!member && !isSuper) {
+      const { data: clientRow } = await supabase
+        .from("clients").select("id").eq("auth_user_id", uid).maybeSingle();
+      if (clientRow) return navigate({ to: "/portal" });
+      return navigate({ to: "/onboarding" });
+    }
     navigate({ to: "/dashboard" });
   };
 
