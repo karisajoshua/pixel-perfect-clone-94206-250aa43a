@@ -927,6 +927,9 @@ export type Database = {
       policies: {
         Row: {
           branch_id: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           client_id: string
           commission: number | null
           cover_type: string
@@ -954,6 +957,9 @@ export type Database = {
         }
         Insert: {
           branch_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           client_id: string
           commission?: number | null
           cover_type?: string
@@ -981,6 +987,9 @@ export type Database = {
         }
         Update: {
           branch_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           client_id?: string
           commission?: number | null
           cover_type?: string
