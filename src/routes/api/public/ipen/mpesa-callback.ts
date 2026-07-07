@@ -56,7 +56,10 @@ export const Route = createFileRoute("/api/public/ipen/mpesa-callback")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         if (checkoutId) {
-          const patch: Record<string, any> = {};
+          const patch: {
+            ipen_transaction_ref?: string;
+            paid_at?: string;
+          } = {};
           if (mpesaReceipt) patch.ipen_transaction_ref = String(mpesaReceipt);
           if (resultCode === 0 || resultCode === "0") {
             patch.paid_at = new Date().toISOString();

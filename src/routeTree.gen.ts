@@ -59,6 +59,7 @@ import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/l
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicIpenMpesaCallbackRouteImport } from './routes/api/public/ipen/mpesa-callback'
 import { Route as ApiPublicHooksRenewalRemindersRouteImport } from './routes/api/public/hooks/renewal-reminders'
 import { Route as PortalPortalPoliciesIdRouteImport } from './routes/_portal/portal/policies.$id'
 import { Route as PortalPortalInvoicesIdRouteImport } from './routes/_portal/portal/invoices.$id'
@@ -324,6 +325,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicIpenMpesaCallbackRoute =
+  ApiPublicIpenMpesaCallbackRouteImport.update({
+    id: '/api/public/ipen/mpesa-callback',
+    path: '/api/public/ipen/mpesa-callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksRenewalRemindersRoute =
   ApiPublicHooksRenewalRemindersRouteImport.update({
     id: '/api/public/hooks/renewal-reminders',
@@ -394,6 +401,7 @@ export interface FileRoutesByFullPath {
   '/portal/invoices/$id': typeof PortalPortalInvoicesIdRoute
   '/portal/policies/$id': typeof PortalPortalPoliciesIdRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
+  '/api/public/ipen/mpesa-callback': typeof ApiPublicIpenMpesaCallbackRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -447,6 +455,7 @@ export interface FileRoutesByTo {
   '/portal/invoices/$id': typeof PortalPortalInvoicesIdRoute
   '/portal/policies/$id': typeof PortalPortalPoliciesIdRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
+  '/api/public/ipen/mpesa-callback': typeof ApiPublicIpenMpesaCallbackRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -504,6 +513,7 @@ export interface FileRoutesById {
   '/_portal/portal/invoices/$id': typeof PortalPortalInvoicesIdRoute
   '/_portal/portal/policies/$id': typeof PortalPortalPoliciesIdRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
+  '/api/public/ipen/mpesa-callback': typeof ApiPublicIpenMpesaCallbackRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -559,6 +569,7 @@ export interface FileRouteTypes {
     | '/portal/invoices/$id'
     | '/portal/policies/$id'
     | '/api/public/hooks/renewal-reminders'
+    | '/api/public/ipen/mpesa-callback'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -612,6 +623,7 @@ export interface FileRouteTypes {
     | '/portal/invoices/$id'
     | '/portal/policies/$id'
     | '/api/public/hooks/renewal-reminders'
+    | '/api/public/ipen/mpesa-callback'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -668,6 +680,7 @@ export interface FileRouteTypes {
     | '/_portal/portal/invoices/$id'
     | '/_portal/portal/policies/$id'
     | '/api/public/hooks/renewal-reminders'
+    | '/api/public/ipen/mpesa-callback'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -687,6 +700,7 @@ export interface RootRouteChildren {
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksRenewalRemindersRoute: typeof ApiPublicHooksRenewalRemindersRoute
+  ApiPublicIpenMpesaCallbackRoute: typeof ApiPublicIpenMpesaCallbackRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -1046,6 +1060,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/ipen/mpesa-callback': {
+      id: '/api/public/ipen/mpesa-callback'
+      path: '/api/public/ipen/mpesa-callback'
+      fullPath: '/api/public/ipen/mpesa-callback'
+      preLoaderRoute: typeof ApiPublicIpenMpesaCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/renewal-reminders': {
       id: '/api/public/hooks/renewal-reminders'
       path: '/api/public/hooks/renewal-reminders'
@@ -1255,6 +1276,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksRenewalRemindersRoute: ApiPublicHooksRenewalRemindersRoute,
+  ApiPublicIpenMpesaCallbackRoute: ApiPublicIpenMpesaCallbackRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
