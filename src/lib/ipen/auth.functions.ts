@@ -20,6 +20,13 @@ export const connectIpen = createServerFn({ method: "POST" })
       noAuth: true,
     });
     if (!res.ok) throw new Error(res.error ?? "IPEN login failed");
+    try {
+      console.log(
+        "[ipen] login response keys",
+        res.data && typeof res.data === "object" ? Object.keys(res.data) : typeof res.data,
+        res.data,
+      );
+    } catch {}
     const t = extractTokens(res.data);
     const mfaRequired = Boolean(t.mfaRequired || t.mfaToken);
 
@@ -209,6 +216,13 @@ export const registerIpen = createServerFn({ method: "POST" })
       noAuth: true,
     });
     if (!res.ok) throw new Error(res.error ?? "IPEN registration failed");
+    try {
+      console.log(
+        "[ipen] register response keys",
+        res.data && typeof res.data === "object" ? Object.keys(res.data) : typeof res.data,
+        res.data,
+      );
+    } catch {}
     const t = extractTokens(res.data);
     const mfaRequired = Boolean(t.mfaRequired || t.mfaToken);
 
