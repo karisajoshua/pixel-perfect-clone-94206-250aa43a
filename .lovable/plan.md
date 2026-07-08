@@ -1,21 +1,20 @@
-
 ## Problem
 
-`/admin/ipen` hits the root error boundary ("This page didn't load / Something went wrong on our end"). The current boundary hides the actual error message and stack, so we can't tell whether the crash is coming from the recent `auth.functions.ts` / `ipen-fetch.server.ts` edits, from `ipenStatus`, or from a component render. Typecheck passes and the dev server has no errors, so it's a runtime throw happening only for the authenticated user.
+In `VehicleFormDialog`, the client picker loads at most 500 clients ordered by name (`.limit(500)`) and filters them client-side. Agencies with more than ~500 clients (or names later in the alphabet) can't be found when adding a vehicle. Admins and managers should be able to search the full client database.
 
-## Plan
+## Fix
 
-1. **Give `/admin/ipen` its own error boundary** in `src/routes/_authenticated/admin.ipen.tsx` via `errorComponent`, so a failure inside the page doesn't blank the whole app — the sidebar/shell stays, and the panel shows the error inline with a Retry button.
+Update `src/components/vehicles/vehicle-form-dialog.tsx` so the client picker queries the backend as the user types, instead of relying on a one-shot 500-row prefetch:
 
-2. **Show the real error details in dev/preview** in `src/routes/__root.tsx` `ErrorComponent`: keep the friendly copy in production, but when running on `*.lovableproject.com` / `localhost` / `*-dev.lovable.app`, also render `error.message` and `error.stack` in a `<details>` block so the user can screenshot and share it. Production users still see the polished fallback.
+1. Remove the initial `limit(500)` prefetch of all clients.
+2. Add a debounced (~250 ms) query keyed on `clientText` that runs when the dropdown is open and the input has ≥2 characters:
+   - `supabase.from("clients").select("id, full_name, company_name, client_type").or("full_name.ilike.%q%,company_name.ilike.%q%").order("full_name").limit(20)`
+   - RLS already scopes results correctly — admins/managers see all tenant clients, agents see their branch — so no role branching is needed in the component.
+3. Show results in the existing dropdown. Empty state: "No clients match." Loading state: "Searching…". Below 2 chars: hint "Type at least 2 characters to search."
+4. Keep the locked-client behavior (when opened from a specific client) and the existing hydration lookup for edit mode (fetch the single selected client by id when `form.client_id` is set but no label yet).
+5. Keep `defaultClientId` / `initial` flows unchanged.
 
-3. **Harden the IPEN status query** in `admin.ipen.tsx`: add `retry: false` on the `ipenStatus` `useQuery` (matches the reference-explorer queries) and render the status error inline instead of letting an unhandled promise rejection or render throw escape. This is the most likely culprit if the recent `ipenFetch` / auth edits changed the shape of what `ipenStatus` returns for a disconnected user.
+## Out of scope
 
-4. **After the changes ship, the user reopens `/admin/ipen`** and either the page loads, or the inline error box shows the actual message — we then know exactly what to fix.
-
-No backend, schema, or business-logic changes.
-
-## Files touched
-
-- `src/routes/_authenticated/admin.ipen.tsx` — add `errorComponent`, `retry: false` on status query.
-- `src/routes/__root.tsx` — dev-only error details block inside `ErrorComponent`.
+- No schema, RLS, or server-function changes.
+- No changes to the Vehicles list page or transfer dialog.
