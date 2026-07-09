@@ -114,7 +114,16 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
       ? tbl.update(writable).eq("id", initial.id)
       : tbl.insert(insertPayload).select("id").single();
     const { data: saved, error } = await op as any;
-    if (error) { setSaving(false); return toast.error(error.message); }
+    if (error) {
+      setSaving(false);
+      const msg = (error as any).message ?? "";
+      if ((error as any).code === "23505" || /already registered/i.test(msg)) {
+        if (/kra pin/i.test(msg)) return toast.error("Another client is already registered with this KRA PIN.");
+        if (/id number/i.test(msg)) return toast.error("Another client is already registered with this ID number.");
+        return toast.error("Another client already has this ID number or KRA PIN.");
+      }
+      return toast.error(msg || "Save failed");
+    }
     toast.success(initial?.id ? "Client updated" : "Client created");
     if (!initial?.id && saved?.id && (writable.email || writable.phone)) {
       sendTransactionalEmail({
