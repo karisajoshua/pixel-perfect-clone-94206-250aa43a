@@ -73,6 +73,9 @@ async function rawFetch<T>(
     // so we can surface a clear message instead of a raw stack trace.
     const raw = typeof data === "string" ? data : JSON.stringify(data ?? "");
     const schemaBroken = /Invalid column name/i.test(raw);
+    const isHtml =
+      typeof data === "string" &&
+      /^\s*(<!doctype|<html|<\?xml)/i.test(data);
     if (data && typeof data === "object") {
       // ASP.NET ValidationProblemDetails: { title, errors: { Field: ["msg", ...] } }
       const errs = (data as any).errors;
@@ -85,7 +88,7 @@ async function rawFetch<T>(
         if (parts.length) msg = parts.join("; ");
       }
       if (!msg) msg = (data as any).message || (data as any).title || (data as any).error || null;
-    } else if (typeof data === "string" && data) {
+    } else if (typeof data === "string" && data && !isHtml) {
       msg = data;
     }
     if (schemaBroken) {
@@ -107,7 +110,7 @@ async function rawFetch<T>(
       ok: false,
       status: res.status,
       data,
-      error: msg ?? fallback,
+      error: isHtml ? fallback : (msg ?? fallback),
       upstreamOutage: res.status >= 500,
     };
   }
