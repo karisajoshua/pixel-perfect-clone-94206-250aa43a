@@ -162,6 +162,10 @@ function IpenAdminPage() {
     setBusy(true);
     try {
       const result = await testConnectionFn();
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
       const rows = Array.isArray(result) ? result : (result?.data ?? result?.items ?? []);
       toast.success(`IPEN live connection working${Array.isArray(rows) ? ` (${rows.length} countries)` : ""}`);
     } catch (e: any) {
@@ -535,6 +539,11 @@ function RefList({ fn, cacheKey }: { fn: any; cacheKey: string }) {
   const rows: any[] = Array.isArray(raw) ? raw : raw && typeof raw === "object" ? [raw] : [];
   return (
     <div className="space-y-3">
+      {data?.error && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          {data.error}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
           {rows.length} row{rows.length === 1 ? "" : "s"}
