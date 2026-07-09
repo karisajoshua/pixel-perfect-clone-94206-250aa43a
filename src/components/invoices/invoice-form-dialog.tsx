@@ -15,7 +15,10 @@ type Item = { description: string; quantity: number; unit_price: number };
 export function InvoiceFormDialog({ open, onOpenChange, onSaved, initial }: any) {
   const [form, setForm] = useState<any>({});
   const [items, setItems] = useState<Item[]>([{ description: "", quantity: 1, unit_price: 0 }]);
-  const [clients, setClients] = useState<any[]>([]);
+  const [clientResults, setClientResults] = useState<any[]>([]);
+  const [searchingClients, setSearchingClients] = useState(false);
+  const [clientText, setClientText] = useState("");
+  const [showClientList, setShowClientList] = useState(false);
   const [policies, setPolicies] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
@@ -29,9 +32,40 @@ export function InvoiceFormDialog({ open, onOpenChange, onSaved, initial }: any)
       tax: 0,
     });
     setItems(initial?.items?.length ? initial.items : [{ description: "", quantity: 1, unit_price: 0 }]);
-    supabase.from("clients").select("id, full_name, company_name, client_type").order("full_name").then(({ data }) => setClients(data ?? []));
-    supabase.from("policies").select("id, policy_no, client_id").order("policy_no").then(({ data }) => setPolicies(data ?? []));
+    setClientResults([]);
+    setClientText("");
+    setShowClientList(false);
+    // Hydrate the client label when editing an existing invoice
+    const cid = initial?.client_id;
+    if (cid) {
+      supabase.from("clients").select("id, full_name, company_name, client_type").eq("id", cid).maybeSingle().then(({ data }) => {
+        if (!data) return;
+        const name = data.client_type === "corporate" ? (data.company_name ?? data.full_name) : data.full_name;
+        setClientText(name ?? "");
+      });
+    }
+    supabase.from("policies").select("id, policy_no, client_id").order("policy_no").limit(1000).then(({ data }) => setPolicies(data ?? []));
   }, [open, initial]);
+
+  // Debounced server-side client search
+  useEffect(() => {
+    if (!open) return;
+    const t = clientText.trim();
+    if (t.length < 2) { setClientResults([]); setSearchingClients(false); return; }
+    setSearchingClients(true);
+    const esc = t.replace(/[%,()]/g, " ");
+    const handle = setTimeout(async () => {
+      const { data } = await supabase
+        .from("clients")
+        .select("id, full_name, company_name, client_type, email, phone")
+        .or(`full_name.ilike.%${esc}%,company_name.ilike.%${esc}%,email.ilike.%${esc}%,phone.ilike.%${esc}%`)
+        .order("full_name")
+        .limit(20);
+      setClientResults(data ?? []);
+      setSearchingClients(false);
+    }, 250);
+    return () => { clearTimeout(handle); setSearchingClients(false); };
+  }, [open, clientText]);
 
   const subtotal = items.reduce((s, i) => s + Number(i.quantity || 0) * Number(i.unit_price || 0), 0);
   const tax = Number(form.tax || 0);
@@ -97,12 +131,39 @@ export function InvoiceFormDialog({ open, onOpenChange, onSaved, initial }: any)
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 relative min-w-0">
             <Label>Client *</Label>
-            <Select value={form.client_id ?? ""} onValueChange={(v) => set("client_id", v)}>
-              <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
-              <SelectContent>{clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.client_type === "corporate" ? c.company_name ?? c.full_name : c.full_name}</SelectItem>)}</SelectContent>
-            </Select>
+            <Input
+              placeholder="Search client by name, email or phone…"
+              value={clientText}
+              onChange={(e) => { setClientText(e.target.value); setShowClientList(true); set("client_id", null); }}
+              onFocus={() => setShowClientList(true)}
+              onBlur={() => setTimeout(() => setShowClientList(false), 150)}
+            />
+            {showClientList && clientText.trim().length >= 2 && (
+              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-56 overflow-auto">
+                {searchingClients && <div className="px-3 py-2 text-sm text-muted-foreground">Searching…</div>}
+                {!searchingClients && clientResults.length === 0 && <div className="px-3 py-2 text-sm text-muted-foreground">No clients match.</div>}
+                {!searchingClients && clientResults.map((c) => {
+                  const name = c.client_type === "corporate" ? (c.company_name ?? c.full_name) : c.full_name;
+                  return (
+                    <button key={c.id} type="button"
+                      className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { setClientText(name ?? ""); set("client_id", c.id); setShowClientList(false); }}
+                    >{name}</button>
+                  );
+                })}
+              </div>
+            )}
+            {showClientList && clientText.trim().length > 0 && clientText.trim().length < 2 && (
+              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md px-3 py-2 text-sm text-muted-foreground">
+                Type at least 2 characters to search.
+              </div>
+            )}
+            {clientText.trim() && !form.client_id && (
+              <p className="text-xs text-muted-foreground">Pick a client from the list.</p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label>Policy</Label>
