@@ -267,7 +267,7 @@ function IpenAdminPage() {
               setCode={setCode}
               onVerify={doVerify}
               busy={busy || isLoading}
-              showResend={Boolean(mfaPending)}
+              showResend={true}
               onResend={async () => {
                 try {
                   await resendFn();
