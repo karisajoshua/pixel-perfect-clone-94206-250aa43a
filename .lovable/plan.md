@@ -1,64 +1,27 @@
-## 1. Clients-per-branch count
+## Improve "New claim" dialog UX
 
-**`src/lib/dashboard.functions.ts`** — extend `getDashboardSummary`:
-- Fetch `clients` with `branch_id` (admin scope) or a single-branch count (non-admin) instead of the current `head:true` count.
-- Aggregate a `clientsByBranch: Map<branchId, number>` alongside the existing `polByBranch` / `revByBranch`.
-- Add `clients: number` to each `byBranch` row in the returned `DashboardSummary` type.
+Edit `src/routes/_authenticated/claims.tsx` — `ClaimDialog` only:
 
-**`src/routes/_authenticated/dashboard.tsx`** — "Revenue by branch" table:
-- Add a `Clients` column between Branch and Policies.
-- Sum in the "All branches" total row.
+**1. Client → searchable combobox**
+- Replace the `Select` (line 244-250) with a Popover + Command (shadcn) searchable picker.
+- Shows client display name; filters as admin/manager types. Keeps existing `form.client_id` state.
 
-**`src/routes/_authenticated/admin.branches.tsx`** — branches admin table:
-- Load `clients (branch_id)` counts once (single grouped query) and render a `Clients` column next to Name/Code/Email/Phone so admins see the effect of reassignments immediately.
+**2. Policy → auto-prefill + editable**
+- When the client changes (or dialog opens with a preselected client), if that client has exactly one active policy, auto-set `form.policy_id` to it.
+- If multiple policies exist, auto-pick the most recent one (highest `created_at`) as a sensible default.
+- Keep the field as an editable `Select` so the user can change it. Only prefill when `policy_id` is empty or when the selected policy doesn't belong to the new client.
+- Extend the `policies` fetch to also load `created_at` (and, if available, `status`) so we can prefer active/most-recent.
 
-No schema change needed — this is purely a read/UI update, so moving a client between branches will reflect on the next refresh.
+**3. Vehicle → auto-prefill**
+- Prefer the vehicle linked to the auto-selected policy (fetch `vehicle_id` on `policies`).
+- Otherwise, if the client has exactly one vehicle, prefill that.
+- Kept editable via the existing `Select`; only prefill when empty or when current vehicle doesn't belong to the client.
 
-## 2. Performance pass
+**Behavior details**
+- Prefill runs on client change and on initial open for `new` claims. When editing an existing claim, don't overwrite values that were already saved.
+- No schema changes, no server-function changes.
 
-### Database indexes (new migration)
-
-Add btree indexes covering the hot filter/join paths used by dashboard, reports, and list pages. All are additive, safe, and small:
-
-```text
-policies:      (branch_id), (status), (end_date), (client_id), (insurer_id), (created_by)
-claims:        (branch_id), (status), (client_id), (policy_id)
-clients:       (branch_id), (tenant_id), (auth_user_id)
-invoices:      (branch_id), (client_id), (status)
-payments:      (invoice_id), (paid_date)
-vehicles:      (client_id)
-quotations:    (client_id), (status)
-user_roles:    (user_id, role)     -- speeds has_role() and role checks
-profiles:      (branch_id)
-audit_log:     (entity_type, entity_id), (created_at desc)
-```
-
-### Server-function query shape
-
-- `dashboard.functions.ts`: replace the full-table `select("*")` fetches used purely for counts (clients, claims-by-status, policies-by-status) with `select("id", { count: "exact", head: true })` per bucket, or a single narrow projection. Only the byBranch aggregates need row data — narrow those selects to the exact columns used (`branch_id, status, premium_gross, start_date, end_date, cancelled_at`).
-- `reports.functions.ts`: same narrowing; drop unused columns from the big `select`s.
-
-### Client caching / prefetch
-
-- Bump route `staleTime` on `dashboard.tsx` and `reports.tsx` to `60_000` (and `gcTime` `5*60_000`) so navigating away and back is instant.
-- Use `context.queryClient.ensureQueryData(queryOptions)` in the route loader for dashboard + reports so data starts fetching during navigation rather than after mount.
-- Set React Query default `staleTime: 30_000` in `getRouter` so common lookup queries (branches, insurers, profiles) stop refetching on every mount.
-
-### Route data-loading cleanup
-
-- Convert any list page still using `useEffect` + `supabase.from(...)` to `useQuery` with a stable `queryKey` (checked during implementation; only touch pages that need it).
-- Ensure Query is invalidated on the relevant mutations only (avoid `invalidateQueries()` with no key on sign-in events — already handled in `__root.tsx`).
-
-### Verification
-
-- `supabase--slow_queries` before and after to confirm the indexes take effect.
-- Reload dashboard + reports and check network timing drops.
-
-## Files touched
-
-- `src/lib/dashboard.functions.ts`
-- `src/routes/_authenticated/dashboard.tsx`
-- `src/routes/_authenticated/admin.branches.tsx`
-- `src/lib/reports.functions.ts`
-- `src/router.tsx` (default query staleTime)
-- New migration: `supabase/migrations/<ts>_perf_indexes.sql`
+### Technical notes
+- Combobox uses existing `@/components/ui/popover` + `@/components/ui/command` (already in project via shadcn).
+- Add `vehicle_id, created_at, status` to the `policies` select; add `created_at` to `vehicles` select for consistent ordering.
+- All logic contained inside `ClaimDialog`; no other files touched.

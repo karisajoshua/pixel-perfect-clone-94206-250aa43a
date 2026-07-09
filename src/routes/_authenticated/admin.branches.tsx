@@ -28,20 +28,6 @@ function Branches() {
     },
   });
 
-  const { data: clientCounts } = useQuery({
-    queryKey: ["branches", "client-counts"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("clients").select("branch_id");
-      if (error) throw error;
-      const map = new Map<string | null, number>();
-      for (const c of data ?? []) {
-        const k = (c as any).branch_id ?? null;
-        map.set(k, (map.get(k) ?? 0) + 1);
-      }
-      return map;
-    },
-  });
-
   const remove = async (id: string) => {
     if (!confirm("Delete this branch?")) return;
     const { error } = await supabase.from("branches").delete().eq("id", id);
@@ -56,15 +42,14 @@ function Branches() {
       <Card>
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/40 text-left">
-            <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Code</th><th className="px-4 py-3">Clients</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Phone</th><th></th></tr>
+            <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Code</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Phone</th><th></th></tr>
           </thead>
           <tbody>
-            {data?.length === 0 && <tr><td colSpan={6} className="p-12 text-center text-muted-foreground">No branches yet.</td></tr>}
+            {data?.length === 0 && <tr><td colSpan={5} className="p-12 text-center text-muted-foreground">No branches yet.</td></tr>}
             {data?.map((b) => (
               <tr key={b.id} className="border-b last:border-0">
                 <td className="px-4 py-3 font-medium">{b.name}</td>
                 <td className="px-4 py-3">{b.code ?? "—"}</td>
-                <td className="px-4 py-3">{clientCounts?.get(b.id) ?? 0}</td>
                 <td className="px-4 py-3">{b.email ?? "—"}</td>
                 <td className="px-4 py-3">{b.phone ?? "—"}</td>
                 <td className="px-4 py-3 text-right">
