@@ -938,6 +938,7 @@ export type Database = {
       }
       policies: {
         Row: {
+          balance_due: number | null
           branch_id: string | null
           cancellation_reason: string | null
           cancelled_at: string | null
@@ -955,6 +956,7 @@ export type Database = {
           notes: string | null
           payment_status: string
           policy_no: string
+          policy_term: string | null
           premium_gross: number | null
           premium_net: number | null
           previous_policy_id: string | null
@@ -968,6 +970,7 @@ export type Database = {
           vehicle_id: string | null
         }
         Insert: {
+          balance_due?: number | null
           branch_id?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
@@ -985,6 +988,7 @@ export type Database = {
           notes?: string | null
           payment_status?: string
           policy_no: string
+          policy_term?: string | null
           premium_gross?: number | null
           premium_net?: number | null
           previous_policy_id?: string | null
@@ -998,6 +1002,7 @@ export type Database = {
           vehicle_id?: string | null
         }
         Update: {
+          balance_due?: number | null
           branch_id?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
@@ -1015,6 +1020,7 @@ export type Database = {
           notes?: string | null
           payment_status?: string
           policy_no?: string
+          policy_term?: string | null
           premium_gross?: number | null
           premium_net?: number | null
           previous_policy_id?: string | null
@@ -1068,6 +1074,59 @@ export type Database = {
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_payment_extensions: {
+        Row: {
+          amount_due: number
+          branch_id: string | null
+          created_at: string
+          created_by: string | null
+          due_date: string
+          id: string
+          paid_at: string | null
+          policy_id: string
+          reason: string | null
+          status: string
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_due: number
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date: string
+          id?: string
+          paid_at?: string | null
+          policy_id: string
+          reason?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_due?: number
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string
+          id?: string
+          paid_at?: string | null
+          policy_id?: string
+          reason?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_payment_extensions_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
             referencedColumns: ["id"]
           },
         ]
@@ -1144,6 +1203,7 @@ export type Database = {
           line_items: Json
           notes: string | null
           parent_quote_id: string | null
+          policy_term: string | null
           premium_gross: number | null
           premium_net: number | null
           product_class: string
@@ -1174,6 +1234,7 @@ export type Database = {
           line_items?: Json
           notes?: string | null
           parent_quote_id?: string | null
+          policy_term?: string | null
           premium_gross?: number | null
           premium_net?: number | null
           product_class?: string
@@ -1204,6 +1265,7 @@ export type Database = {
           line_items?: Json
           notes?: string | null
           parent_quote_id?: string | null
+          policy_term?: string | null
           premium_gross?: number | null
           premium_net?: number | null
           product_class?: string
