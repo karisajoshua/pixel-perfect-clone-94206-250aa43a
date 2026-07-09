@@ -1,27 +1,20 @@
-## Improve "New claim" dialog UX
+## Problem
 
-Edit `src/routes/_authenticated/claims.tsx` — `ClaimDialog` only:
+In `VehicleFormDialog`, the client picker loads at most 500 clients ordered by name (`.limit(500)`) and filters them client-side. Agencies with more than ~500 clients (or names later in the alphabet) can't be found when adding a vehicle. Admins and managers should be able to search the full client database.
 
-**1. Client → searchable combobox**
-- Replace the `Select` (line 244-250) with a Popover + Command (shadcn) searchable picker.
-- Shows client display name; filters as admin/manager types. Keeps existing `form.client_id` state.
+## Fix
 
-**2. Policy → auto-prefill + editable**
-- When the client changes (or dialog opens with a preselected client), if that client has exactly one active policy, auto-set `form.policy_id` to it.
-- If multiple policies exist, auto-pick the most recent one (highest `created_at`) as a sensible default.
-- Keep the field as an editable `Select` so the user can change it. Only prefill when `policy_id` is empty or when the selected policy doesn't belong to the new client.
-- Extend the `policies` fetch to also load `created_at` (and, if available, `status`) so we can prefer active/most-recent.
+Update `src/components/vehicles/vehicle-form-dialog.tsx` so the client picker queries the backend as the user types, instead of relying on a one-shot 500-row prefetch:
 
-**3. Vehicle → auto-prefill**
-- Prefer the vehicle linked to the auto-selected policy (fetch `vehicle_id` on `policies`).
-- Otherwise, if the client has exactly one vehicle, prefill that.
-- Kept editable via the existing `Select`; only prefill when empty or when current vehicle doesn't belong to the client.
+1. Remove the initial `limit(500)` prefetch of all clients.
+2. Add a debounced (~250 ms) query keyed on `clientText` that runs when the dropdown is open and the input has ≥2 characters:
+   - `supabase.from("clients").select("id, full_name, company_name, client_type").or("full_name.ilike.%q%,company_name.ilike.%q%").order("full_name").limit(20)`
+   - RLS already scopes results correctly — admins/managers see all tenant clients, agents see their branch — so no role branching is needed in the component.
+3. Show results in the existing dropdown. Empty state: "No clients match." Loading state: "Searching…". Below 2 chars: hint "Type at least 2 characters to search."
+4. Keep the locked-client behavior (when opened from a specific client) and the existing hydration lookup for edit mode (fetch the single selected client by id when `form.client_id` is set but no label yet).
+5. Keep `defaultClientId` / `initial` flows unchanged.
 
-**Behavior details**
-- Prefill runs on client change and on initial open for `new` claims. When editing an existing claim, don't overwrite values that were already saved.
-- No schema changes, no server-function changes.
+## Out of scope
 
-### Technical notes
-- Combobox uses existing `@/components/ui/popover` + `@/components/ui/command` (already in project via shadcn).
-- Add `vehicle_id, created_at, status` to the `policies` select; add `created_at` to `vehicles` select for consistent ordering.
-- All logic contained inside `ClaimDialog`; no other files touched.
+- No schema, RLS, or server-function changes.
+- No changes to the Vehicles list page or transfer dialog.

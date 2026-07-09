@@ -19,6 +19,9 @@ export type IpenResponse<T = any> = {
   status: number;
   data: T | null;
   error?: string;
+  /** True when the upstream IPEN service failed in a way we cannot fix
+   *  from this app (e.g. their database is missing columns, 5xx outage). */
+  upstreamOutage?: boolean;
 };
 
 function baseUrl(): string {
@@ -43,7 +46,18 @@ async function rawFetch<T>(
   init: RequestInit,
   query?: IpenFetchOptions["query"],
 ): Promise<IpenResponse<T>> {
-  const res = await fetch(buildUrl(path, query), init);
+  let res: Response;
+  try {
+    res = await fetch(buildUrl(path, query), init);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown network error";
+    return {
+      ok: false,
+      status: 502,
+      data: null,
+      error: `IPEN service could not be reached: ${message}`,
+    };
+  }
   const text = await res.text();
   let data: any = null;
   if (text) {
@@ -54,10 +68,48 @@ async function rawFetch<T>(
     }
   }
   if (!res.ok) {
-    const msg =
-      (data && typeof data === "object" && (data.message || data.title || data.error)) ||
-      (typeof data === "string" ? data : `IPEN ${res.status}`);
-    return { ok: false, status: res.status, data, error: String(msg) };
+    let msg: string | null = null;
+    // Detect the specific "their DB is out of sync with their code" failure
+    // so we can surface a clear message instead of a raw stack trace.
+    const raw = typeof data === "string" ? data : JSON.stringify(data ?? "");
+    const schemaBroken = /Invalid column name/i.test(raw);
+    if (data && typeof data === "object") {
+      // ASP.NET ValidationProblemDetails: { title, errors: { Field: ["msg", ...] } }
+      const errs = (data as any).errors;
+      if (errs && typeof errs === "object") {
+        const parts: string[] = [];
+        for (const [field, val] of Object.entries(errs)) {
+          const items = Array.isArray(val) ? val : [val];
+          parts.push(`${field}: ${items.join(" ")}`);
+        }
+        if (parts.length) msg = parts.join("; ");
+      }
+      if (!msg) msg = (data as any).message || (data as any).title || (data as any).error || null;
+    } else if (typeof data === "string" && data) {
+      msg = data;
+    }
+    if (schemaBroken) {
+      return {
+        ok: false,
+        status: res.status,
+        data,
+        upstreamOutage: true,
+        error:
+          "Ecobank/IPEN's login service is currently down (their database is missing required columns). " +
+          "This is an outage on IPEN's side — please contact IPEN support and try again once they've patched their service.",
+      };
+    }
+    const fallback =
+      res.status >= 500
+        ? `IPEN service error (${res.status}). Please request a new OTP and try again.`
+        : `IPEN ${res.status}`;
+    return {
+      ok: false,
+      status: res.status,
+      data,
+      error: msg ?? fallback,
+      upstreamOutage: res.status >= 500,
+    };
   }
   return { ok: true, status: res.status, data: data as T };
 }
@@ -67,6 +119,7 @@ type CredRow = {
   access_token: string | null;
   refresh_token: string | null;
   token_expires_at: string | null;
+  mfa_required: boolean | null;
 };
 
 async function loadCredentials(
@@ -75,7 +128,7 @@ async function loadCredentials(
 ): Promise<CredRow | null> {
   const { data, error } = await supabase
     .from("ipen_credentials")
-    .select("user_id, access_token, refresh_token, token_expires_at")
+    .select("user_id, access_token, refresh_token, token_expires_at, mfa_required")
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -113,12 +166,75 @@ export function extractTokens(payload: any): {
 } {
   if (!payload || typeof payload !== "object") return {};
   const p = payload.data ?? payload;
+  const pick = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = p[key];
+      if (value !== undefined && value !== null && value !== "") return value;
+    }
+    return undefined;
+  };
+  const mfaToken =
+    pick(
+      "mfaToken",
+      "MfaToken",
+      "mfa_token",
+      "twoFactorToken",
+      "TwoFactorToken",
+      "two_factor_token",
+      "otpToken",
+      "OtpToken",
+      "OTPToken",
+      "otp_token",
+      "challengeToken",
+      "ChallengeToken",
+      "challenge_token",
+      "challengeId",
+      "ChallengeId",
+      "challenge_id",
+      "mfaSessionId",
+      "MfaSessionId",
+      "mfa_session_id",
+      "sessionId",
+      "SessionId",
+      "session_id",
+      "verificationToken",
+      "VerificationToken",
+      "verification_token",
+      "requestId",
+      "RequestId",
+      "request_id",
+    );
+  const accessToken = pick("accessToken", "AccessToken", "access_token", "token", "Token");
+  const msgSource = typeof p.message === "string" ? p.message : payload.message;
+  const msg = typeof msgSource === "string" ? msgSource.toLowerCase() : "";
+  const flagged =
+    pick(
+      "mfaRequired",
+      "MfaRequired",
+      "mfa_required",
+      "requiresTwoFactor",
+      "RequiresTwoFactor",
+      "requires_two_factor",
+      "requires_mfa",
+      "requiresMfa",
+      "RequiresMfa",
+      "twoFactorRequired",
+      "TwoFactorRequired",
+      "two_factor_required",
+    );
+  const msgHints =
+    !accessToken &&
+    (msg.includes("otp") ||
+      msg.includes("verification") ||
+      msg.includes("two-factor") ||
+      msg.includes("two factor") ||
+      msg.includes("mfa"));
   return {
-    accessToken: p.accessToken ?? p.access_token ?? p.token,
-    refreshToken: p.refreshToken ?? p.refresh_token,
-    expiresIn: p.expiresIn ?? p.expires_in ?? null,
-    mfaToken: p.mfaToken ?? p.mfa_token,
-    mfaRequired: p.mfaRequired ?? p.mfa_required ?? Boolean(p.mfaToken ?? p.mfa_token),
+    accessToken,
+    refreshToken: pick("refreshToken", "RefreshToken", "refresh_token"),
+    expiresIn: pick("expiresIn", "ExpiresIn", "expires_in") ?? null,
+    mfaToken,
+    mfaRequired: Boolean(flagged ?? (mfaToken || msgHints)),
   };
 }
 
@@ -146,6 +262,14 @@ export async function ipenFetch<T = any>(
   }
 
   const creds = await loadCredentials(supabase, userId);
+  if (creds?.mfa_required) {
+    return {
+      ok: false,
+      status: 401,
+      data: null,
+      error: "IPEN verification pending. Enter the OTP from Ecobank in Admin → IPEN to finish connecting.",
+    };
+  }
   if (!creds?.access_token) {
     return {
       ok: false,

@@ -21,6 +21,7 @@ type Role = "admin" | "manager" | "agent" | "viewer" | "client";
 const nav: { to: string; label: string; icon: typeof Users; roles: Role[] }[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "manager", "agent", "viewer"] },
   { to: "/clients", label: "Clients", icon: Users, roles: ["admin", "manager", "agent"] },
+  { to: "/clients/kra-checker", label: "KRA PIN checker", icon: ShieldCheck, roles: ["admin", "manager", "agent"] },
   { to: "/quotations", label: "Quotations", icon: FileSignature, roles: ["admin", "manager", "agent"] },
   { to: "/vehicles", label: "Vehicles", icon: Car, roles: ["admin", "manager", "agent"] },
   { to: "/policies", label: "Policies", icon: FileText, roles: ["admin", "manager", "agent"] },

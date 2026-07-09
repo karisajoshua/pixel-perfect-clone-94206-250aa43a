@@ -23,6 +23,7 @@ type Props = {
 export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaultClientId }: Props) {
   const [form, setForm] = useState<any>({});
   const [clients, setClients] = useState<any[]>([]);
+  const [searchingClients, setSearchingClients] = useState(false);
   const [branches, setBranches] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [lockedClient, setLockedClient] = useState<{ id: string; label: string } | null>(null);
@@ -41,6 +42,7 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
     setForm(initial ?? { client_id: defaultClientId, usage_type: "private" });
     setAutoFilled(new Set());
     setClientText("");
+    setClients([]);
     const lockedId = initial?.client_id ?? defaultClientId ?? null;
     if (lockedId) {
       supabase.from("clients").select("id, full_name, company_name, client_type").eq("id", lockedId).maybeSingle().then(({ data }) => {
@@ -49,25 +51,41 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
     } else {
       setLockedClient(null);
     }
-    supabase.from("clients").select("id, full_name, company_name, client_type").order("full_name").limit(500).then(({ data }) => setClients(data ?? []));
     supabase.from("branches").select("id, name").order("name").then(({ data }) => setBranches(data ?? []));
   }, [open, initial, defaultClientId]);
 
-  // Hydrate typed text when editing an existing vehicle
+  // Hydrate typed text when editing an existing vehicle (fetch the single selected client)
   useEffect(() => {
+    if (!open) return;
     if (!form.client_id || clientText || lockedClient) return;
-    const c = clients.find((x) => x.id === form.client_id);
-    if (c) setClientText(c.client_type === "corporate" ? (c.company_name ?? c.full_name) : c.full_name);
-  }, [clients, form.client_id, lockedClient]);
+    let cancelled = false;
+    supabase.from("clients").select("id, full_name, company_name, client_type").eq("id", form.client_id).maybeSingle().then(({ data }) => {
+      if (cancelled || !data) return;
+      const name = data.client_type === "corporate" ? (data.company_name ?? data.full_name) : data.full_name;
+      setClientText(name ?? "");
+    });
+    return () => { cancelled = true; };
+  }, [open, form.client_id, lockedClient, clientText]);
 
-  const filteredClients = (() => {
-    const t = clientText.trim().toLowerCase();
-    if (!t) return clients.slice(0, 8);
-    return clients.filter((c) => {
-      const name = c.client_type === "corporate" ? (c.company_name ?? c.full_name) : c.full_name;
-      return name?.toLowerCase().includes(t);
-    }).slice(0, 8);
-  })();
+  // Debounced server-side client search
+  useEffect(() => {
+    if (!open || lockedClient) return;
+    const t = clientText.trim();
+    if (t.length < 2) { setClients([]); setSearchingClients(false); return; }
+    setSearchingClients(true);
+    const esc = t.replace(/[%,()]/g, " ");
+    const handle = setTimeout(async () => {
+      const { data } = await supabase
+        .from("clients")
+        .select("id, full_name, company_name, client_type")
+        .or(`full_name.ilike.%${esc}%,company_name.ilike.%${esc}%`)
+        .order("full_name")
+        .limit(20);
+      setClients(data ?? []);
+      setSearchingClients(false);
+    }, 250);
+    return () => { clearTimeout(handle); setSearchingClients(false); };
+  }, [open, clientText, lockedClient]);
 
   useEffect(() => {
     if (!open) return;
@@ -199,20 +217,27 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
                   onFocus={() => setShowClientList(true)}
                   onBlur={() => setTimeout(() => setShowClientList(false), 150)}
                 />
-                {showClientList && filteredClients.length > 0 && (
-                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-56 overflow-auto">
-                    {filteredClients.map((c) => {
-                      const name = c.client_type === "corporate" ? (c.company_name ?? c.full_name) : c.full_name;
-                      return (
-                        <button key={c.id} type="button"
-                          className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => { setClientText(name ?? ""); set("client_id", c.id); setShowClientList(false); }}
-                        >{name}</button>
-                      );
-                    })}
-                  </div>
-                )}
+            {showClientList && (clientText.trim().length >= 2) && (
+              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-56 overflow-auto">
+                {searchingClients && <div className="px-3 py-2 text-sm text-muted-foreground">Searching…</div>}
+                {!searchingClients && clients.length === 0 && <div className="px-3 py-2 text-sm text-muted-foreground">No clients match.</div>}
+                {!searchingClients && clients.map((c) => {
+                  const name = c.client_type === "corporate" ? (c.company_name ?? c.full_name) : c.full_name;
+                  return (
+                    <button key={c.id} type="button"
+                      className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { setClientText(name ?? ""); set("client_id", c.id); setShowClientList(false); }}
+                    >{name}</button>
+                  );
+                })}
+              </div>
+            )}
+            {showClientList && clientText.trim().length > 0 && clientText.trim().length < 2 && (
+              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md px-3 py-2 text-sm text-muted-foreground">
+                Type at least 2 characters to search.
+              </div>
+            )}
                 {clientText.trim() && !form.client_id && (
                   <p className="text-xs text-muted-foreground">Pick a client from the list.</p>
                 )}
