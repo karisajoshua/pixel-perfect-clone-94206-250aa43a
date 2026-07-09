@@ -98,12 +98,15 @@ export async function upsertAgencyIpenCredential(
 
 export async function updateStoredIpenCredential(
   credential: StoredIpenCredential,
-  patch: Partial<
-    Pick<
-      StoredIpenCredential,
-      "access_token" | "refresh_token" | "token_expires_at" | "mfa_token" | "mfa_required" | "last_login_at" | "ipen_email"
-    >
-  >,
+  patch: {
+    access_token?: string | null;
+    refresh_token?: string | null;
+    token_expires_at?: string | null;
+    mfa_token?: string | null;
+    mfa_required?: boolean | null;
+    last_login_at?: string | null;
+    ipen_email?: string;
+  },
 ): Promise<void> {
   if (credential.scope === "agency") {
     if (!credential.tenant_id) throw new Error("Agency IPEN credential is missing its agency id");
@@ -124,7 +127,11 @@ export async function updateStoredIpenCredential(
 }
 
 export async function persistIpenTokenRefresh(credential: StoredIpenCredential, tokens: TokenPatch): Promise<void> {
-  const patch: Partial<StoredIpenCredential> = {};
+  const patch: {
+    access_token?: string | null;
+    refresh_token?: string | null;
+    token_expires_at?: string | null;
+  } = {};
   if (tokens.accessToken) patch.access_token = tokens.accessToken;
   if (tokens.refreshToken) patch.refresh_token = tokens.refreshToken;
   if (tokens.expiresIn) {
