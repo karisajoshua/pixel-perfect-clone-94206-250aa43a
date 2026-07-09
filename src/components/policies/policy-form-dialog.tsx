@@ -19,7 +19,10 @@ type Props = {
 
 export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFrom }: Props) {
   const [form, setForm] = useState<any>({});
-  const [clients, setClients] = useState<any[]>([]);
+  const [clientText, setClientText] = useState("");
+  const [clientResults, setClientResults] = useState<any[]>([]);
+  const [searchingClients, setSearchingClients] = useState(false);
+  const [showClientList, setShowClientList] = useState(false);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [insurers, setInsurers] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
@@ -88,7 +91,9 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
         end_date: yr.toISOString().slice(0, 10),
       });
     }
-    supabase.from("clients").select("id, full_name, company_name, client_type").order("full_name").limit(500).then(({ data }) => setClients(data ?? []));
+    setClientText("");
+    setClientResults([]);
+    setShowClientList(false);
     supabase.from("vehicles").select("id, registration_no, client_id").order("registration_no").limit(1000).then(({ data }) => setVehicles(data ?? []));
     supabase.from("tenant_insurers").select("insurers(id, name, active)").eq("enabled", true).then(({ data }) => {
       const rows = (data ?? []).map((r: any) => r.insurers).filter((i: any) => i && i.active).sort((a: any, b: any) => a.name.localeCompare(b.name));
@@ -96,6 +101,39 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
     });
     supabase.from("branches").select("id, name").order("name").then(({ data }) => setBranches(data ?? []));
   }, [open, initial, renewFrom]);
+
+  // Hydrate typed text when editing/renewing (fetch the currently linked client)
+  useEffect(() => {
+    if (!open) return;
+    if (!form.client_id || clientText) return;
+    let cancelled = false;
+    supabase.from("clients").select("id, full_name, company_name, client_type").eq("id", form.client_id).maybeSingle().then(({ data }) => {
+      if (cancelled || !data) return;
+      const name = data.client_type === "corporate" ? (data.company_name ?? data.full_name) : data.full_name;
+      setClientText(name ?? "");
+    });
+    return () => { cancelled = true; };
+  }, [open, form.client_id, clientText]);
+
+  // Debounced server-side client search
+  useEffect(() => {
+    if (!open) return;
+    const t = clientText.trim();
+    if (t.length < 2) { setClientResults([]); setSearchingClients(false); return; }
+    setSearchingClients(true);
+    const esc = t.replace(/[%,()]/g, " ");
+    const handle = setTimeout(async () => {
+      const { data } = await supabase
+        .from("clients")
+        .select("id, full_name, company_name, client_type, email, phone")
+        .or(`full_name.ilike.%${esc}%,company_name.ilike.%${esc}%,email.ilike.%${esc}%,phone.ilike.%${esc}%`)
+        .order("full_name")
+        .limit(20);
+      setClientResults(data ?? []);
+      setSearchingClients(false);
+    }, 250);
+    return () => { clearTimeout(handle); setSearchingClients(false); };
+  }, [open, clientText]);
 
   const submit = async () => {
     setSaving(true);
@@ -116,7 +154,6 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
     if (error) return toast.error(error.message);
     toast.success(initial?.id ? "Policy updated" : "Policy created");
     if (!initial?.id && data?.id && form.client_id) {
-      const client = clients.find((c) => c.id === form.client_id);
       const insurer = insurers.find((i) => i.id === form.insurer_id);
       // fetch client email (not in cached list)
       supabase.from("clients").select("email, full_name, company_name, client_type").eq("id", form.client_id).maybeSingle().then(({ data: c }) => {
@@ -155,12 +192,42 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
               <SelectContent>{branches.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5 min-w-0">
+          <div className="space-y-1.5 min-w-0 relative">
             <Label>Client *</Label>
-            <Select value={form.client_id ?? ""} onValueChange={(v) => set("client_id", v)}>
-              <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
-              <SelectContent>{clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.client_type === "corporate" ? c.company_name ?? c.full_name : c.full_name}</SelectItem>)}</SelectContent>
-            </Select>
+            <Input
+              placeholder="Search client by name, email or phone…"
+              value={clientText}
+              onChange={(e) => { setClientText(e.target.value); setShowClientList(true); set("client_id", null); }}
+              onFocus={() => setShowClientList(true)}
+              onBlur={() => setTimeout(() => setShowClientList(false), 150)}
+            />
+            {showClientList && clientText.trim().length >= 2 && (
+              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-56 overflow-auto">
+                {searchingClients && <div className="px-3 py-2 text-sm text-muted-foreground">Searching…</div>}
+                {!searchingClients && clientResults.length === 0 && <div className="px-3 py-2 text-sm text-muted-foreground">No clients match.</div>}
+                {!searchingClients && clientResults.map((c) => {
+                  const name = c.client_type === "corporate" ? (c.company_name ?? c.full_name) : c.full_name;
+                  return (
+                    <button key={c.id} type="button"
+                      className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { setClientText(name ?? ""); set("client_id", c.id); set("vehicle_id", null); setShowClientList(false); }}
+                    >
+                      <div className="font-medium">{name}</div>
+                      {(c.email || c.phone) && <div className="text-xs text-muted-foreground">{[c.email, c.phone].filter(Boolean).join(" · ")}</div>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {showClientList && clientText.trim().length > 0 && clientText.trim().length < 2 && (
+              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md px-3 py-2 text-sm text-muted-foreground">
+                Type at least 2 characters to search.
+              </div>
+            )}
+            {clientText.trim() && !form.client_id && (
+              <p className="text-xs text-muted-foreground">Pick a client from the list.</p>
+            )}
           </div>
           <div className="space-y-1.5 min-w-0">
             <Label>Vehicle</Label>
