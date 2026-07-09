@@ -156,23 +156,3 @@ export const confirmLifeQuote = createServerFn({ method: "POST" })
     if (!res.ok) throw new Error(res.error ?? "Failed to confirm life quote");
     return res.data;
   });
-
-export const getLifeBenefitsSchedule = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
-    z
-      .object({ quoteId: z.union([z.string(), z.number()]) })
-      .passthrough()
-      .parse(d),
-  )
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
-    const { quoteId, ...body } = data as any;
-    const res = await ipenFetch<any>(supabase, userId, {
-      path: `/api/Policy/life-quote-benefits-schedule/${encodeURIComponent(String(quoteId))}`,
-      method: "POST",
-      body,
-    });
-    if (!res.ok) throw new Error(res.error ?? "Failed to load benefits schedule");
-    return res.data;
-  });

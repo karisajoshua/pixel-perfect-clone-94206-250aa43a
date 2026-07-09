@@ -45,13 +45,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
-  const isDev =
-    typeof window !== "undefined" &&
-    /localhost|lovableproject\.com|-dev\.lovable\.app/.test(window.location.hostname);
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-2xl text-center">
+      <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
           This page didn't load
         </h1>
@@ -75,19 +71,6 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             Go home
           </a>
         </div>
-        {isDev && (
-          <details className="mt-6 rounded-md border border-border bg-muted/40 p-3 text-left text-xs">
-            <summary className="cursor-pointer font-medium">Error details (dev only)</summary>
-            <p className="mt-2 whitespace-pre-wrap break-words font-mono text-destructive">
-              {error?.message ?? String(error)}
-            </p>
-            {error?.stack && (
-              <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-muted-foreground">
-                {error.stack}
-              </pre>
-            )}
-          </details>
-        )}
       </div>
     </div>
   );

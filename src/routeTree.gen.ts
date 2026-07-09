@@ -27,7 +27,6 @@ import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
 import { Route as AuthenticatedClaimsRouteImport } from './routes/_authenticated/claims'
-import { Route as AuthenticatedAssistantRouteImport } from './routes/_authenticated/assistant'
 import { Route as PortalPortalIndexRouteImport } from './routes/_portal/portal/index'
 import { Route as PlatformPlatformIndexRouteImport } from './routes/_platform/platform/index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
@@ -42,7 +41,6 @@ import { Route as PlatformPlatformAuditRouteImport } from './routes/_platform/pl
 import { Route as PlatformPlatformAgenciesRouteImport } from './routes/_platform/platform/agencies'
 import { Route as AuthenticatedPoliciesIdRouteImport } from './routes/_authenticated/policies.$id'
 import { Route as AuthenticatedInvoicesIdRouteImport } from './routes/_authenticated/invoices.$id'
-import { Route as AuthenticatedClientsKraCheckerRouteImport } from './routes/_authenticated/clients.kra-checker'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedAdminTenantRouteImport } from './routes/_authenticated/admin.tenant'
@@ -62,7 +60,6 @@ import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/l
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
-import { Route as ApiPublicIpenProcessExpressCallbackRouteImport } from './routes/api/public/ipen/process-express-callback'
 import { Route as ApiPublicIpenMpesaCallbackRouteImport } from './routes/api/public/ipen/mpesa-callback'
 import { Route as ApiPublicHooksRenewalRemindersRouteImport } from './routes/api/public/hooks/renewal-reminders'
 import { Route as PortalPortalPoliciesIdRouteImport } from './routes/_portal/portal/policies.$id'
@@ -156,11 +153,6 @@ const AuthenticatedClaimsRoute = AuthenticatedClaimsRouteImport.update({
   path: '/claims',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAssistantRoute = AuthenticatedAssistantRouteImport.update({
-  id: '/assistant',
-  path: '/assistant',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const PortalPortalIndexRoute = PortalPortalIndexRouteImport.update({
   id: '/portal/',
   path: '/portal/',
@@ -232,12 +224,6 @@ const AuthenticatedInvoicesIdRoute = AuthenticatedInvoicesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedInvoicesRoute,
 } as any)
-const AuthenticatedClientsKraCheckerRoute =
-  AuthenticatedClientsKraCheckerRouteImport.update({
-    id: '/kra-checker',
-    path: '/kra-checker',
-    getParentRoute: () => AuthenticatedClientsRoute,
-  } as any)
 const AuthenticatedClientsIdRoute = AuthenticatedClientsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -345,12 +331,6 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicIpenProcessExpressCallbackRoute =
-  ApiPublicIpenProcessExpressCallbackRouteImport.update({
-    id: '/api/public/ipen/process-express-callback',
-    path: '/api/public/ipen/process-express-callback',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicIpenMpesaCallbackRoute =
   ApiPublicIpenMpesaCallbackRouteImport.update({
     id: '/api/public/ipen/mpesa-callback',
@@ -385,7 +365,6 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/unsubscribe': typeof UnsubscribeRoute
-  '/assistant': typeof AuthenticatedAssistantRoute
   '/claims': typeof AuthenticatedClaimsRoute
   '/clients': typeof AuthenticatedClientsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -411,7 +390,6 @@ export interface FileRoutesByFullPath {
   '/admin/tenant': typeof AuthenticatedAdminTenantRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
-  '/clients/kra-checker': typeof AuthenticatedClientsKraCheckerRoute
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/policies/$id': typeof AuthenticatedPoliciesIdRoute
   '/platform/agencies': typeof PlatformPlatformAgenciesRouteWithChildren
@@ -431,7 +409,6 @@ export interface FileRoutesByFullPath {
   '/portal/policies/$id': typeof PortalPortalPoliciesIdRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
   '/api/public/ipen/mpesa-callback': typeof ApiPublicIpenMpesaCallbackRoute
-  '/api/public/ipen/process-express-callback': typeof ApiPublicIpenProcessExpressCallbackRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -443,7 +420,6 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/unsubscribe': typeof UnsubscribeRoute
-  '/assistant': typeof AuthenticatedAssistantRoute
   '/claims': typeof AuthenticatedClaimsRoute
   '/clients': typeof AuthenticatedClientsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -469,7 +445,6 @@ export interface FileRoutesByTo {
   '/admin/tenant': typeof AuthenticatedAdminTenantRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
-  '/clients/kra-checker': typeof AuthenticatedClientsKraCheckerRoute
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/policies/$id': typeof AuthenticatedPoliciesIdRoute
   '/platform/agencies': typeof PlatformPlatformAgenciesRouteWithChildren
@@ -489,7 +464,6 @@ export interface FileRoutesByTo {
   '/portal/policies/$id': typeof PortalPortalPoliciesIdRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
   '/api/public/ipen/mpesa-callback': typeof ApiPublicIpenMpesaCallbackRoute
-  '/api/public/ipen/process-express-callback': typeof ApiPublicIpenProcessExpressCallbackRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -505,7 +479,6 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/unsubscribe': typeof UnsubscribeRoute
-  '/_authenticated/assistant': typeof AuthenticatedAssistantRoute
   '/_authenticated/claims': typeof AuthenticatedClaimsRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -531,7 +504,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/tenant': typeof AuthenticatedAdminTenantRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
-  '/_authenticated/clients/kra-checker': typeof AuthenticatedClientsKraCheckerRoute
   '/_authenticated/invoices/$id': typeof AuthenticatedInvoicesIdRoute
   '/_authenticated/policies/$id': typeof AuthenticatedPoliciesIdRoute
   '/_platform/platform/agencies': typeof PlatformPlatformAgenciesRouteWithChildren
@@ -551,7 +523,6 @@ export interface FileRoutesById {
   '/_portal/portal/policies/$id': typeof PortalPortalPoliciesIdRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
   '/api/public/ipen/mpesa-callback': typeof ApiPublicIpenMpesaCallbackRoute
-  '/api/public/ipen/process-express-callback': typeof ApiPublicIpenProcessExpressCallbackRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -565,7 +536,6 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/reset-password'
     | '/unsubscribe'
-    | '/assistant'
     | '/claims'
     | '/clients'
     | '/dashboard'
@@ -591,7 +561,6 @@ export interface FileRouteTypes {
     | '/admin/tenant'
     | '/admin/users'
     | '/clients/$id'
-    | '/clients/kra-checker'
     | '/invoices/$id'
     | '/policies/$id'
     | '/platform/agencies'
@@ -611,7 +580,6 @@ export interface FileRouteTypes {
     | '/portal/policies/$id'
     | '/api/public/hooks/renewal-reminders'
     | '/api/public/ipen/mpesa-callback'
-    | '/api/public/ipen/process-express-callback'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -623,7 +591,6 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/reset-password'
     | '/unsubscribe'
-    | '/assistant'
     | '/claims'
     | '/clients'
     | '/dashboard'
@@ -649,7 +616,6 @@ export interface FileRouteTypes {
     | '/admin/tenant'
     | '/admin/users'
     | '/clients/$id'
-    | '/clients/kra-checker'
     | '/invoices/$id'
     | '/policies/$id'
     | '/platform/agencies'
@@ -669,7 +635,6 @@ export interface FileRouteTypes {
     | '/portal/policies/$id'
     | '/api/public/hooks/renewal-reminders'
     | '/api/public/ipen/mpesa-callback'
-    | '/api/public/ipen/process-express-callback'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -684,7 +649,6 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/reset-password'
     | '/unsubscribe'
-    | '/_authenticated/assistant'
     | '/_authenticated/claims'
     | '/_authenticated/clients'
     | '/_authenticated/dashboard'
@@ -710,7 +674,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/tenant'
     | '/_authenticated/admin/users'
     | '/_authenticated/clients/$id'
-    | '/_authenticated/clients/kra-checker'
     | '/_authenticated/invoices/$id'
     | '/_authenticated/policies/$id'
     | '/_platform/platform/agencies'
@@ -730,7 +693,6 @@ export interface FileRouteTypes {
     | '/_portal/portal/policies/$id'
     | '/api/public/hooks/renewal-reminders'
     | '/api/public/ipen/mpesa-callback'
-    | '/api/public/ipen/process-express-callback'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -751,7 +713,6 @@ export interface RootRouteChildren {
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksRenewalRemindersRoute: typeof ApiPublicHooksRenewalRemindersRoute
   ApiPublicIpenMpesaCallbackRoute: typeof ApiPublicIpenMpesaCallbackRoute
-  ApiPublicIpenProcessExpressCallbackRoute: typeof ApiPublicIpenProcessExpressCallbackRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -887,13 +848,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClaimsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/assistant': {
-      id: '/_authenticated/assistant'
-      path: '/assistant'
-      fullPath: '/assistant'
-      preLoaderRoute: typeof AuthenticatedAssistantRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_portal/portal/': {
       id: '/_portal/portal/'
       path: '/portal'
@@ -991,13 +945,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/invoices/$id'
       preLoaderRoute: typeof AuthenticatedInvoicesIdRouteImport
       parentRoute: typeof AuthenticatedInvoicesRoute
-    }
-    '/_authenticated/clients/kra-checker': {
-      id: '/_authenticated/clients/kra-checker'
-      path: '/kra-checker'
-      fullPath: '/clients/kra-checker'
-      preLoaderRoute: typeof AuthenticatedClientsKraCheckerRouteImport
-      parentRoute: typeof AuthenticatedClientsRoute
     }
     '/_authenticated/clients/$id': {
       id: '/_authenticated/clients/$id'
@@ -1132,13 +1079,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/ipen/process-express-callback': {
-      id: '/api/public/ipen/process-express-callback'
-      path: '/api/public/ipen/process-express-callback'
-      fullPath: '/api/public/ipen/process-express-callback'
-      preLoaderRoute: typeof ApiPublicIpenProcessExpressCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/ipen/mpesa-callback': {
       id: '/api/public/ipen/mpesa-callback'
       path: '/api/public/ipen/mpesa-callback'
@@ -1179,12 +1119,10 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedClientsRouteChildren {
   AuthenticatedClientsIdRoute: typeof AuthenticatedClientsIdRoute
-  AuthenticatedClientsKraCheckerRoute: typeof AuthenticatedClientsKraCheckerRoute
 }
 
 const AuthenticatedClientsRouteChildren: AuthenticatedClientsRouteChildren = {
   AuthenticatedClientsIdRoute: AuthenticatedClientsIdRoute,
-  AuthenticatedClientsKraCheckerRoute: AuthenticatedClientsKraCheckerRoute,
 }
 
 const AuthenticatedClientsRouteWithChildren =
@@ -1217,7 +1155,6 @@ const AuthenticatedPoliciesRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAssistantRoute: typeof AuthenticatedAssistantRoute
   AuthenticatedClaimsRoute: typeof AuthenticatedClaimsRoute
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -1243,7 +1180,6 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAssistantRoute: AuthenticatedAssistantRoute,
   AuthenticatedClaimsRoute: AuthenticatedClaimsRoute,
   AuthenticatedClientsRoute: AuthenticatedClientsRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
@@ -1362,8 +1298,6 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksRenewalRemindersRoute: ApiPublicHooksRenewalRemindersRoute,
   ApiPublicIpenMpesaCallbackRoute: ApiPublicIpenMpesaCallbackRoute,
-  ApiPublicIpenProcessExpressCallbackRoute:
-    ApiPublicIpenProcessExpressCallbackRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,

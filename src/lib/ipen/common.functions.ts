@@ -3,154 +3,55 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ipenFetch } from "./ipen-fetch.server";
 
-const listInput = z
+// Simple in-memory reference-data cache (per worker instance). IPEN
+// reference data (countries, vehicle makes, etc.) changes rarely, so a
+// short in-process TTL is fine.
+type CacheEntry = { at: number; value: any };
+const CACHE = new Map<string, CacheEntry>();
+const TTL_MS = 12 * 60 * 60 * 1000; // 12h
+
+async function cached<T>(key: string, loader: () => Promise<T>): Promise<T> {
+  const hit = CACHE.get(key);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.value as T;
+  const value = await loader();
+  CACHE.set(key, { at: Date.now(), value });
+  return value;
+}
+
+const listSchema = z
   .object({ refresh: z.boolean().optional() })
   .optional()
   .default({});
 
-export const listCountries = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => listInput.parse(d ?? {}))
-  .handler(async ({ data, context }) => {
-    const { cached, invalidate } = await import("./common-cache.server");
-    const { supabase, userId } = context as any;
-    const key = "countries";
-    if (data?.refresh) invalidate(key);
-    return cached(key, async () => {
-      const res = await ipenFetch<any>(supabase, userId, {
-        path: "/api/Common/countries",
-        method: "GET",
+function makeListFn(key: string, path: string) {
+  return createServerFn({ method: "GET" })
+    .middleware([requireSupabaseAuth])
+    .inputValidator((d) => listSchema.parse(d ?? {}))
+    .handler(async ({ data, context }) => {
+      const { supabase, userId } = context as any;
+      if (data?.refresh) CACHE.delete(key);
+      return cached(key, async () => {
+        const res = await ipenFetch<any>(supabase, userId, { path, method: "GET" });
+        if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
+        return res.data;
       });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
-      return res.data;
     });
-  });
+}
 
-export const listIdentificationDocuments = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => listInput.parse(d ?? {}))
-  .handler(async ({ data, context }) => {
-    const { cached, invalidate } = await import("./common-cache.server");
-    const { supabase, userId } = context as any;
-    const key = "id-docs";
-    if (data?.refresh) invalidate(key);
-    return cached(key, async () => {
-      const res = await ipenFetch<any>(supabase, userId, {
-        path: "/api/Common/identification-documents",
-        method: "GET",
-      });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
-      return res.data;
-    });
-  });
-
-export const listGenders = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => listInput.parse(d ?? {}))
-  .handler(async ({ data, context }) => {
-    const { cached, invalidate } = await import("./common-cache.server");
-    const { supabase, userId } = context as any;
-    const key = "genders";
-    if (data?.refresh) invalidate(key);
-    return cached(key, async () => {
-      const res = await ipenFetch<any>(supabase, userId, {
-        path: "/api/Common/genders",
-        method: "GET",
-      });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
-      return res.data;
-    });
-  });
-
-export const listRiskClassCategories = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => listInput.parse(d ?? {}))
-  .handler(async ({ data, context }) => {
-    const { cached, invalidate } = await import("./common-cache.server");
-    const { supabase, userId } = context as any;
-    const key = "risk-class-categories";
-    if (data?.refresh) invalidate(key);
-    return cached(key, async () => {
-      const res = await ipenFetch<any>(supabase, userId, {
-        path: "/api/Common/risk-class-categories",
-        method: "GET",
-      });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
-      return res.data;
-    });
-  });
-
-export const listVehicleMakes = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => listInput.parse(d ?? {}))
-  .handler(async ({ data, context }) => {
-    const { cached, invalidate } = await import("./common-cache.server");
-    const { supabase, userId } = context as any;
-    const key = "vehicle-makes";
-    if (data?.refresh) invalidate(key);
-    return cached(key, async () => {
-      const res = await ipenFetch<any>(supabase, userId, {
-        path: "/api/Common/vehicle-makes",
-        method: "GET",
-      });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
-      return res.data;
-    });
-  });
-
-export const listVehicleModels = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => listInput.parse(d ?? {}))
-  .handler(async ({ data, context }) => {
-    const { cached, invalidate } = await import("./common-cache.server");
-    const { supabase, userId } = context as any;
-    const key = "vehicle-models";
-    if (data?.refresh) invalidate(key);
-    return cached(key, async () => {
-      const res = await ipenFetch<any>(supabase, userId, {
-        path: "/api/Common/vehicle-models",
-        method: "GET",
-      });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
-      return res.data;
-    });
-  });
-
-export const listMotorTypes = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => listInput.parse(d ?? {}))
-  .handler(async ({ data, context }) => {
-    const { cached, invalidate } = await import("./common-cache.server");
-    const { supabase, userId } = context as any;
-    const key = "motor-types";
-    if (data?.refresh) invalidate(key);
-    return cached(key, async () => {
-      const res = await ipenFetch<any>(supabase, userId, {
-        path: "/api/Common/motor-types",
-        method: "GET",
-      });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
-      return res.data;
-    });
-  });
-
-export const listRelationships = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => listInput.parse(d ?? {}))
-  .handler(async ({ data, context }) => {
-    const { cached, invalidate } = await import("./common-cache.server");
-    const { supabase, userId } = context as any;
-    const key = "relationships";
-    if (data?.refresh) invalidate(key);
-    return cached(key, async () => {
-      const res = await ipenFetch<any>(supabase, userId, {
-        path: "/api/Common/relationships",
-        method: "GET",
-      });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
-      return res.data;
-    });
-  });
+export const listCountries = makeListFn("countries", "/api/Common/countries");
+export const listIdentificationDocuments = makeListFn(
+  "id-docs",
+  "/api/Common/identification-documents",
+);
+export const listGenders = makeListFn("genders", "/api/Common/genders");
+export const listRiskClassCategories = makeListFn(
+  "risk-class-categories",
+  "/api/Common/risk-class-categories",
+);
+export const listVehicleMakes = makeListFn("vehicle-makes", "/api/Common/vehicle-makes");
+export const listVehicleModels = makeListFn("vehicle-models", "/api/Common/vehicle-models");
+export const listMotorTypes = makeListFn("motor-types", "/api/Common/motor-types");
+export const listRelationships = makeListFn("relationships", "/api/Common/relationships");
 
 // customer-vehicles is per-user; do not cache.
 export const listCustomerVehicles = createServerFn({ method: "GET" })
@@ -170,7 +71,6 @@ export const listRiskClasses = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ riskClassCategoryId: z.union([z.string(), z.number()]) }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    const { cached } = await import("./common-cache.server");
     const key = `risk-classes:${data.riskClassCategoryId}`;
     return cached(key, async () => {
       const res = await ipenFetch<any>(supabase, userId, {
@@ -182,23 +82,7 @@ export const listRiskClasses = createServerFn({ method: "POST" })
     });
   });
 
-export const listCoverOptions = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => listInput.parse(d ?? {}))
-  .handler(async ({ data, context }) => {
-    const { cached, invalidate } = await import("./common-cache.server");
-    const { supabase, userId } = context as any;
-    const key = "cover-options";
-    if (data?.refresh) invalidate(key);
-    return cached(key, async () => {
-      const res = await ipenFetch<any>(supabase, userId, {
-        path: "/api/Policy/cover-options",
-        method: "GET",
-      });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
-      return res.data;
-    });
-  });
+export const listCoverOptions = makeListFn("cover-options", "/api/Policy/cover-options");
 
 export const listVehicleUses = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -232,12 +116,4 @@ export const listProducts = createServerFn({ method: "GET" })
     });
     if (!res.ok) throw new Error(res.error ?? "Failed to load products");
     return res.data;
-  });
-
-// Simple upstream health probe (no auth). Used by the admin panel status pill.
-export const ipenHealthCheck = createServerFn({ method: "GET" })
-  .handler(async () => {
-    const { ipenPublic } = await import("./ipen-fetch.server");
-    const res = await ipenPublic<any>({ path: "/health", method: "GET", noAuth: true });
-    return { ok: res.ok, status: res.status };
   });

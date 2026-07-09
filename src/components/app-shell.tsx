@@ -3,7 +3,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Car, FileText, FileSignature, Receipt, ScrollText,
   BarChart3, ShieldCheck, LogOut, Building2, BellRing, Settings, Mail, Upload,
-  BookOpen, Menu, Inbox, KeyRound, Clock, MoreHorizontal, Sparkles,
+  BookOpen, Menu, Inbox, KeyRound, Clock, MoreHorizontal,
   Plug,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,7 +21,6 @@ type Role = "admin" | "manager" | "agent" | "viewer" | "client";
 const nav: { to: string; label: string; icon: typeof Users; roles: Role[] }[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "manager", "agent", "viewer"] },
   { to: "/clients", label: "Clients", icon: Users, roles: ["admin", "manager", "agent"] },
-  { to: "/clients/kra-checker", label: "KRA PIN checker", icon: ShieldCheck, roles: ["admin", "manager", "agent"] },
   { to: "/quotations", label: "Quotations", icon: FileSignature, roles: ["admin", "manager", "agent"] },
   { to: "/vehicles", label: "Vehicles", icon: Car, roles: ["admin", "manager", "agent"] },
   { to: "/policies", label: "Policies", icon: FileText, roles: ["admin", "manager", "agent"] },
@@ -30,7 +29,6 @@ const nav: { to: string; label: string; icon: typeof Users; roles: Role[] }[] = 
   { to: "/renewals", label: "Renewals", icon: BellRing, roles: ["admin", "manager", "agent", "viewer"] },
   { to: "/admin/requests", label: "Service requests", icon: Inbox, roles: ["admin", "manager", "agent"] },
   { to: "/reports", label: "Reports", icon: BarChart3, roles: ["admin", "manager", "agent", "viewer"] },
-  { to: "/assistant", label: "AI assistant", icon: Sparkles, roles: ["admin", "manager", "agent", "viewer"] },
 ];
 
 const adminNav = [

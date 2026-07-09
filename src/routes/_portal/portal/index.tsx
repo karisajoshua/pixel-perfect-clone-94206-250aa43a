@@ -5,7 +5,6 @@ import { getPortalOverview } from "@/lib/portal.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Receipt, ScrollText, CalendarClock, ChevronRight, ShieldPlus, Upload, CreditCard } from "lucide-react";
-import { IpenPortalDashboardWidget } from "@/components/ipen/portal-dashboard-widget";
 
 export const Route = createFileRoute("/_portal/portal/")({
   component: Page,
@@ -72,7 +71,6 @@ function Page() {
           )}
         </CardContent>
       </Card>
-      <IpenPortalDashboardWidget />
     </div>
   );
 }

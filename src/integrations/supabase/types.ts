@@ -344,11 +344,7 @@ export type Database = {
           full_name: string
           id: string
           id_number: string | null
-          kra_id_type: string | null
           kra_pin: string | null
-          kra_verification_status: string | null
-          kra_verified_at: string | null
-          kra_verified_name: string | null
           kyc_status: Database["public"]["Enums"]["kyc_status"]
           notes: string | null
           occupation: string | null
@@ -372,11 +368,7 @@ export type Database = {
           full_name: string
           id?: string
           id_number?: string | null
-          kra_id_type?: string | null
           kra_pin?: string | null
-          kra_verification_status?: string | null
-          kra_verified_at?: string | null
-          kra_verified_name?: string | null
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
           notes?: string | null
           occupation?: string | null
@@ -400,11 +392,7 @@ export type Database = {
           full_name?: string
           id?: string
           id_number?: string | null
-          kra_id_type?: string | null
           kra_pin?: string | null
-          kra_verification_status?: string | null
-          kra_verified_at?: string | null
-          kra_verified_name?: string | null
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
           notes?: string | null
           occupation?: string | null
