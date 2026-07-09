@@ -104,7 +104,7 @@ async function rawFetch<T>(
     }
     const fallback =
       res.status >= 500
-        ? `IPEN service error (${res.status}). Please request a new OTP and try again.`
+        ? `IPEN service error (${res.status}). AfricaBima/IPEN is temporarily unavailable. Please try again shortly.`
         : `IPEN ${res.status}`;
     return {
       ok: false,
@@ -271,7 +271,7 @@ export async function ipenFetch<T = any>(
       ok: false,
       status: 401,
       data: null,
-      error: "IPEN verification pending. Enter the OTP from Ecobank in Admin → IPEN to finish connecting.",
+      error: "The agency IPEN connection is waiting for Ecobank OTP verification in Admin → IPEN.",
     };
   }
   if (!creds?.access_token) {
@@ -279,7 +279,7 @@ export async function ipenFetch<T = any>(
       ok: false,
       status: 401,
       data: null,
-      error: "IPEN account not connected. Connect it in Admin → IPEN.",
+      error: "Agency IPEN is not connected. Ask an admin or manager to connect it in Admin → IPEN.",
     };
   }
   headers.Authorization = `Bearer ${creds.access_token}`;
