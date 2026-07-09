@@ -43,13 +43,21 @@ function QuotationsPage() {
   const convert = async (q: any) => {
     if (!confirm(`Convert ${q.quote_no} to a policy?`)) return;
     const { data: u } = await supabase.auth.getUser();
-    const today = new Date(); const yr = new Date(today); yr.setFullYear(yr.getFullYear() + 1);
+    const today = new Date();
+    const end = new Date(today);
+    switch (q.policy_term) {
+      case "tor":
+      case "one_month_extendable": end.setDate(end.getDate() + 30); break;
+      case "six_months": end.setDate(end.getDate() + 180); break;
+      case "annual":
+      default: end.setFullYear(end.getFullYear() + 1);
+    }
     const { data, error } = await supabase.from("policies").insert({
       policy_no: `POL-${Date.now()}`,
       client_id: q.client_id, vehicle_id: q.vehicle_id, insurer_id: q.insurer_id, branch_id: q.branch_id,
-      product_class: q.product_class, cover_type: q.cover_type,
+      product_class: q.product_class, cover_type: q.cover_type, policy_term: q.policy_term ?? "annual",
       sum_insured: q.sum_insured, premium_gross: q.premium_gross, premium_net: q.premium_net,
-      start_date: today.toISOString().slice(0,10), end_date: yr.toISOString().slice(0,10),
+      start_date: today.toISOString().slice(0,10), end_date: end.toISOString().slice(0,10),
       status: "pending", payment_status: "unpaid",
       created_by: u.user?.id,
     } as any).select("id").single();
