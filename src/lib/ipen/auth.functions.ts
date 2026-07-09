@@ -57,7 +57,36 @@ export const connectIpen = createServerFn({ method: "POST" })
     const { upsertAgencyIpenCredential } = await import("./agency-credentials.server");
     await upsertAgencyIpenCredential(userId, row);
 
-    return { mfaRequired: row.mfa_required, hasToken: Boolean(row.access_token) };
+    // If IPEN returned an MFA challenge, some tenants require an explicit
+    // resend call to actually dispatch the code. Fire it best-effort so the
+    // user reliably receives the OTP right after Connect.
+    let otpSent = false;
+    if (mfaRequired) {
+      const body: Record<string, unknown> = { email: data.email, Email: data.email };
+      if (t.mfaToken) {
+        body.mfaToken = t.mfaToken;
+        body.MfaToken = t.mfaToken;
+      }
+      const paths = ["/api/Auth/login/resend-mfa", "/api/Auth/resend-otp", "/api/Auth/resend-mfa"];
+      for (const path of paths) {
+        try {
+          const rr = await ipenPublic<any>({ path, method: "POST", body, noAuth: true });
+          if (rr.ok) {
+            otpSent = true;
+            break;
+          }
+          if (rr.status !== 404 && rr.status !== 405) break;
+        } catch {
+          break;
+        }
+      }
+    }
+
+    return {
+      mfaRequired: row.mfa_required,
+      hasToken: Boolean(row.access_token),
+      otpSent,
+    };
   });
 
 // Verify a 2FA / OTP code returned by /api/Auth/Login and finalise the login.
