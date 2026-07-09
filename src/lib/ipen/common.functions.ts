@@ -21,7 +21,7 @@ export const listCountries = createServerFn({ method: "GET" })
         path: "/api/Common/countries",
         method: "GET",
       });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
+      if (!res.ok) return { data: [], error: res.error ?? `Failed to load ${key}` };
       return res.data;
     });
   });
@@ -39,7 +39,7 @@ export const listIdentificationDocuments = createServerFn({ method: "GET" })
         path: "/api/Common/identification-documents",
         method: "GET",
       });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
+      if (!res.ok) return { data: [], error: res.error ?? `Failed to load ${key}` };
       return res.data;
     });
   });
@@ -57,7 +57,7 @@ export const listGenders = createServerFn({ method: "GET" })
         path: "/api/Common/genders",
         method: "GET",
       });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
+      if (!res.ok) return { data: [], error: res.error ?? `Failed to load ${key}` };
       return res.data;
     });
   });
@@ -75,7 +75,7 @@ export const listRiskClassCategories = createServerFn({ method: "GET" })
         path: "/api/Common/risk-class-categories",
         method: "GET",
       });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
+      if (!res.ok) return { data: [], error: res.error ?? `Failed to load ${key}` };
       return res.data;
     });
   });
@@ -93,7 +93,7 @@ export const listVehicleMakes = createServerFn({ method: "GET" })
         path: "/api/Common/vehicle-makes",
         method: "GET",
       });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
+      if (!res.ok) return { data: [], error: res.error ?? `Failed to load ${key}` };
       return res.data;
     });
   });
@@ -111,7 +111,7 @@ export const listVehicleModels = createServerFn({ method: "GET" })
         path: "/api/Common/vehicle-models",
         method: "GET",
       });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
+      if (!res.ok) return { data: [], error: res.error ?? `Failed to load ${key}` };
       return res.data;
     });
   });
@@ -129,7 +129,7 @@ export const listMotorTypes = createServerFn({ method: "GET" })
         path: "/api/Common/motor-types",
         method: "GET",
       });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
+      if (!res.ok) return { data: [], error: res.error ?? `Failed to load ${key}` };
       return res.data;
     });
   });
@@ -147,7 +147,7 @@ export const listRelationships = createServerFn({ method: "GET" })
         path: "/api/Common/relationships",
         method: "GET",
       });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
+      if (!res.ok) return { data: [], error: res.error ?? `Failed to load ${key}` };
       return res.data;
     });
   });
@@ -161,7 +161,7 @@ export const listCustomerVehicles = createServerFn({ method: "GET" })
       path: "/api/Common/customer-vehicles",
       method: "GET",
     });
-    if (!res.ok) throw new Error(res.error ?? "Failed to load customer vehicles");
+    if (!res.ok) return { data: [], error: res.error ?? "Failed to load customer vehicles" };
     return res.data;
   });
 
@@ -177,7 +177,7 @@ export const listRiskClasses = createServerFn({ method: "POST" })
         path: `/api/Policy/risk-classes/${encodeURIComponent(String(data.riskClassCategoryId))}`,
         method: "GET",
       });
-      if (!res.ok) throw new Error(res.error ?? "Failed to load risk classes");
+      if (!res.ok) return { data: [], error: res.error ?? "Failed to load risk classes" };
       return res.data;
     });
   });
@@ -195,7 +195,7 @@ export const listCoverOptions = createServerFn({ method: "GET" })
         path: "/api/Policy/cover-options",
         method: "GET",
       });
-      if (!res.ok) throw new Error(res.error ?? `Failed to load ${key}`);
+      if (!res.ok) return { data: [], error: res.error ?? `Failed to load ${key}` };
       return res.data;
     });
   });
@@ -217,7 +217,7 @@ export const listVehicleUses = createServerFn({ method: "POST" })
       method: "POST",
       body: data,
     });
-    if (!res.ok) throw new Error(res.error ?? "Failed to load vehicle uses");
+    if (!res.ok) return { data: [], error: res.error ?? "Failed to load vehicle uses" };
     return res.data;
   });
 
@@ -230,7 +230,7 @@ export const listProducts = createServerFn({ method: "GET" })
       path: `/api/Policy/products/${encodeURIComponent(String(data.riskClassCategoryId))}`,
       method: "GET",
     });
-    if (!res.ok) throw new Error(res.error ?? "Failed to load products");
+    if (!res.ok) return { data: [], error: res.error ?? "Failed to load products" };
     return res.data;
   });
 

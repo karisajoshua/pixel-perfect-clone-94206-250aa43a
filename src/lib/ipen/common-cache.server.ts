@@ -10,11 +10,27 @@ const TTL_MS = 12 * 60 * 60 * 1000; // 12h
 export async function cached<T>(key: string, loader: () => Promise<T>): Promise<T> {
   const hit = CACHE.get(key);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.value as T;
-  const value = await loader();
-  CACHE.set(key, { at: Date.now(), value });
-  return value;
+  try {
+    const value = await loader();
+    if (!isErrorEnvelope(value)) {
+      CACHE.set(key, { at: Date.now(), value });
+    }
+    return value;
+  } catch (error) {
+    if (hit) return hit.value as T;
+    throw error;
+  }
 }
 
 export function invalidate(key: string): void {
   CACHE.delete(key);
+}
+
+function isErrorEnvelope(value: unknown): boolean {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      "error" in value &&
+      typeof (value as { error?: unknown }).error === "string",
+  );
 }
