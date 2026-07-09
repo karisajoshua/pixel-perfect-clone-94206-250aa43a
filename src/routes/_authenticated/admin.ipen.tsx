@@ -118,8 +118,10 @@ function IpenAdminPage() {
       const r = await connectFn({ data: { email, password } });
       toast.success(
         r.mfaRequired
-          ? "A new Ecobank OTP was sent. Use the newest code below."
-          : "IPEN sign-in submitted. If you received an Ecobank OTP, enter it below.",
+          ? r.otpSent
+            ? "OTP sent to your IPEN email/phone. Check your inbox and SMS, then enter it below."
+            : "IPEN wants an OTP but didn't confirm delivery. Click Resend OTP below."
+          : "IPEN sign-in submitted.",
       );
       setPassword("");
       refresh();
