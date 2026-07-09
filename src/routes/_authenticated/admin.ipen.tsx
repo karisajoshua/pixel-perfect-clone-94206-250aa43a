@@ -145,7 +145,7 @@ function IpenAdminPage() {
   };
 
   const doDisconnect = async () => {
-    if (!confirm("Disconnect your IPEN account?")) return;
+    if (!confirm("Disconnect the agency IPEN connection for all staff?")) return;
     setBusy(true);
     try {
       await disconnectFn();
@@ -232,7 +232,7 @@ function IpenAdminPage() {
     <div className="space-y-6 p-4 md:p-8">
       <PageHeader
         title="IPEN integration"
-        subtitle="Connect your Africa Bima / IPEN account to fetch live quotes, policies, claims, and process M-Pesa payments."
+        subtitle="Connect the agency Africa Bima / IPEN account once so staff can fetch live quotes, policies, claims, and process M-Pesa payments."
       />
 
       <div className="flex items-center gap-2 text-sm">
