@@ -26,6 +26,37 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
   const [saving, setSaving] = useState(false);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
+  const addDaysISO = (start: string, days: number) => {
+    const d = new Date(start); d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  };
+  const addYearsISO = (start: string, years: number) => {
+    const d = new Date(start); d.setFullYear(d.getFullYear() + years);
+    return d.toISOString().slice(0, 10);
+  };
+  const endDateForTerm = (start: string, term: string) => {
+    if (!start) return undefined;
+    switch (term) {
+      case "tor": return addDaysISO(start, 30);
+      case "one_month_extendable": return addDaysISO(start, 30);
+      case "six_months": return addDaysISO(start, 180);
+      case "annual": return addYearsISO(start, 1);
+      default: return undefined;
+    }
+  };
+  const onTermChange = (v: string) => {
+    setForm((f: any) => {
+      const end = endDateForTerm(f.start_date, v);
+      return { ...f, policy_term: v, ...(end ? { end_date: end } : {}) };
+    });
+  };
+  const onStartChange = (v: string) => {
+    setForm((f: any) => {
+      const end = f.policy_term ? endDateForTerm(v, f.policy_term) : undefined;
+      return { ...f, start_date: v, ...(end ? { end_date: end } : {}) };
+    });
+  };
+
   useEffect(() => {
     if (!open) return;
     if (initial) setForm(initial);
@@ -50,6 +81,7 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
       setForm({
         product_class: "motor_private",
         cover_type: "comprehensive",
+        policy_term: "annual",
         status: "active",
         payment_status: "unpaid",
         start_date: today.toISOString().slice(0, 10),
@@ -70,7 +102,7 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
     const { data: u } = await supabase.auth.getUser();
     const allowed = [
       "policy_no","client_id","vehicle_id","insurer_id","branch_id",
-      "product_class","cover_type","sum_insured","premium_gross","premium_net",
+      "product_class","cover_type","policy_term","sum_insured","premium_gross","premium_net",
       "commission","taxes","start_date","end_date","status","payment_status",
       "previous_policy_id","document_url","notes",
     ];
@@ -170,12 +202,24 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5 min-w-0">
+            <Label>Policy term</Label>
+            <Select value={form.policy_term ?? ""} onValueChange={onTermChange}>
+              <SelectTrigger><SelectValue placeholder="Select term" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tor">One month (TOR)</SelectItem>
+                <SelectItem value="one_month_extendable">One month extendable</SelectItem>
+                <SelectItem value="six_months">6 months</SelectItem>
+                <SelectItem value="annual">Annual</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <F label="Sum insured" type="number" value={form.sum_insured} onChange={(v) => set("sum_insured", v ? Number(v) : null)} />
           <F label="Gross premium" type="number" value={form.premium_gross} onChange={(v) => set("premium_gross", v ? Number(v) : null)} />
           <F label="Net premium" type="number" value={form.premium_net} onChange={(v) => set("premium_net", v ? Number(v) : null)} />
           <F label="Commission" type="number" value={form.commission} onChange={(v) => set("commission", v ? Number(v) : null)} />
           <F label="Taxes" type="number" value={form.taxes} onChange={(v) => set("taxes", v ? Number(v) : null)} />
-          <F label="Start date *" type="date" value={form.start_date} onChange={(v) => set("start_date", v)} />
+          <F label="Start date *" type="date" value={form.start_date} onChange={onStartChange} />
           <F label="End date *" type="date" value={form.end_date} onChange={(v) => set("end_date", v)} />
           <div className="space-y-1.5 min-w-0">
             <Label>Status</Label>
