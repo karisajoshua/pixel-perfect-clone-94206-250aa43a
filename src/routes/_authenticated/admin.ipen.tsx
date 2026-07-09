@@ -604,10 +604,13 @@ function OtpBox({ code, setCode, onVerify, onResend, busy, showResend }: OtpBoxP
         </Button>
         {showResend && (
           <Button variant="ghost" size="sm" onClick={onResend} disabled={busy}>
-            Resend code
+            Resend OTP
           </Button>
         )}
       </div>
+      <p className="text-xs text-muted-foreground">
+        Didn't get the code? Check spam, then click Resend OTP.
+      </p>
     </div>
   );
 }
