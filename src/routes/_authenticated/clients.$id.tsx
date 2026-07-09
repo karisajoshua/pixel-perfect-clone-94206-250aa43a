@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { requireRole } from "@/lib/roles";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Pencil, Upload, MessageSquarePlus, FileText } from "lucide-react";
+import { ArrowLeft, Pencil, Upload, MessageSquarePlus, FileText, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ClientFormDialog, CredentialsDialog, type PortalCreds } from "@/components/clients/client-form-dialog";
 import { ClientDocuments } from "@/components/clients/client-documents";
@@ -14,7 +14,7 @@ import { ClientCommunications } from "@/components/clients/client-communications
 import { ClientKycPanel } from "@/components/clients/client-kyc-panel";
 import { useServerFn } from "@tanstack/react-start";
 import { createClientPortalAccount } from "@/lib/admin-users.functions";
-import { updateClientBranch } from "@/lib/clients.functions";
+import { updateClientBranch, deleteClient } from "@/lib/clients.functions";
 import { useMyRoles } from "@/hooks/use-auth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KeyRound } from "lucide-react";
@@ -25,6 +25,10 @@ import { Label } from "@/components/ui/label";
 import { normalizePhone } from "@/lib/phone";
 import { IpenMotorQuoteWizard } from "@/components/ipen/motor-quote-wizard";
 import { PortalLoginDialog } from "@/components/clients/portal-login-dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]),
   component: ClientDetail,
@@ -32,6 +36,7 @@ export const Route = createFileRoute("/_authenticated/clients/$id")({ beforeLoad
 
 function ClientDetail() {
   const { id } = useParams({ from: "/_authenticated/clients/$id" });
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [edit, setEdit] = useState(false);
   const [creds, setCreds] = useState<PortalCreds | null>(null);
@@ -40,6 +45,7 @@ function ClientDetail() {
   const [phoneInput, setPhoneInput] = useState("");
   const portalFn = useServerFn(createClientPortalAccount);
   const updateBranchFn = useServerFn(updateClientBranch);
+  const deleteFn = useServerFn(deleteClient);
   const { data: roles } = useMyRoles();
   const isAdmin = (roles ?? []).includes("admin");
   const [branchOpen, setBranchOpen] = useState(false);
@@ -47,6 +53,8 @@ function ClientDetail() {
   const [branchBusy, setBranchBusy] = useState(false);
   const [ipenOpen, setIpenOpen] = useState(false);
   const [portalOpen, setPortalOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const isAdminOrManager = (roles ?? []).some((r) => r === "admin" || r === "manager");
 
   const { data: branches } = useQuery({
@@ -126,6 +134,11 @@ function ClientDetail() {
               </Button>
             )}
             <Button onClick={() => setEdit(true)}><Pencil className="h-4 w-4 mr-1" /> Edit</Button>
+            {isAdmin && (
+              <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
+                <Trash2 className="h-4 w-4 mr-1" /> Delete
+              </Button>
+            )}
           </div>
         }
       />
