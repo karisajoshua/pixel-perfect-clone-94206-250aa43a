@@ -1,8 +1,27 @@
-import type { Database } from "@/integrations/supabase/types";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-type AgencyCredentialRow = Database["public"]["Tables"]["ipen_agency_credentials"]["Row"];
-type UserCredentialRow = Database["public"]["Tables"]["ipen_credentials"]["Row"];
+type AgencyCredentialRow = {
+  tenant_id: string;
+  connected_by: string | null;
+  ipen_email: string | null;
+  access_token: string | null;
+  refresh_token: string | null;
+  token_expires_at: string | null;
+  mfa_token: string | null;
+  mfa_required: boolean | null;
+  last_login_at: string | null;
+};
+
+type UserCredentialRow = {
+  user_id: string;
+  ipen_email: string | null;
+  access_token: string | null;
+  refresh_token: string | null;
+  token_expires_at: string | null;
+  mfa_token: string | null;
+  mfa_required: boolean | null;
+  last_login_at: string | null;
+};
 
 export type StoredIpenCredential = {
   scope: "agency" | "user";
