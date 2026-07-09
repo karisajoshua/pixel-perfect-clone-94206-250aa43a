@@ -44,7 +44,6 @@ export const connectIpen = createServerFn({ method: "POST" })
     const mfaRequired = Boolean(t.mfaRequired || t.mfaToken);
 
     const row = {
-      user_id: userId as string,
       ipen_email: data.email,
       access_token: mfaRequired ? null : (t.accessToken ?? null),
       refresh_token: mfaRequired ? null : (t.refreshToken ?? null),
@@ -304,8 +303,7 @@ export const registerIpen = createServerFn({ method: "POST" })
     const mfaRequired = Boolean(t.mfaRequired || t.mfaToken);
 
     const now = new Date().toISOString();
-    const row: Record<string, unknown> = {
-      user_id: userId as string,
+    const row = {
       ipen_email: data.email,
       access_token: mfaRequired ? null : (t.accessToken ?? null),
       refresh_token: mfaRequired ? null : (t.refreshToken ?? null),
@@ -317,7 +315,7 @@ export const registerIpen = createServerFn({ method: "POST" })
       last_login_at: !mfaRequired && t.accessToken ? now : null,
     };
     const { upsertAgencyIpenCredential } = await import("./agency-credentials.server");
-    await upsertAgencyIpenCredential(userId, row as any);
+    await upsertAgencyIpenCredential(userId, row);
 
     return {
       registered: true,
@@ -429,8 +427,7 @@ export const ipenLoginWithGoogle = createServerFn({ method: "POST" })
     const t = extractTokens(res.data);
     if (!t.accessToken) throw new Error("Google sign-in returned no token");
     const row = {
-      user_id: userId as string,
-      ipen_email: data.email ?? null,
+      ipen_email: data.email ?? "Google IPEN account",
       access_token: t.accessToken,
       refresh_token: t.refreshToken ?? null,
       token_expires_at: t.expiresIn
@@ -441,6 +438,6 @@ export const ipenLoginWithGoogle = createServerFn({ method: "POST" })
       last_login_at: new Date().toISOString(),
     };
     const { upsertAgencyIpenCredential } = await import("./agency-credentials.server");
-    await upsertAgencyIpenCredential(userId, row as any);
+    await upsertAgencyIpenCredential(userId, row);
     return { ok: true };
   });
