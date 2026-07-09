@@ -43,13 +43,21 @@ function QuotationsPage() {
   const convert = async (q: any) => {
     if (!confirm(`Convert ${q.quote_no} to a policy?`)) return;
     const { data: u } = await supabase.auth.getUser();
-    const today = new Date(); const yr = new Date(today); yr.setFullYear(yr.getFullYear() + 1);
+    const today = new Date();
+    const end = new Date(today);
+    switch (q.policy_term) {
+      case "tor":
+      case "one_month_extendable": end.setDate(end.getDate() + 30); break;
+      case "six_months": end.setDate(end.getDate() + 180); break;
+      case "annual":
+      default: end.setFullYear(end.getFullYear() + 1);
+    }
     const { data, error } = await supabase.from("policies").insert({
       policy_no: `POL-${Date.now()}`,
       client_id: q.client_id, vehicle_id: q.vehicle_id, insurer_id: q.insurer_id, branch_id: q.branch_id,
-      product_class: q.product_class, cover_type: q.cover_type,
+      product_class: q.product_class, cover_type: q.cover_type, policy_term: q.policy_term ?? "annual",
       sum_insured: q.sum_insured, premium_gross: q.premium_gross, premium_net: q.premium_net,
-      start_date: today.toISOString().slice(0,10), end_date: yr.toISOString().slice(0,10),
+      start_date: today.toISOString().slice(0,10), end_date: end.toISOString().slice(0,10),
       status: "pending", payment_status: "unpaid",
       created_by: u.user?.id,
     } as any).select("id").single();
@@ -222,7 +230,7 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
   useEffect(() => {
     if (!open) return;
     const v = new Date(); v.setDate(v.getDate() + 14);
-    const init = initial ?? { quote_no: `Q-${Date.now()}`, status: "draft", product_class: "motor_private", cover_type: "comprehensive", valid_until: v.toISOString().slice(0,10), line_items: { rate_pct: 0, levies: 0, benefits: [] } };
+    const init = initial ?? { quote_no: `Q-${Date.now()}`, status: "draft", product_class: "motor_private", cover_type: "comprehensive", policy_term: "annual", valid_until: v.toISOString().slice(0,10), line_items: { rate_pct: 0, levies: 0, benefits: [] } };
     if (!init.line_items) init.line_items = { rate_pct: 0, levies: 0, benefits: [] };
     setForm(init);
     setClientText("");
@@ -394,6 +402,18 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
                 <SelectItem value="comprehensive">Comprehensive</SelectItem>
                 <SelectItem value="third_party">Third party</SelectItem>
                 <SelectItem value="third_party_fire_theft">TPFT</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Policy term</Label>
+            <Select value={form.policy_term ?? "annual"} onValueChange={(v) => set("policy_term", v)}>
+              <SelectTrigger><SelectValue placeholder="Select term" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tor">One month (TOR)</SelectItem>
+                <SelectItem value="one_month_extendable">One month extendable</SelectItem>
+                <SelectItem value="six_months">6 months</SelectItem>
+                <SelectItem value="annual">Annual</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
 import { Plus, Search } from "lucide-react";
 import { PolicyFormDialog } from "@/components/policies/policy-form-dialog";
+import { policyTermLabel } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/policies")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: PoliciesLayout });
 
@@ -30,7 +31,7 @@ function PoliciesList() {
     queryFn: async () => {
       let q = supabase
         .from("policies")
-        .select("id, policy_no, status, payment_status, start_date, end_date, premium_gross, client_id, clients(full_name, company_name, client_type), insurers(name), vehicles(registration_no)")
+        .select("id, policy_no, status, payment_status, start_date, end_date, premium_gross, policy_term, client_id, clients(full_name, company_name, client_type), insurers(name), vehicles(registration_no)")
         .order("end_date", { ascending: true })
         .limit(200);
       if (status !== "all") q = q.eq("status", status);
@@ -68,14 +69,15 @@ function PoliciesList() {
                 <th className="px-4 py-3 font-medium">Vehicle</th>
                 <th className="px-4 py-3 font-medium">Insurer</th>
                 <th className="px-4 py-3 font-medium">Period</th>
+                <th className="px-4 py-3 font-medium">Term</th>
                 <th className="px-4 py-3 font-medium">Premium</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {isLoading && <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">Loading…</td></tr>}
-              {!isLoading && policies?.length === 0 && <tr><td colSpan={8} className="p-12 text-center text-muted-foreground">No policies yet.</td></tr>}
+              {isLoading && <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">Loading…</td></tr>}
+              {!isLoading && policies?.length === 0 && <tr><td colSpan={9} className="p-12 text-center text-muted-foreground">No policies yet.</td></tr>}
               {policies?.map((p: any) => {
                 const cl = p.clients;
                 const name = cl ? (cl.client_type === "corporate" ? cl.company_name ?? cl.full_name : cl.full_name) : "—";
@@ -86,6 +88,7 @@ function PoliciesList() {
                     <td className="px-4 py-3 font-mono text-xs">{p.vehicles?.registration_no ?? "—"}</td>
                     <td className="px-4 py-3">{p.insurers?.name ?? "—"}</td>
                     <td className="px-4 py-3 text-xs">{p.start_date} → <span className="font-medium">{p.end_date}</span></td>
+                    <td className="px-4 py-3 text-xs">{policyTermLabel(p.policy_term)}</td>
                     <td className="px-4 py-3">{p.premium_gross ? `KES ${Number(p.premium_gross).toLocaleString()}` : "—"}</td>
                     <td className="px-4 py-3 space-x-1">
                       <StatusBadge status={p.status} />

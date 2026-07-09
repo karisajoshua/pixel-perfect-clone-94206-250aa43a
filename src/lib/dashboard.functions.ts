@@ -12,6 +12,8 @@ export type DashboardSummary = {
     activeCoverPremium: number;
     cancelledPolicies: number;
     cancelledThisMonth: number;
+    outstandingExtensions: number;
+    overdueExtensions: number;
   };
   byBranch: {
     branchId: string | null;
@@ -28,6 +30,14 @@ export type DashboardSummary = {
     client_name: string;
     cancelled_at: string | null;
     cancellation_reason: string | null;
+  }[];
+  overdueExtensionsList: {
+    id: string;
+    policy_id: string;
+    policy_no: string;
+    client_name: string;
+    amount_due: number;
+    due_date: string;
   }[];
 };
 
@@ -49,7 +59,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
     const in30 = new Date(Date.now() + 30 * 86400_000).toISOString().slice(0, 10);
     const today = new Date().toISOString().slice(0, 10);
 
-    const [policiesRes, claimsRes, renewalsRes, clientsRes, branchesRes, paymentsRes] = await Promise.all([
+    const [policiesRes, claimsRes, renewalsRes, clientsRes, branchesRes, paymentsRes, extensionsRes] = await Promise.all([
       scope(supabase.from("policies").select("id, status, branch_id, premium_gross, start_date, cancelled_at")),
       scope(supabase.from("claims").select("id, status, branch_id")),
       scope(supabase.from("policies").select("id", { count: "exact", head: true }).gte("end_date", today).lte("end_date", in30).eq("status", "active")),
@@ -58,6 +68,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
         ? supabase.from("branches").select("id, name").eq("id", scopeBranchId)
         : supabase.from("branches").select("id, name"),
       supabase.from("payments").select("amount, paid_date, invoices!inner(branch_id)"),
+      scope(supabase.from("policy_payment_extensions").select("id, policy_id, amount_due, due_date, status, branch_id").eq("status", "pending")),
     ]);
 
     const policies = (policiesRes.data ?? []) as any[];
@@ -72,6 +83,9 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
     const activePolicies = policies.filter((p) => p.status === "active");
     const cancelledPolicies = policies.filter((p) => p.status === "cancelled");
     const cancelledThisMonth = cancelledPolicies.filter((p) => p.cancelled_at && p.cancelled_at >= monthStart).length;
+    const extensions = (extensionsRes.data ?? []) as any[];
+    const outstandingExtensions = extensions.reduce((s, e) => s + Number(e.amount_due ?? 0), 0);
+    const overdueExtensions = extensions.filter((e) => e.due_date < today).length;
     const activeCoverPremium = activePolicies.reduce((s, p) => s + Number(p.premium_gross ?? 0), 0);
     const revenue = payments.reduce((s, p) => s + Number(p.amount ?? 0), 0);
     const revenueThisMonth = payments
@@ -127,6 +141,31 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       cancellation_reason: r.cancellation_reason,
     }));
 
+    const overdueList = extensions.filter((e) => e.due_date < today)
+      .sort((a, b) => (a.due_date < b.due_date ? -1 : 1))
+      .slice(0, 5);
+    let overdueExtensionsList: DashboardSummary["overdueExtensionsList"] = [];
+    if (overdueList.length > 0) {
+      const policyIds = [...new Set(overdueList.map((e) => e.policy_id))];
+      const { data: polRows } = await supabase.from("policies")
+        .select("id, policy_no, clients(full_name, company_name, client_type)")
+        .in("id", policyIds);
+      const polMap = new Map((polRows ?? []).map((p: any) => [p.id, p]));
+      overdueExtensionsList = overdueList.map((e) => {
+        const pol: any = polMap.get(e.policy_id);
+        const cl = pol?.clients;
+        const name = cl ? (cl.client_type === "corporate" ? (cl.company_name ?? cl.full_name ?? "—") : (cl.full_name ?? "—")) : "—";
+        return {
+          id: e.id,
+          policy_id: e.policy_id,
+          policy_no: pol?.policy_no ?? "—",
+          client_name: name,
+          amount_due: Number(e.amount_due ?? 0),
+          due_date: e.due_date,
+        };
+      });
+    }
+
     return {
       totals: {
         clients: clientsRows.length,
@@ -138,8 +177,11 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
         activeCoverPremium,
         cancelledPolicies: cancelledPolicies.length,
         cancelledThisMonth,
+        outstandingExtensions,
+        overdueExtensions,
       },
       byBranch,
       recentCancellations,
+      overdueExtensionsList,
     };
   });

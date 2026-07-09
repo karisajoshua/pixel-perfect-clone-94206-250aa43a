@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, FileText, ScrollText, BellRing, DollarSign, Ban } from "lucide-react";
+import { Users, FileText, ScrollText, BellRing, DollarSign, Ban, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { getDashboardSummary } from "@/lib/dashboard.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -79,6 +79,21 @@ function Dashboard() {
         </div>
       )}
 
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Outstanding balances</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{t ? fmt(t.outstandingExtensions) : "—"}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t ? `${t.overdueExtensions} overdue extension${t.overdueExtensions === 1 ? "" : "s"}` : "Loading…"}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map((t) => (
           <Link to={t.href} key={t.label}>
@@ -129,6 +144,36 @@ function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      {data?.overdueExtensionsList && data.overdueExtensionsList.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle>Overdue payment extensions</CardTitle></CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Policy</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Due</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.overdueExtensionsList.map((e) => (
+                  <TableRow key={e.id}>
+                    <TableCell className="font-mono">
+                      <Link to="/policies/$id" params={{ id: e.policy_id }} className="hover:underline">{e.policy_no}</Link>
+                    </TableCell>
+                    <TableCell>{e.client_name}</TableCell>
+                    <TableCell>{e.due_date}</TableCell>
+                    <TableCell className="text-right">{fmt(e.amount_due)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {isAdmin && (
         <Card>
