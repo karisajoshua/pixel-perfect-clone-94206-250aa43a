@@ -219,7 +219,8 @@ export const ipenStatus = createServerFn({ method: "GET" })
     const { loadIpenCredentialForUser, getTenantMembership } = await import("./agency-credentials.server");
     const data = await loadIpenCredentialForUser(userId);
     const member = await getTenantMembership(userId);
-    if (!data) return { connected: false };
+    const canManage = Boolean(member && ["admin", "manager"].includes(member.role));
+    if (!data) return { connected: false, canManage, scope: member?.tenant_id ? "agency" : "user" };
     return {
       connected: Boolean(data.access_token) && !data.mfa_required,
       mfa_required: data.mfa_required,
@@ -227,7 +228,7 @@ export const ipenStatus = createServerFn({ method: "GET" })
       last_login_at: data.last_login_at,
       token_expires_at: data.token_expires_at,
       scope: data.scope,
-      canManage: Boolean(member && ["admin", "manager"].includes(member.role)),
+      canManage,
     };
   });
 
