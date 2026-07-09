@@ -48,7 +48,7 @@ export const Route = createFileRoute("/api/public/ipen/process-express-callback"
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         if (checkoutId) {
-          const patch: Record<string, unknown> = {};
+          const patch: { ipen_transaction_ref?: string; reference?: string } = {};
           if (reference) {
             patch.ipen_transaction_ref = String(reference);
             patch.reference = String(reference);
