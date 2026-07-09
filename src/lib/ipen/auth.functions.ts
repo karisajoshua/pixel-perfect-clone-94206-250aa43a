@@ -354,3 +354,117 @@ export const registerIpen = createServerFn({ method: "POST" })
           : "Account created. Check your email to verify, then sign in below.",
     };
   });
+
+// --- Forgot password (3-step flow) ---
+export const ipenForgotPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ email: z.string().email() }).parse(d))
+  .handler(async ({ data }) => {
+    const res = await ipenPublic<any>({
+      path: "/api/Auth/forgot-password",
+      method: "POST",
+      body: { email: data.email, Email: data.email },
+      noAuth: true,
+    });
+    if (!res.ok) throw new Error(res.error ?? "Failed to start password reset");
+    return { ok: true };
+  });
+
+export const ipenForgotPasswordVerify = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ email: z.string().email(), otp: z.string().min(1) }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const res = await ipenPublic<any>({
+      path: "/api/Auth/forgot-password/verify-otp",
+      method: "POST",
+      body: { email: data.email, otp: data.otp, Email: data.email, Otp: data.otp },
+      noAuth: true,
+    });
+    if (!res.ok) throw new Error(res.error ?? "OTP verification failed");
+    const resetToken =
+      (res.data as any)?.resetToken ??
+      (res.data as any)?.ResetToken ??
+      (res.data as any)?.token ??
+      null;
+    return { ok: true, resetToken };
+  });
+
+export const ipenForgotPasswordReset = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        email: z.string().email(),
+        resetToken: z.string().min(1),
+        newPassword: z.string().min(6),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const res = await ipenPublic<any>({
+      path: "/api/Auth/forgot-password/reset",
+      method: "POST",
+      body: {
+        email: data.email,
+        Email: data.email,
+        resetToken: data.resetToken,
+        ResetToken: data.resetToken,
+        newPassword: data.newPassword,
+        NewPassword: data.newPassword,
+      },
+      noAuth: true,
+    });
+    if (!res.ok) throw new Error(res.error ?? "Password reset failed");
+    return { ok: true };
+  });
+
+// --- Sign in with Google (IPEN account) ---
+export const ipenLoginWithGoogle = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        idToken: z.string().min(10),
+        email: z.string().email().optional(),
+        registerAs: z.string().optional().default("Individual"),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const res = await ipenPublic<any>({
+      path: "/api/Auth/login-with-google",
+      method: "POST",
+      body: {
+        idToken: data.idToken,
+        token: data.idToken,
+        IdToken: data.idToken,
+        Token: data.idToken,
+        registerAs: data.registerAs ?? "Individual",
+        RegisterAs: data.registerAs ?? "Individual",
+      },
+      noAuth: true,
+    });
+    if (!res.ok) throw new Error(res.error ?? "Google sign-in failed");
+    const t = extractTokens(res.data);
+    if (!t.accessToken) throw new Error("Google sign-in returned no token");
+    const row = {
+      user_id: userId as string,
+      ipen_email: data.email ?? null,
+      access_token: t.accessToken,
+      refresh_token: t.refreshToken ?? null,
+      token_expires_at: t.expiresIn
+        ? new Date(Date.now() + t.expiresIn * 1000).toISOString()
+        : null,
+      mfa_token: null,
+      mfa_required: false,
+      last_login_at: new Date().toISOString(),
+    };
+    const { error } = await supabase
+      .from("ipen_credentials")
+      .upsert(row, { onConflict: "user_id" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
