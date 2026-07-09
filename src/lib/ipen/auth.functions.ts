@@ -12,7 +12,7 @@ export const connectIpen = createServerFn({ method: "POST" })
     z.object({ email: z.string().email(), password: z.string().min(1) }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { userId } = context as any;
     const res = await ipenPublic<any>({
       path: "/api/Auth/Login",
       method: "POST",
@@ -55,10 +55,8 @@ export const connectIpen = createServerFn({ method: "POST" })
       mfa_required: mfaRequired,
       last_login_at: mfaRequired ? null : new Date().toISOString(),
     };
-    const { error } = await supabase
-      .from("ipen_credentials")
-      .upsert(row, { onConflict: "user_id" });
-    if (error) throw new Error(error.message);
+    const { upsertAgencyIpenCredential } = await import("./agency-credentials.server");
+    await upsertAgencyIpenCredential(userId, row);
 
     return { mfaRequired: row.mfa_required, hasToken: Boolean(row.access_token) };
   });
@@ -68,13 +66,9 @@ export const verifyIpenMfa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ code: z.string().min(1) }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
-    const { data: cred, error: cErr } = await supabase
-      .from("ipen_credentials")
-      .select("mfa_token, ipen_email")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (cErr) throw new Error(cErr.message);
+    const { userId } = context as any;
+    const { loadIpenCredentialForUser, updateStoredIpenCredential } = await import("./agency-credentials.server");
+    const cred = await loadIpenCredentialForUser(userId);
     if (!cred) throw new Error("Sign in with your IPEN account first, then enter the OTP.");
 
     if (!cred.mfa_token) {
@@ -142,10 +136,7 @@ export const verifyIpenMfa = createServerFn({ method: "POST" })
       }
       const expired = /expired|invalid|challenge|mfa/i.test(lastErr);
       if (expired) {
-        await supabase
-          .from("ipen_credentials")
-          .update({ mfa_token: null, mfa_required: false })
-          .eq("user_id", userId);
+        await updateStoredIpenCredential(cred, { mfa_token: null, mfa_required: false });
         throw new Error("The IPEN OTP challenge expired or was replaced. Reconnect to request a new OTP.");
       }
       if (![400, 404, 405, 415, 422, 500, 502].includes(res.status)) break;
@@ -159,9 +150,7 @@ export const verifyIpenMfa = createServerFn({ method: "POST" })
     const t = extractTokens(res.data);
     if (!t.accessToken) throw new Error("MFA response missing access token");
 
-    const { error } = await supabase
-      .from("ipen_credentials")
-      .update({
+    await updateStoredIpenCredential(cred, {
         access_token: t.accessToken,
         refresh_token: t.refreshToken ?? null,
         token_expires_at: t.expiresIn
@@ -170,9 +159,7 @@ export const verifyIpenMfa = createServerFn({ method: "POST" })
         mfa_token: null,
         mfa_required: false,
         last_login_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
-    if (error) throw new Error(error.message);
+      });
     return { ok: true };
   });
 
