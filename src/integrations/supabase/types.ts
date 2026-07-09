@@ -692,6 +692,56 @@ export type Database = {
           },
         ]
       }
+      ipen_agency_credentials: {
+        Row: {
+          access_token: string | null
+          connected_by: string | null
+          created_at: string
+          ipen_email: string
+          last_login_at: string | null
+          mfa_required: boolean
+          mfa_token: string | null
+          refresh_token: string | null
+          tenant_id: string
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          connected_by?: string | null
+          created_at?: string
+          ipen_email: string
+          last_login_at?: string | null
+          mfa_required?: boolean
+          mfa_token?: string | null
+          refresh_token?: string | null
+          tenant_id: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          connected_by?: string | null
+          created_at?: string
+          ipen_email?: string
+          last_login_at?: string | null
+          mfa_required?: boolean
+          mfa_token?: string | null
+          refresh_token?: string | null
+          tenant_id?: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ipen_agency_credentials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ipen_credentials: {
         Row: {
           access_token: string | null

@@ -104,7 +104,7 @@ async function rawFetch<T>(
     }
     const fallback =
       res.status >= 500
-        ? `IPEN service error (${res.status}). Please request a new OTP and try again.`
+        ? `IPEN service error (${res.status}). AfricaBima/IPEN is temporarily unavailable. Please try again shortly.`
         : `IPEN ${res.status}`;
     return {
       ok: false,
@@ -118,7 +118,9 @@ async function rawFetch<T>(
 }
 
 type CredRow = {
-  user_id: string;
+  scope: "agency" | "user";
+  tenant_id: string | null;
+  user_id: string | null;
   access_token: string | null;
   refresh_token: string | null;
   token_expires_at: string | null;
@@ -129,13 +131,20 @@ async function loadCredentials(
   supabase: SupabaseClient<Database>,
   userId: string,
 ): Promise<CredRow | null> {
-  const { data, error } = await supabase
-    .from("ipen_credentials")
-    .select("user_id, access_token, refresh_token, token_expires_at, mfa_required")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  return (data as CredRow | null) ?? null;
+  void supabase;
+  const { loadIpenCredentialForUser } = await import("./agency-credentials.server");
+  const cred = await loadIpenCredentialForUser(userId);
+  return cred
+    ? {
+        scope: cred.scope,
+        tenant_id: cred.tenant_id,
+        user_id: cred.user_id,
+        access_token: cred.access_token,
+        refresh_token: cred.refresh_token,
+        token_expires_at: cred.token_expires_at,
+        mfa_required: cred.mfa_required,
+      }
+    : null;
 }
 
 async function persistTokens(
@@ -143,19 +152,11 @@ async function persistTokens(
   userId: string,
   tokens: { accessToken?: string; refreshToken?: string; expiresIn?: number | null },
 ): Promise<void> {
-  const patch: {
-    access_token?: string;
-    refresh_token?: string;
-    token_expires_at?: string;
-  } = {};
-  if (tokens.accessToken) patch.access_token = tokens.accessToken;
-  if (tokens.refreshToken) patch.refresh_token = tokens.refreshToken;
-  if (tokens.expiresIn) {
-    patch.token_expires_at = new Date(Date.now() + tokens.expiresIn * 1000).toISOString();
-  }
-  if (Object.keys(patch).length === 0) return;
-  const { error } = await supabase.from("ipen_credentials").update(patch).eq("user_id", userId);
-  if (error) throw new Error(error.message);
+  void supabase;
+  const { loadIpenCredentialForUser, persistIpenTokenRefresh } = await import("./agency-credentials.server");
+  const cred = await loadIpenCredentialForUser(userId);
+  if (!cred) return;
+  await persistIpenTokenRefresh(cred, tokens);
 }
 
 // Best-effort extraction of tokens from the varied shapes IPEN uses
@@ -270,7 +271,7 @@ export async function ipenFetch<T = any>(
       ok: false,
       status: 401,
       data: null,
-      error: "IPEN verification pending. Enter the OTP from Ecobank in Admin → IPEN to finish connecting.",
+      error: "The agency IPEN connection is waiting for Ecobank OTP verification in Admin → IPEN.",
     };
   }
   if (!creds?.access_token) {
@@ -278,7 +279,7 @@ export async function ipenFetch<T = any>(
       ok: false,
       status: 401,
       data: null,
-      error: "IPEN account not connected. Connect it in Admin → IPEN.",
+      error: "Agency IPEN is not connected. Ask an admin or manager to connect it in Admin → IPEN.",
     };
   }
   headers.Authorization = `Bearer ${creds.access_token}`;

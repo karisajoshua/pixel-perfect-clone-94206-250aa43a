@@ -145,7 +145,7 @@ function IpenAdminPage() {
   };
 
   const doDisconnect = async () => {
-    if (!confirm("Disconnect your IPEN account?")) return;
+    if (!confirm("Disconnect the agency IPEN connection for all staff?")) return;
     setBusy(true);
     try {
       await disconnectFn();
@@ -232,7 +232,7 @@ function IpenAdminPage() {
     <div className="space-y-6 p-4 md:p-8">
       <PageHeader
         title="IPEN integration"
-        subtitle="Connect your Africa Bima / IPEN account to fetch live quotes, policies, claims, and process M-Pesa payments."
+        subtitle="Connect the agency Africa Bima / IPEN account once so staff can fetch live quotes, policies, claims, and process M-Pesa payments."
       />
 
       <div className="flex items-center gap-2 text-sm">
@@ -255,26 +255,27 @@ function IpenAdminPage() {
             Connection
           </CardTitle>
           <CardDescription>
-            Credentials are stored per user and only your access token is used when you trigger IPEN
-            actions.
+            One agency IPEN connection is shared securely by admins, managers, and agents in the same agency.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <OtpBox
-            code={code}
-            setCode={setCode}
-            onVerify={doVerify}
-            busy={busy || isLoading}
-            showResend={Boolean(mfaPending)}
-            onResend={async () => {
-              try {
-                await resendFn();
-                toast.success("Code re-sent");
-              } catch (e: any) {
-                toast.error(e.message);
-              }
-            }}
-          />
+          {status?.canManage && (
+            <OtpBox
+              code={code}
+              setCode={setCode}
+              onVerify={doVerify}
+              busy={busy || isLoading}
+              showResend={Boolean(mfaPending)}
+              onResend={async () => {
+                try {
+                  await resendFn();
+                  toast.success("Code re-sent");
+                } catch (e: any) {
+                  toast.error(e.message);
+                }
+              }}
+            />
+          )}
 
           {isLoading ? (
             <div className="text-sm text-muted-foreground">Loading status…</div>
@@ -282,22 +283,29 @@ function IpenAdminPage() {
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-3">
                 <Badge variant="secondary" className="gap-1">
-                  <ShieldCheck className="h-3.5 w-3.5" /> Connected
+                  <ShieldCheck className="h-3.5 w-3.5" /> Agency connected
                 </Badge>
                 <span className="text-sm">{status?.ipen_email}</span>
+                {status?.scope === "agency" && <Badge variant="outline">Shared with staff</Badge>}
                 {status?.last_login_at && (
                   <span className="text-xs text-muted-foreground">
                     since {new Date(status.last_login_at).toLocaleString()}
                   </span>
                 )}
-                <Button variant="outline" size="sm" onClick={doDisconnect} disabled={busy}>
-                  Disconnect
-                </Button>
+                {status?.canManage && (
+                  <Button variant="outline" size="sm" onClick={doDisconnect} disabled={busy}>
+                    Disconnect
+                  </Button>
+                )}
                 <Button variant="outline" size="sm" onClick={doTestConnection} disabled={busy}>
                   {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Test connection
                 </Button>
               </div>
+            </div>
+          ) : !status?.canManage ? (
+            <div className="rounded-md border bg-muted/40 p-4 text-sm text-muted-foreground">
+              Agency IPEN is not connected yet. Ask an admin or manager to connect it once, then all staff will be able to use IPEN services automatically.
             </div>
           ) : (
             <Tabs value={authTab} onValueChange={(v) => setAuthTab(v as "signin" | "register")}>

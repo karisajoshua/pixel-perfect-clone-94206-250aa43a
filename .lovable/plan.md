@@ -1,47 +1,65 @@
-# Surface the rest of the IPEN v1 integration in the UI
+## What is causing the 502
 
-The server-fn wrappers and components are already built, but several are orphaned. This plan wires each one into a visible surface, mirroring how the reference-data explorer is exposed on `/admin/ipen`.
+The 502 is coming from the external AfricaBima/IPEN sandbox API, not from your app database. The flow is:
 
-## What's currently wired vs orphan
+```text
+Your app UI
+  -> IPEN server function
+  -> src/lib/ipen/ipen-fetch.server.ts
+  -> IPEN_API_BASE_URL + endpoint, e.g. /api/Common/countries
+  -> IPEN sandbox returns HTTP 502
+```
 
-Wired: assistant page (sidebar), motor quote wizard (client detail), file-claim dialog (claims), policy live drawer (policy detail), portal dashboard widget + profile panel (client portal), reference explorer + connect flow (admin IPEN).
+Right now, some IPEN endpoints still treat upstream 502s as hard failures. That can block the screen or make users think the app integration is broken. The app should instead show “IPEN is temporarily unavailable” while keeping the rest of the workflow usable.
 
-Orphan (built but not shown anywhere): life quote wizard, OCR button, document-link helper, process-payment, life benefits schedule, forgot-password, Google sign-in, health probe.
+## Plan
 
-## Changes by surface
+1. **Make IPEN connection agency-wide**
+   - Add an agency-level IPEN credentials store.
+   - When an admin/manager connects IPEN once, the connection belongs to that agency.
+   - Agents, managers, and admins in the same agency will automatically use that shared connection.
+   - New agent accounts created later will immediately access IPEN services without creating their own connection.
+   - Keep personal/per-user credentials only as fallback/migration support where needed.
 
-### 1. Quotations page (`/quotations`)
-- Add a second "New IPEN quote" split button next to the existing New quote: **Motor** (opens `IpenMotorQuoteWizard`) and **Life** (opens `IpenLifeQuoteWizard`) with a client picker at the top of each wizard.
-- On successful IPEN quote, insert a row into local `quotations` with `source = 'ipen'` and the returned premium so it shows on the dashboard.
+2. **Secure the shared connection**
+   - Do not expose IPEN tokens to the browser.
+   - Only backend/server functions will read and use the shared token.
+   - Admins/managers can connect, reconnect, verify OTP, and disconnect.
+   - Agents can use IPEN services but cannot see or manage the stored credentials.
 
-### 2. Policy detail (`/policies/$id`)
-- Add a **Process payment** button (STK push / express) that calls the process-payment server fn and shows the M-Pesa prompt state; use the existing `process-express-callback` route as the callback URL.
-- For life policies, add a **Benefits schedule** card that renders the schedule from the life-benefits fn.
-- Add a **Documents** sub-tab listing IPEN documents for the policy using `DocumentLink` (open/download from IPEN).
+3. **Update all IPEN API wrappers to use the shared agency connection**
+   - Common/reference data
+   - Quotes and policies
+   - Claims
+   - Payments / M-Pesa
+   - Documents
+   - OCR
+   - Profile / portal dashboard
+   - Assistant chat
+   - Health/status checks
 
-### 3. Client detail (`/clients/$id`)
-- Add an **OCR scan** action in the KYC section using `OcrButton` — upload ID / KRA image, prefill fields from the OCR response with a review dialog before saving.
+4. **Handle 502 and IPEN downtime properly across every endpoint**
+   - Standardize IPEN error handling in one place.
+   - Reference data returns empty lists plus an inline warning instead of crashing.
+   - Action endpoints like quote generation, claim filing, and M-Pesa payments show a clear retry message.
+   - Add token refresh fallback when the shared token expires.
+   - Preserve OTP/MFA state so users can retry after IPEN recovers.
 
-### 4. Assistant page (`/assistant`)
-- Already visible. No change beyond a small empty-state prompt list.
+5. **Update the IPEN admin page**
+   - Show “Agency connected” status instead of “your personal connection.”
+   - Show which email connected the agency IPEN account.
+   - Let admins/managers connect/reconnect/verify OTP.
+   - Let agents see service status and reference data but not manage credentials.
 
-### 5. Auth page (`/auth`)
-- Add **Sign in with Google** button (existing IPEN google sign-in fn) and a **Forgot password** link that calls the IPEN forgot-password fn and shows a success toast.
+6. **Verify frontend access points**
+   - Confirm IPEN reference data loads in Admin → IPEN.
+   - Confirm motor quote, life quote, policy payment, claim filing, documents, OCR, portal panel, and assistant all call the shared connection.
+   - Add graceful empty/error states where IPEN returns 502 or no data.
 
-### 6. Admin IPEN page (`/admin/ipen`)
-- Add a small **Service health** pill at the top powered by the health-probe fn, refreshing every 60s.
-- Add a **Live features** card below reference data with quick-launch buttons: Motor quote, Life quote, OCR test, Documents lookup — same pattern as the reference explorer, so admins can smoke-test each surface.
+## Technical changes
 
-## Technical notes
-
-- All new buttons call existing server fns via `useServerFn` + React Query mutations; no new server code.
-- Reuse the "connected + MFA satisfied" guard already used by the reference explorer — hide/disable live actions when `mfa_required` or no access token.
-- For the Google sign-in and forgot-password flows, expose them only on `/auth` (not inside authenticated routes).
-- Toast on failure using the shared `toast` helper; surface `upstreamOutage` errors with the friendly 502 message already added in `ipen-fetch.server.ts`.
-- No DB migrations. No changes to `src/integrations/supabase/*`.
-
-## Out of scope
-
-- Any redesign of existing panels.
-- Changing IPEN auth/MFA flow.
-- Adding new IPEN endpoints (only wiring what's built).
+- Add a new agency-level credentials table with secure access rules.
+- Update `ipen-fetch.server.ts` so credential lookup checks the current user’s agency and uses the shared agency token.
+- Update `auth.functions.ts` so connect/register/OTP verification writes to the shared agency connection.
+- Keep the existing per-user credential table compatible so current connected accounts can be migrated or used during transition.
+- Review each IPEN server function and remove any remaining hard crashes from upstream 502 responses where the UI can recover.

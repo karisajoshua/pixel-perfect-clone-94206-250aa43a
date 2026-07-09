@@ -12,7 +12,7 @@ export const connectIpen = createServerFn({ method: "POST" })
     z.object({ email: z.string().email(), password: z.string().min(1) }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { userId } = context as any;
     const res = await ipenPublic<any>({
       path: "/api/Auth/Login",
       method: "POST",
@@ -44,7 +44,6 @@ export const connectIpen = createServerFn({ method: "POST" })
     const mfaRequired = Boolean(t.mfaRequired || t.mfaToken);
 
     const row = {
-      user_id: userId as string,
       ipen_email: data.email,
       access_token: mfaRequired ? null : (t.accessToken ?? null),
       refresh_token: mfaRequired ? null : (t.refreshToken ?? null),
@@ -55,10 +54,8 @@ export const connectIpen = createServerFn({ method: "POST" })
       mfa_required: mfaRequired,
       last_login_at: mfaRequired ? null : new Date().toISOString(),
     };
-    const { error } = await supabase
-      .from("ipen_credentials")
-      .upsert(row, { onConflict: "user_id" });
-    if (error) throw new Error(error.message);
+    const { upsertAgencyIpenCredential } = await import("./agency-credentials.server");
+    await upsertAgencyIpenCredential(userId, row);
 
     return { mfaRequired: row.mfa_required, hasToken: Boolean(row.access_token) };
   });
@@ -68,13 +65,9 @@ export const verifyIpenMfa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ code: z.string().min(1) }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
-    const { data: cred, error: cErr } = await supabase
-      .from("ipen_credentials")
-      .select("mfa_token, ipen_email")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (cErr) throw new Error(cErr.message);
+    const { userId } = context as any;
+    const { loadIpenCredentialForUser, updateStoredIpenCredential } = await import("./agency-credentials.server");
+    const cred = await loadIpenCredentialForUser(userId);
     if (!cred) throw new Error("Sign in with your IPEN account first, then enter the OTP.");
 
     if (!cred.mfa_token) {
@@ -142,10 +135,7 @@ export const verifyIpenMfa = createServerFn({ method: "POST" })
       }
       const expired = /expired|invalid|challenge|mfa/i.test(lastErr);
       if (expired) {
-        await supabase
-          .from("ipen_credentials")
-          .update({ mfa_token: null, mfa_required: false })
-          .eq("user_id", userId);
+        await updateStoredIpenCredential(cred, { mfa_token: null, mfa_required: false });
         throw new Error("The IPEN OTP challenge expired or was replaced. Reconnect to request a new OTP.");
       }
       if (![400, 404, 405, 415, 422, 500, 502].includes(res.status)) break;
@@ -159,9 +149,7 @@ export const verifyIpenMfa = createServerFn({ method: "POST" })
     const t = extractTokens(res.data);
     if (!t.accessToken) throw new Error("MFA response missing access token");
 
-    const { error } = await supabase
-      .from("ipen_credentials")
-      .update({
+    await updateStoredIpenCredential(cred, {
         access_token: t.accessToken,
         refresh_token: t.refreshToken ?? null,
         token_expires_at: t.expiresIn
@@ -170,21 +158,16 @@ export const verifyIpenMfa = createServerFn({ method: "POST" })
         mfa_token: null,
         mfa_required: false,
         last_login_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
-    if (error) throw new Error(error.message);
+      });
     return { ok: true };
   });
 
 export const resendIpenMfa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
-    const { data: cred } = await supabase
-      .from("ipen_credentials")
-      .select("mfa_token, ipen_email")
-      .eq("user_id", userId)
-      .maybeSingle();
+    const { userId } = context as any;
+    const { loadIpenCredentialForUser } = await import("./agency-credentials.server");
+    const cred = await loadIpenCredentialForUser(userId);
     if (!cred) throw new Error("Sign in with your IPEN account first.");
     const body: Record<string, unknown> = {};
     if (cred.mfa_token) {
@@ -211,13 +194,10 @@ export const resendIpenMfa = createServerFn({ method: "POST" })
 export const disconnectIpen = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { userId } = context as any;
     // Best-effort remote logout using the current token, ignore failures.
-    const { data: cred } = await supabase
-      .from("ipen_credentials")
-      .select("access_token")
-      .eq("user_id", userId)
-      .maybeSingle();
+    const { loadIpenCredentialForUser, deleteAgencyIpenCredential } = await import("./agency-credentials.server");
+    const cred = await loadIpenCredentialForUser(userId);
     if (cred?.access_token) {
       try {
         await ipenPublic<any>({
@@ -228,27 +208,27 @@ export const disconnectIpen = createServerFn({ method: "POST" })
         });
       } catch {}
     }
-    const { error } = await supabase.from("ipen_credentials").delete().eq("user_id", userId);
-    if (error) throw new Error(error.message);
+    await deleteAgencyIpenCredential(userId);
     return { ok: true };
   });
 
 export const ipenStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
-    const { data } = await supabase
-      .from("ipen_credentials")
-      .select("ipen_email, mfa_required, last_login_at, token_expires_at, access_token")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (!data) return { connected: false };
+    const { userId } = context as any;
+    const { loadIpenCredentialForUser, getTenantMembership } = await import("./agency-credentials.server");
+    const data = await loadIpenCredentialForUser(userId);
+    const member = await getTenantMembership(userId);
+    const canManage = Boolean(member && ["admin", "manager"].includes(member.role));
+    if (!data) return { connected: false, canManage, scope: member?.tenant_id ? "agency" : "user" };
     return {
       connected: Boolean(data.access_token) && !data.mfa_required,
       mfa_required: data.mfa_required,
       ipen_email: data.ipen_email,
       last_login_at: data.last_login_at,
       token_expires_at: data.token_expires_at,
+      scope: data.scope,
+      canManage,
     };
   });
 
@@ -279,7 +259,7 @@ export const registerIpen = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { userId } = context as any;
     // Send both camelCase and PascalCase keys — some IPEN endpoints bind
     // strictly to PascalCase model properties.
     const dual = (k: string, v: unknown, out: Record<string, unknown>) => {
@@ -324,8 +304,7 @@ export const registerIpen = createServerFn({ method: "POST" })
     const mfaRequired = Boolean(t.mfaRequired || t.mfaToken);
 
     const now = new Date().toISOString();
-    const row: Record<string, unknown> = {
-      user_id: userId as string,
+    const row = {
       ipen_email: data.email,
       access_token: mfaRequired ? null : (t.accessToken ?? null),
       refresh_token: mfaRequired ? null : (t.refreshToken ?? null),
@@ -336,10 +315,8 @@ export const registerIpen = createServerFn({ method: "POST" })
       mfa_required: mfaRequired,
       last_login_at: !mfaRequired && t.accessToken ? now : null,
     };
-    const { error } = await supabase
-      .from("ipen_credentials")
-      .upsert(row, { onConflict: "user_id" });
-    if (error) throw new Error(error.message);
+    const { upsertAgencyIpenCredential } = await import("./agency-credentials.server");
+    await upsertAgencyIpenCredential(userId, row);
 
     return {
       registered: true,
@@ -433,7 +410,7 @@ export const ipenLoginWithGoogle = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { userId } = context as any;
     const res = await ipenPublic<any>({
       path: "/api/Auth/login-with-google",
       method: "POST",
@@ -451,8 +428,7 @@ export const ipenLoginWithGoogle = createServerFn({ method: "POST" })
     const t = extractTokens(res.data);
     if (!t.accessToken) throw new Error("Google sign-in returned no token");
     const row = {
-      user_id: userId as string,
-      ipen_email: data.email ?? null,
+      ipen_email: data.email ?? "Google IPEN account",
       access_token: t.accessToken,
       refresh_token: t.refreshToken ?? null,
       token_expires_at: t.expiresIn
@@ -462,9 +438,7 @@ export const ipenLoginWithGoogle = createServerFn({ method: "POST" })
       mfa_required: false,
       last_login_at: new Date().toISOString(),
     };
-    const { error } = await supabase
-      .from("ipen_credentials")
-      .upsert(row, { onConflict: "user_id" });
-    if (error) throw new Error(error.message);
+    const { upsertAgencyIpenCredential } = await import("./agency-credentials.server");
+    await upsertAgencyIpenCredential(userId, row);
     return { ok: true };
   });
