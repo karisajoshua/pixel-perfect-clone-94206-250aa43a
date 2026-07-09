@@ -510,7 +510,8 @@ function RefList({ fn, cacheKey }: { fn: any; cacheKey: string }) {
       </div>
     );
 
-  const rows: any[] = Array.isArray(data) ? data : (data?.data ?? data?.items ?? []);
+  const raw = Array.isArray(data) ? data : (data?.data ?? data?.items ?? data?.result ?? data?.results ?? []);
+  const rows: any[] = Array.isArray(raw) ? raw : raw && typeof raw === "object" ? [raw] : [];
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">

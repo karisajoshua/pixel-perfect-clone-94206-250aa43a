@@ -68,3 +68,17 @@ export const initiateMpesaExpressDirect = createServerFn({ method: "POST" })
     if (!res.ok) throw new Error(res.error ?? "Failed to initiate STK push");
     return res.data;
   });
+
+export const processIpenPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({}).passthrough().parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const res = await ipenFetch<any>(supabase, userId, {
+      path: "/api/PaymentDetails/ProcessPayment",
+      method: "POST",
+      body: data,
+    });
+    if (!res.ok) throw new Error(res.error ?? "Failed to process payment");
+    return res.data;
+  });
