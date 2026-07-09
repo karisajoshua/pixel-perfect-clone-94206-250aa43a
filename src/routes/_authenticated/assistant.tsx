@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ipenAssistantChat } from "@/lib/ipen/assistant.functions";
-import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -56,8 +55,7 @@ function AssistantPage() {
   };
 
   return (
-    <AppShell>
-      <div className="p-4 md:p-8 space-y-4">
+    <div className="p-4 md:p-8 space-y-4">
         <PageHeader title="AI assistant" subtitle="Powered by IPEN" />
         <Card className="flex flex-col h-[70vh]">
           <CardContent className="flex-1 min-h-0 overflow-hidden p-0 flex flex-col">
@@ -105,7 +103,6 @@ function AssistantPage() {
             </form>
           </CardContent>
         </Card>
-      </div>
-    </AppShell>
+    </div>
   );
 }
