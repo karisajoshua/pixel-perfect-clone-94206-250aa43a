@@ -230,7 +230,7 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
   useEffect(() => {
     if (!open) return;
     const v = new Date(); v.setDate(v.getDate() + 14);
-    const init = initial ?? { quote_no: `Q-${Date.now()}`, status: "draft", product_class: "motor_private", cover_type: "comprehensive", valid_until: v.toISOString().slice(0,10), line_items: { rate_pct: 0, levies: 0, benefits: [] } };
+    const init = initial ?? { quote_no: `Q-${Date.now()}`, status: "draft", product_class: "motor_private", cover_type: "comprehensive", policy_term: "annual", valid_until: v.toISOString().slice(0,10), line_items: { rate_pct: 0, levies: 0, benefits: [] } };
     if (!init.line_items) init.line_items = { rate_pct: 0, levies: 0, benefits: [] };
     setForm(init);
     setClientText("");
@@ -402,6 +402,18 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
                 <SelectItem value="comprehensive">Comprehensive</SelectItem>
                 <SelectItem value="third_party">Third party</SelectItem>
                 <SelectItem value="third_party_fire_theft">TPFT</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Policy term</Label>
+            <Select value={form.policy_term ?? "annual"} onValueChange={(v) => set("policy_term", v)}>
+              <SelectTrigger><SelectValue placeholder="Select term" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tor">One month (TOR)</SelectItem>
+                <SelectItem value="one_month_extendable">One month extendable</SelectItem>
+                <SelectItem value="six_months">6 months</SelectItem>
+                <SelectItem value="annual">Annual</SelectItem>
               </SelectContent>
             </Select>
           </div>
