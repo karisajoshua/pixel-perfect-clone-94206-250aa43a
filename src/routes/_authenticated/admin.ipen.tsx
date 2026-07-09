@@ -30,6 +30,7 @@ import {
   listVehicleMakes,
   listVehicleModels,
   listCoverOptions,
+  ipenHealthCheck,
 } from "@/lib/ipen/common.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/ipen")({
@@ -76,6 +77,13 @@ function IpenAdminPage() {
   const disconnectFn = useServerFn(disconnectIpen);
   const registerFn = useServerFn(registerIpen);
   const testConnectionFn = useServerFn(listCountries);
+  const healthFn = useServerFn(ipenHealthCheck);
+  const { data: health } = useQuery({
+    queryKey: ["ipen-health"],
+    queryFn: () => healthFn(),
+    retry: false,
+    refetchInterval: 60_000,
+  });
 
   const { data: status, isLoading } = useQuery({
     queryKey: ["ipen-status"],
@@ -222,6 +230,19 @@ function IpenAdminPage() {
         title="IPEN integration"
         subtitle="Connect your Africa Bima / IPEN account to fetch live quotes, policies, claims, and process M-Pesa payments."
       />
+
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-muted-foreground">IPEN service:</span>
+        {health ? (
+          health.ok ? (
+            <Badge variant="secondary" className="gap-1"><ShieldCheck className="h-3.5 w-3.5" /> Online</Badge>
+          ) : (
+            <Badge variant="destructive">Offline ({health.status ?? "?"})</Badge>
+          )
+        ) : (
+          <Badge variant="outline">Checking…</Badge>
+        )}
+      </div>
 
       <Card>
         <CardHeader>

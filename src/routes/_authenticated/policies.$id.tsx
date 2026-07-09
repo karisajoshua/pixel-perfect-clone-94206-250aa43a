@@ -17,6 +17,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { policyTermLabel } from "@/lib/utils";
 import { Plus, Trash2, Check as CheckIcon } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { initiateMpesaExpress } from "@/lib/ipen/payments.functions";
+import { getLifeBenefitsSchedule } from "@/lib/ipen/policies.functions";
+import { Smartphone, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/policies/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: PolicyDetail });
 
@@ -32,6 +36,15 @@ function PolicyDetail() {
   const [extOpen, setExtOpen] = useState(false);
   const [extForm, setExtForm] = useState<{ amount_due: string; due_date: string; reason: string }>({ amount_due: "", due_date: "", reason: "" });
   const [savingExt, setSavingExt] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
+  const [payPhone, setPayPhone] = useState("");
+  const [payAmount, setPayAmount] = useState("");
+  const [payBusy, setPayBusy] = useState(false);
+  const [benefitsOpen, setBenefitsOpen] = useState(false);
+  const [benefits, setBenefits] = useState<any>(null);
+  const [benefitsBusy, setBenefitsBusy] = useState(false);
+  const stkFn = useServerFn(initiateMpesaExpress);
+  const benefitsFn = useServerFn(getLifeBenefitsSchedule);
 
   const { data: p, isLoading } = useQuery({
     queryKey: ["policy", id],
@@ -155,6 +168,42 @@ function PolicyDetail() {
   const totalPaid = Number(paymentsAgg ?? 0);
   const gross = Number(p.premium_gross ?? 0);
 
+  const ipenProposalId = p.ipen_proposal_id ?? p.ipen_policy_id ?? null;
+  const isLife = String(p.product_class ?? "").toLowerCase().includes("life");
+
+  const openPay = () => {
+    setPayPhone(p.clients?.phone ?? "");
+    setPayAmount(String(p.premium_gross ?? ""));
+    setPayOpen(true);
+  };
+
+  const submitPay = async () => {
+    if (!ipenProposalId) return toast.error("This policy has no IPEN proposal id");
+    if (!payPhone) return toast.error("Enter M-Pesa phone number");
+    const amt = Number(payAmount);
+    if (!amt || amt <= 0) return toast.error("Enter a valid amount");
+    setPayBusy(true);
+    try {
+      await stkFn({ data: { proposalId: ipenProposalId, phoneNumber: payPhone, amount: amt } });
+      toast.success("STK push sent — check the client's phone");
+      setPayOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Payment failed");
+    } finally { setPayBusy(false); }
+  };
+
+  const openBenefits = async () => {
+    if (!ipenProposalId) return toast.error("This policy has no IPEN proposal id");
+    setBenefitsOpen(true);
+    setBenefitsBusy(true);
+    try {
+      const res = await benefitsFn({ data: { quoteId: ipenProposalId } });
+      setBenefits(res);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to load benefits schedule");
+    } finally { setBenefitsBusy(false); }
+  };
+
   return (
     <div className="p-8 space-y-6">
       <Button asChild variant="ghost" size="sm"><Link to="/policies"><ArrowLeft className="h-4 w-4 mr-1" /> All policies</Link></Button>
@@ -168,6 +217,14 @@ function PolicyDetail() {
                 <Badge variant="secondary" className="self-center">IPEN</Badge>
                 <Button variant="outline" onClick={() => setIpenOpen(true)}>View live IPEN details</Button>
               </>
+            )}
+            {ipenProposalId && (
+              <Button variant="outline" onClick={openPay}>
+                <Smartphone className="h-4 w-4 mr-1" /> Process M-Pesa
+              </Button>
+            )}
+            {ipenProposalId && isLife && (
+              <Button variant="outline" onClick={openBenefits}>Benefits schedule</Button>
             )}
             {p.status !== "cancelled" && (
               <Button variant="outline" onClick={() => setCancelOpen(true)}><Ban className="h-4 w-4 mr-1" /> Cancel policy</Button>
@@ -339,6 +396,46 @@ function PolicyDetail() {
             <Button variant="ghost" onClick={() => setExtOpen(false)}>Cancel</Button>
             <Button onClick={submitExtension} disabled={savingExt}>{savingExt ? "Saving…" : "Save extension"}</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={payOpen} onOpenChange={setPayOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Process M-Pesa payment</DialogTitle>
+            <DialogDescription>Sends an STK push to the client's phone via the IPEN gateway.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5"><Label>Phone number</Label>
+              <Input value={payPhone} onChange={(e) => setPayPhone(e.target.value)} placeholder="2547XXXXXXXX" />
+            </div>
+            <div className="space-y-1.5"><Label>Amount (KES)</Label>
+              <Input type="number" step="0.01" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPayOpen(false)}>Cancel</Button>
+            <Button onClick={submitPay} disabled={payBusy}>
+              {payBusy && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Send STK push
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={benefitsOpen} onOpenChange={setBenefitsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Life benefits schedule</DialogTitle>
+            <DialogDescription>Live from IPEN.</DialogDescription>
+          </DialogHeader>
+          {benefitsBusy ? (
+            <div className="text-sm text-muted-foreground">Loading…</div>
+          ) : (
+            <pre className="max-h-[420px] overflow-auto rounded border p-3 text-xs">
+              {JSON.stringify(benefits ?? {}, null, 2)}
+            </pre>
+          )}
         </DialogContent>
       </Dialog>
     </div>
