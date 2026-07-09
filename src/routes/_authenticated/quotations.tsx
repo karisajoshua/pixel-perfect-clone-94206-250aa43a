@@ -13,8 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PageHeader } from "@/components/page-header";
-import { LifeQuoteWizard } from "@/components/ipen/life-quote-wizard";
-import { useState as useLifeState } from "react";
 import { Plus, Pencil, ArrowRight, Download, Check, X, Send, Search } from "lucide-react";
 import { toast } from "sonner";
 import { downloadQuotationPdf } from "@/lib/quotation-pdf";
