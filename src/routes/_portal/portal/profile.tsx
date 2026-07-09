@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { IpenProfilePanel } from "@/components/ipen/ipen-profile-panel";
 
 export const Route = createFileRoute("/_portal/portal/profile")({ component: Page });
 
@@ -152,6 +153,7 @@ function Page() {
           <p className="text-xs text-muted-foreground">To change your full name, email, or branch, contact your agent.</p>
         </form>
       </Form>
+      <IpenProfilePanel />
     </div>
   );
 }

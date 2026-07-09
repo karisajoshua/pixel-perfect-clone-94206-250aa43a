@@ -233,3 +233,11 @@ export const listProducts = createServerFn({ method: "GET" })
     if (!res.ok) throw new Error(res.error ?? "Failed to load products");
     return res.data;
   });
+
+// Simple upstream health probe (no auth). Used by the admin panel status pill.
+export const ipenHealthCheck = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { ipenPublic } = await import("./ipen-fetch.server");
+    const res = await ipenPublic<any>({ path: "/health", method: "GET", noAuth: true });
+    return { ok: res.ok, status: res.status };
+  });
