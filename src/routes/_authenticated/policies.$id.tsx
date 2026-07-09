@@ -13,6 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { policyTermLabel } from "@/lib/utils";
+import { Plus, Trash2, Check as CheckIcon } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/policies/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: PolicyDetail });
 
@@ -25,6 +29,9 @@ function PolicyDetail() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [extOpen, setExtOpen] = useState(false);
+  const [extForm, setExtForm] = useState<{ amount_due: string; due_date: string; reason: string }>({ amount_due: "", due_date: "", reason: "" });
+  const [savingExt, setSavingExt] = useState(false);
 
   const { data: p, isLoading } = useQuery({
     queryKey: ["policy", id],
@@ -35,6 +42,30 @@ function PolicyDetail() {
         .eq("id", id).single();
       if (error) throw error;
       return data as any;
+    },
+  });
+
+  const { data: extensions } = useQuery({
+    queryKey: ["policy-extensions", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("policy_payment_extensions")
+        .select("*")
+        .eq("policy_id", id)
+        .order("due_date", { ascending: true });
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const { data: paymentsAgg } = useQuery({
+    queryKey: ["policy-payments-agg", id],
+    queryFn: async () => {
+      const { data: invs } = await supabase.from("invoices").select("id").eq("policy_id", id);
+      const ids = (invs ?? []).map((i: any) => i.id);
+      if (ids.length === 0) return 0;
+      const { data } = await supabase.from("payments").select("amount").in("invoice_id", ids);
+      return (data ?? []).reduce((s: number, r: any) => s + Number(r.amount ?? 0), 0);
     },
   });
 
@@ -70,6 +101,59 @@ function PolicyDetail() {
     qc.invalidateQueries({ queryKey: ["policies"] });
     qc.invalidateQueries({ queryKey: ["dashboard", "summary"] });
   };
+
+  const submitExtension = async () => {
+    const amount = Number(extForm.amount_due);
+    if (!amount || amount <= 0) return toast.error("Enter a valid amount");
+    if (!extForm.due_date) return toast.error("Pick a due date");
+    setSavingExt(true);
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase.from("policy_payment_extensions").insert({
+      policy_id: id,
+      amount_due: amount,
+      due_date: extForm.due_date,
+      reason: extForm.reason || null,
+      status: "pending",
+      created_by: u.user?.id,
+    } as any);
+    setSavingExt(false);
+    if (error) return toast.error(error.message);
+    // shift policy payment_status to partial if not paid
+    if (p.payment_status !== "paid") {
+      await supabase.from("policies").update({ payment_status: "partial" }).eq("id", id);
+    }
+    toast.success("Extension added");
+    setExtOpen(false);
+    setExtForm({ amount_due: "", due_date: "", reason: "" });
+    qc.invalidateQueries({ queryKey: ["policy-extensions", id] });
+    qc.invalidateQueries({ queryKey: ["policy", id] });
+    qc.invalidateQueries({ queryKey: ["dashboard", "summary"] });
+  };
+
+  const markExtensionPaid = async (extId: string) => {
+    const { error } = await supabase.from("policy_payment_extensions")
+      .update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", extId);
+    if (error) return toast.error(error.message);
+    toast.success("Marked paid");
+    qc.invalidateQueries({ queryKey: ["policy-extensions", id] });
+    qc.invalidateQueries({ queryKey: ["dashboard", "summary"] });
+  };
+
+  const deleteExtension = async (extId: string) => {
+    if (!confirm("Delete this extension?")) return;
+    const { error } = await supabase.from("policy_payment_extensions").delete().eq("id", extId);
+    if (error) return toast.error(error.message);
+    toast.success("Deleted");
+    qc.invalidateQueries({ queryKey: ["policy-extensions", id] });
+    qc.invalidateQueries({ queryKey: ["dashboard", "summary"] });
+  };
+
+  const today = new Date().toISOString().slice(0, 10);
+  const pendingExts = (extensions ?? []).filter((e) => e.status === "pending");
+  const outstanding = pendingExts.reduce((s, e) => s + Number(e.amount_due ?? 0), 0);
+  const overdueCount = pendingExts.filter((e) => e.due_date < today).length;
+  const totalPaid = Number(paymentsAgg ?? 0);
+  const gross = Number(p.premium_gross ?? 0);
 
   return (
     <div className="p-8 space-y-6">
@@ -120,6 +204,7 @@ function PolicyDetail() {
               <Item label="Taxes" value={p.taxes ? `KES ${Number(p.taxes).toLocaleString()}` : "—"} />
               <Item label="Status" value={p.status} />
               <Item label="Payment" value={p.payment_status} />
+              <Item label="Term" value={policyTermLabel(p.policy_term)} />
               <div className="col-span-2"><Item label="Notes" value={p.notes} /></div>
             </dl>
           </CardContent>
@@ -135,6 +220,76 @@ function PolicyDetail() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="flex items-center gap-2">
+            Payment extensions
+            {overdueCount > 0 && <Badge variant="destructive">{overdueCount} overdue</Badge>}
+          </CardTitle>
+          <Button size="sm" onClick={() => setExtOpen(true)}><Plus className="h-4 w-4 mr-1" /> Add extension</Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+            <div className="rounded-md border p-3">
+              <div className="text-xs uppercase text-muted-foreground">Gross premium</div>
+              <div className="text-lg font-semibold mt-1">{gross ? `KES ${gross.toLocaleString()}` : "—"}</div>
+            </div>
+            <div className="rounded-md border p-3">
+              <div className="text-xs uppercase text-muted-foreground">Paid to date</div>
+              <div className="text-lg font-semibold mt-1">KES {totalPaid.toLocaleString()}</div>
+            </div>
+            <div className="rounded-md border p-3">
+              <div className="text-xs uppercase text-muted-foreground">Outstanding (extensions)</div>
+              <div className={`text-lg font-semibold mt-1 ${outstanding > 0 ? "text-destructive" : ""}`}>KES {outstanding.toLocaleString()}</div>
+            </div>
+          </div>
+          {(extensions ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">No payment extensions on this policy yet. Add one when a client needs more time to pay the balance.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b bg-muted/40 text-left">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Amount</th>
+                    <th className="px-3 py-2 font-medium">Due date</th>
+                    <th className="px-3 py-2 font-medium">Reason</th>
+                    <th className="px-3 py-2 font-medium">Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(extensions ?? []).map((e) => {
+                    const overdue = e.status === "pending" && e.due_date < today;
+                    return (
+                      <tr key={e.id} className="border-b last:border-0">
+                        <td className="px-3 py-2">KES {Number(e.amount_due).toLocaleString()}</td>
+                        <td className="px-3 py-2">{e.due_date}</td>
+                        <td className="px-3 py-2 max-w-md truncate" title={e.reason ?? ""}>{e.reason ?? "—"}</td>
+                        <td className="px-3 py-2">
+                          {e.status === "paid" ? (
+                            <Badge variant="secondary">Paid</Badge>
+                          ) : overdue ? (
+                            <Badge variant="destructive">Overdue</Badge>
+                          ) : (
+                            <Badge>Pending</Badge>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right whitespace-nowrap">
+                          {e.status === "pending" && (
+                            <Button size="sm" variant="ghost" onClick={() => markExtensionPaid(e.id)}><CheckIcon className="h-3 w-3 mr-1" /> Mark paid</Button>
+                          )}
+                          <Button size="sm" variant="ghost" onClick={() => deleteExtension(e.id)}><Trash2 className="h-3 w-3" /></Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <PolicyFormDialog open={edit} onOpenChange={setEdit} initial={p} onSaved={() => qc.invalidateQueries({ queryKey: ["policy", id] })} />
       <PolicyFormDialog open={renew} onOpenChange={setRenew} renewFrom={p} onSaved={(newId) => {
@@ -156,6 +311,33 @@ function PolicyDetail() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCancelOpen(false)}>Back</Button>
             <Button variant="destructive" onClick={submitCancel} disabled={cancelling || !cancelReason.trim()}>{cancelling ? "Cancelling…" : "Confirm cancellation"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={extOpen} onOpenChange={setExtOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add payment extension</DialogTitle>
+            <DialogDescription>Record a balance the client will pay later. It shows on the dashboard until marked paid.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Amount (KES)</Label>
+              <Input type="number" step="0.01" value={extForm.amount_due} onChange={(e) => setExtForm((f) => ({ ...f, amount_due: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Due date</Label>
+              <Input type="date" value={extForm.due_date} onChange={(e) => setExtForm((f) => ({ ...f, due_date: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Reason (optional)</Label>
+              <Textarea rows={3} value={extForm.reason} onChange={(e) => setExtForm((f) => ({ ...f, reason: e.target.value }))} placeholder="e.g. client to pay balance by end of month" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setExtOpen(false)}>Cancel</Button>
+            <Button onClick={submitExtension} disabled={savingExt}>{savingExt ? "Saving…" : "Save extension"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
