@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { requireRole } from "@/lib/roles";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,6 +22,7 @@ export const Route = createFileRoute("/_authenticated/quotations")({ beforeLoad:
 
 function QuotationsPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<any>(null);
   const [search, setSearch] = useState("");
@@ -54,9 +55,13 @@ function QuotationsPage() {
     } as any).select("id").single();
     if (error) return toast.error(error.message);
     await supabase.from("quotations").update({ status: "converted", converted_policy_id: data!.id }).eq("id", q.id);
-    toast.success("Quote converted to policy. Update the policy number.");
     qc.invalidateQueries({ queryKey: ["quotations"] });
     qc.invalidateQueries({ queryKey: ["policies"] });
+    qc.invalidateQueries({ queryKey: ["dashboard"] });
+    toast.success("Policy created from quote — update details", {
+      action: { label: "Open policy", onClick: () => navigate({ to: "/policies/$id", params: { id: data!.id } }) },
+    });
+    navigate({ to: "/policies/$id", params: { id: data!.id } });
   };
 
   const submitForApproval = async (q: any) => {
