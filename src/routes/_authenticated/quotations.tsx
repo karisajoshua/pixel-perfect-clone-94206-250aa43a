@@ -17,6 +17,8 @@ import { Plus, Pencil, ArrowRight, Download, Check, X, Send, Search } from "luci
 import { toast } from "sonner";
 import { downloadQuotationPdf } from "@/lib/quotation-pdf";
 import { useMyRoles } from "@/hooks/use-auth";
+import { LifeQuoteWizard } from "@/components/ipen/life-quote-wizard";
+import { Heart } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/quotations")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: QuotationsPage });
 
@@ -26,6 +28,7 @@ function QuotationsPage() {
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<any>(null);
   const [search, setSearch] = useState("");
+  const [lifeOpen, setLifeOpen] = useState(false);
   const { data: roles } = useMyRoles();
   const canApprove = (roles ?? []).some((r) => r === "admin" || r === "manager");
 
@@ -138,7 +141,17 @@ function QuotationsPage() {
   return (
     <div className="p-8 space-y-6">
       <PageHeader title="Quotations" subtitle="Quote drafts that can be converted into policies."
-        actions={<Button onClick={() => { setEdit(null); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> New quote</Button>} />
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setLifeOpen(true)}>
+              <Heart className="h-4 w-4 mr-1" /> IPEN life quote
+            </Button>
+            <Button onClick={() => { setEdit(null); setOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> New quote
+            </Button>
+          </div>
+        } />
+      <LifeQuoteWizard open={lifeOpen} onOpenChange={setLifeOpen} />
       <div className="relative max-w-sm">
         <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input placeholder="Search by quote #, client, insurer, vehicle…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
