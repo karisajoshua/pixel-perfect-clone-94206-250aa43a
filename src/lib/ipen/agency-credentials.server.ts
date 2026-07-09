@@ -103,7 +103,7 @@ export async function updateStoredIpenCredential(
     refresh_token?: string | null;
     token_expires_at?: string | null;
     mfa_token?: string | null;
-    mfa_required?: boolean | null;
+    mfa_required?: boolean;
     last_login_at?: string | null;
     ipen_email?: string;
   },
