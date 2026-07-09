@@ -242,6 +242,37 @@ function ClientDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this client?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the client along with their vehicles, quotations, documents, communications and service requests. Policies, invoices and claims will block the delete — cancel or reassign them first. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteBusy}
+              onClick={async (e) => {
+                e.preventDefault();
+                setDeleteBusy(true);
+                try {
+                  await deleteFn({ data: { clientId: id } });
+                  toast.success("Client deleted");
+                  setDeleteOpen(false);
+                  qc.invalidateQueries({ queryKey: ["clients"] });
+                  navigate({ to: "/clients" });
+                } catch (err: any) {
+                  toast.error(err?.message ?? "Could not delete client");
+                } finally {
+                  setDeleteBusy(false);
+                }
+              }}
+            >{deleteBusy ? "Deleting…" : "Delete client"}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
