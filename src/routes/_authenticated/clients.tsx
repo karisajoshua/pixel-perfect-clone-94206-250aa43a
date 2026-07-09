@@ -8,10 +8,17 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
-import { Plus, Search, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Download, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { ClientFormDialog } from "@/components/clients/client-form-dialog";
 import { ClientExportDialog } from "@/components/clients/client-export-dialog";
 import { useMyRoles } from "@/hooks/use-auth";
+import { useServerFn } from "@tanstack/react-start";
+import { deleteClient } from "@/lib/clients.functions";
+import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/clients")({ beforeLoad: requireRole(["admin", "manager", "agent"]),
   component: ClientsLayout,
@@ -33,6 +40,10 @@ function ClientsList() {
   const pageSize = 15;
   const { data: roles } = useMyRoles();
   const canExport = (roles ?? []).some((r) => r === "admin" || r === "manager");
+  const isAdmin = (roles ?? []).includes("admin");
+  const deleteFn = useServerFn(deleteClient);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => { setPage(1); }, [search]);
 
@@ -110,6 +121,15 @@ function ClientsList() {
                   <td className="px-4 py-3"><KycBadge status={c.kyc_status} /></td>
                   <td className="px-4 py-3 text-right">
                     <Button asChild variant="ghost" size="sm"><Link to="/clients/$id" params={{ id: c.id }}>Open</Link></Button>
+                    {isAdmin && (
+                      <Button
+                        variant="ghost" size="sm"
+                        onClick={() => setPendingDelete({ id: c.id, name: (c.client_type === "corporate" ? c.company_name ?? c.full_name : c.full_name) ?? "this client" })}
+                        title="Delete client"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -134,6 +154,37 @@ function ClientsList() {
 
       <ClientFormDialog open={open} onOpenChange={setOpen} onSaved={() => qc.invalidateQueries({ queryKey: ["clients"] })} />
       <ClientExportDialog open={exportOpen} onOpenChange={setExportOpen} />
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => { if (!o) setPendingDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {pendingDelete?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the client and their vehicles, quotations, documents, communications and service requests. Policies, invoices and claims will block the delete — cancel or reassign them first. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteBusy}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!pendingDelete) return;
+                setDeleteBusy(true);
+                try {
+                  await deleteFn({ data: { clientId: pendingDelete.id } });
+                  toast.success("Client deleted");
+                  setPendingDelete(null);
+                  qc.invalidateQueries({ queryKey: ["clients"] });
+                } catch (err: any) {
+                  toast.error(err?.message ?? "Could not delete client");
+                } finally {
+                  setDeleteBusy(false);
+                }
+              }}
+            >{deleteBusy ? "Deleting…" : "Delete"}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
