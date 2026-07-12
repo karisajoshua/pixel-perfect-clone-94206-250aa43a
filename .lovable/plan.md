@@ -1,33 +1,26 @@
-## Delete TRIDENT policies and their clients
+## Goal
+On `/admin/ipen`, surface every IPEN endpoint group we've integrated — not just Reference data — so admins/managers can see and try each service from one place.
 
-Scope confirmed: remove the 892 policies under insurer **TRIDENT** (`d99899fb-0692-4120-b0cf-1fa1790bf141`) and all 735 clients that hold at least one such policy, along with every record attached to those clients.
+## What I'll change
 
-### What gets deleted
+Extend `src/routes/_authenticated/admin.ipen.tsx`. Keep the Connection card and the existing Reference explorer. Add a new **"IPEN services"** card below Reference data with a tabbed explorer covering every module already wired to server functions:
 
-For the client set `C = { clients with any TRIDENT policy }`:
+1. **Policies** — list live policies (`listIpenPolicies`), open policy live drawer, motor & life quote wizards launch buttons.
+2. **Claims** — list claims (`listIpenClaims`), "File claim" launcher (existing dialog).
+3. **Payments (M-Pesa)** — "Initiate STK push" mini form (`initiateMpesaExpress`) + recent payment status lookup (`getPaymentStatus`).
+4. **Documents** — list uploaded documents (`listIpenDocuments`), open link helper.
+5. **OCR** — file input → run OCR (`runIpenOcr`) → show extracted JSON.
+6. **Profile** — show IPEN profile (`getIpenProfile`), inline edit fields (`updateIpenProfile`).
+7. **Portal** — dashboard widget preview (`getPortalDashboard`).
+8. **Assistant** — link/button to `/assistant` (already implemented) + one-shot ask box (`askIpenAssistant`).
+9. **Health** — keep existing pill; add "Ping /health" button.
 
-1. `policy_payment_extensions` for policies of clients in C
-2. `payments` for policies/invoices of clients in C
-3. `invoice_items` + `invoices` for clients in C
-4. `claims` for clients in C
-5. `client_communications`, `client_required_documents` for clients in C
-6. `service_requests` for clients in C
-7. `quotations` for clients in C
-8. `vehicles` owned by clients in C
-9. `policies` (all policies of clients in C — not just TRIDENT ones, since the client is being removed)
-10. `clients` in C
+Each tab uses the same pattern as `RefList`: React Query + JSON preview + Refresh, plus small inline forms where an input is required (STK push, OCR upload, assistant question).
 
-Storage objects in `client-documents` for these clients are **not** touched (kept for audit); say so if you'd like them purged too.
+No backend or schema changes. All server functions already exist under `src/lib/ipen/*.functions.ts`; this is purely a UI surface expansion.
 
-### Execution
+## Files touched
+- `src/routes/_authenticated/admin.ipen.tsx` — add `ServicesExplorer` component and mount it under the Connection card when `connected` is true.
 
-Runs as a single transaction via the insert (data-change) tool so it's atomic — either all rows go or none do. Uses a CTE that resolves the client set once, then deletes children before parents to satisfy FKs.
-
-### Irreversible
-
-735 clients + 892 policies + all their vehicles/invoices/claims/quotes will be gone. No soft-delete, no backup restore available from the app. Confirm before I run.
-
-### Alternative if you want to reconsider
-
-- Keep clients, delete only the 892 TRIDENT policies (much safer)
-- Export the affected clients to CSV first, then delete
+## Out of scope
+- Auth flow changes, RLS changes, new endpoints, styling overhaul.
