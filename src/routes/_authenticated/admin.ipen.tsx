@@ -31,7 +31,17 @@ import {
   listVehicleModels,
   listCoverOptions,
   ipenHealthCheck,
+  listCustomerVehicles,
 } from "@/lib/ipen/common.functions";
+import { listPolicies } from "@/lib/ipen/policies.functions";
+import { listIpenClaims } from "@/lib/ipen/claims.functions";
+import { getIpenProfile } from "@/lib/ipen/profile.functions";
+import { getIpenPortalDashboard } from "@/lib/ipen/portal.functions";
+import { ipenAssistantChat } from "@/lib/ipen/assistant.functions";
+import { initiateMpesaExpressDirect } from "@/lib/ipen/payments.functions";
+import { ipenOcrExtract } from "@/lib/ipen/ocr.functions";
+import { Textarea } from "@/components/ui/textarea";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/admin/ipen")({
   beforeLoad: requireRole(["admin", "manager", "agent"]),
@@ -482,6 +492,7 @@ function IpenAdminPage() {
       </Card>
 
       {connected && <ReferenceExplorer />}
+      {connected && <ServicesExplorer />}
     </div>
   );
 }
@@ -612,5 +623,242 @@ function OtpBox({ code, setCode, onVerify, onResend, busy, showResend }: OtpBoxP
         Didn't get the code? Check spam, then click Resend OTP.
       </p>
     </div>
+  );
+}
+
+function JsonPanel({ fn, cacheKey, label }: { fn: any; cacheKey: string; label: string }) {
+  const call = useServerFn(fn);
+  const qc = useQueryClient();
+  const { data, isLoading, error, isFetching } = useQuery({
+    queryKey: ["ipen-svc", cacheKey],
+    queryFn: () => call(),
+    retry: false,
+  });
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          {isLoading ? "Loading…" : `Live ${label}`}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isFetching}
+          onClick={() => qc.invalidateQueries({ queryKey: ["ipen-svc", cacheKey] })}
+        >
+          {isFetching && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Refresh
+        </Button>
+      </div>
+      {error && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          {(error as Error).message ?? "Failed to load"}
+        </div>
+      )}
+      {(data as any)?.error && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          {(data as any).error}
+        </div>
+      )}
+      <div className="max-h-[420px] overflow-auto rounded border">
+        <pre className="p-3 text-xs">{JSON.stringify(data ?? {}, null, 2)}</pre>
+      </div>
+    </div>
+  );
+}
+
+function PaymentTab() {
+  const call = useServerFn(initiateMpesaExpressDirect);
+  const [proposalId, setProposalId] = useState("");
+  const [phone, setPhone] = useState("");
+  const [amount, setAmount] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const submit = async () => {
+    setBusy(true);
+    setResult(null);
+    try {
+      const r = await call({ data: { proposalId, phoneNumber: phone, amount } });
+      setResult(r);
+      toast.success("STK push submitted");
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Trigger an M-Pesa STK push against IPEN. Use a real proposal ID from an IPEN quote.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-1.5">
+          <Label>Proposal ID</Label>
+          <Input value={proposalId} onChange={(e) => setProposalId(e.target.value)} />
+        </div>
+        <div className="grid gap-1.5">
+          <Label>Phone (2547…)</Label>
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+        </div>
+        <div className="grid gap-1.5">
+          <Label>Amount (KES)</Label>
+          <Input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="numeric" />
+        </div>
+      </div>
+      <Button onClick={submit} disabled={busy || !proposalId || !phone || !amount}>
+        {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Send STK push
+      </Button>
+      {result && (
+        <div className="max-h-[300px] overflow-auto rounded border">
+          <pre className="p-3 text-xs">{JSON.stringify(result, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OcrTab() {
+  const call = useServerFn(ipenOcrExtract);
+  const [docType, setDocType] = useState("national-id");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const onFile = async (file: File) => {
+    setBusy(true);
+    setResult(null);
+    try {
+      const buf = await file.arrayBuffer();
+      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const r = await call({
+        data: {
+          documentType: docType,
+          fileName: file.name,
+          contentType: file.type || "application/octet-stream",
+          fileBase64: b64,
+        },
+      });
+      setResult(r);
+      toast.success("OCR complete");
+    } catch (e: any) {
+      toast.error(e.message ?? "OCR failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Upload an ID, logbook, or KRA PIN certificate and IPEN extracts the fields.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-[200px_1fr]">
+        <div className="grid gap-1.5">
+          <Label>Document type</Label>
+          <select
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            value={docType}
+            onChange={(e) => setDocType(e.target.value)}
+          >
+            <option value="national-id">National ID</option>
+            <option value="passport">Passport</option>
+            <option value="logbook">Logbook</option>
+            <option value="kra-pin">KRA PIN certificate</option>
+          </select>
+        </div>
+        <div className="grid gap-1.5">
+          <Label>File</Label>
+          <Input
+            type="file"
+            accept="image/*,application/pdf"
+            disabled={busy}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onFile(f);
+            }}
+          />
+        </div>
+      </div>
+      {busy && <div className="text-sm text-muted-foreground">Extracting…</div>}
+      {result && (
+        <div className="max-h-[420px] overflow-auto rounded border">
+          <pre className="p-3 text-xs">{JSON.stringify(result, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AssistantTab() {
+  const call = useServerFn(ipenAssistantChat);
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [reply, setReply] = useState<any>(null);
+  const ask = async () => {
+    setBusy(true);
+    setReply(null);
+    try {
+      const r = await call({ data: { message: msg } });
+      setReply(r);
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Ask the IPEN assistant. For a full chat experience, open the{" "}
+        <Link to="/assistant" className="underline">Assistant page</Link>.
+      </p>
+      <Textarea rows={3} value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="e.g. What motor covers do you offer?" />
+      <Button onClick={ask} disabled={busy || !msg}>
+        {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Ask
+      </Button>
+      {reply && (
+        <div className="max-h-[420px] overflow-auto rounded border">
+          <pre className="p-3 text-xs">{JSON.stringify(reply, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ServicesExplorer() {
+  const tabs = [
+    { key: "policies", label: "Policies", node: <JsonPanel fn={listPolicies} cacheKey="policies" label="policies" /> },
+    { key: "claims", label: "Claims", node: <JsonPanel fn={listIpenClaims} cacheKey="claims" label="claims" /> },
+    { key: "customer-vehicles", label: "Customer vehicles", node: <JsonPanel fn={listCustomerVehicles} cacheKey="customer-vehicles" label="vehicles" /> },
+    { key: "profile", label: "Profile", node: <JsonPanel fn={getIpenProfile} cacheKey="profile" label="profile" /> },
+    { key: "portal", label: "Portal dashboard", node: <JsonPanel fn={getIpenPortalDashboard} cacheKey="portal" label="portal" /> },
+    { key: "payments", label: "M-Pesa payment", node: <PaymentTab /> },
+    { key: "ocr", label: "OCR", node: <OcrTab /> },
+    { key: "assistant", label: "Assistant", node: <AssistantTab /> },
+  ];
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>IPEN services</CardTitle>
+        <CardDescription>
+          Try every connected IPEN endpoint from one place: policies, claims, profile,
+          portal, M-Pesa STK push, OCR extraction, and the assistant.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue={tabs[0].key} className="w-full">
+          <TabsList className="flex flex-wrap h-auto">
+            {tabs.map((t) => (
+              <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>
+            ))}
+          </TabsList>
+          {tabs.map((t) => (
+            <TabsContent key={t.key} value={t.key} className="mt-4">
+              {t.node}
+            </TabsContent>
+          ))}
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 }
