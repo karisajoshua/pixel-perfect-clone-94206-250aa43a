@@ -31,7 +31,17 @@ import {
   listVehicleModels,
   listCoverOptions,
   ipenHealthCheck,
+  listCustomerVehicles,
 } from "@/lib/ipen/common.functions";
+import { listPolicies } from "@/lib/ipen/policies.functions";
+import { listIpenClaims } from "@/lib/ipen/claims.functions";
+import { getIpenProfile } from "@/lib/ipen/profile.functions";
+import { getIpenPortalDashboard } from "@/lib/ipen/portal.functions";
+import { ipenAssistantChat } from "@/lib/ipen/assistant.functions";
+import { initiateMpesaExpressDirect } from "@/lib/ipen/payments.functions";
+import { ipenOcrExtract } from "@/lib/ipen/ocr.functions";
+import { Textarea } from "@/components/ui/textarea";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/admin/ipen")({
   beforeLoad: requireRole(["admin", "manager", "agent"]),
