@@ -492,6 +492,7 @@ function IpenAdminPage() {
       </Card>
 
       {connected && <ReferenceExplorer />}
+      {connected && <ServicesExplorer />}
     </div>
   );
 }
