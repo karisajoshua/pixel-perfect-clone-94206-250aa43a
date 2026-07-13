@@ -729,7 +729,16 @@ function OcrTab() {
     setResult(null);
     try {
       const buf = await file.arrayBuffer();
-      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const bytes = new Uint8Array(buf);
+      let bin = "";
+      const CHUNK = 0x8000;
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        bin += String.fromCharCode.apply(
+          null,
+          Array.from(bytes.subarray(i, i + CHUNK)),
+        );
+      }
+      const b64 = btoa(bin);
       const r = await call({
         data: {
           documentType: docType,
