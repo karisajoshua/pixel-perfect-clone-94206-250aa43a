@@ -1,26 +1,10 @@
-## Goal
-On `/admin/ipen`, surface every IPEN endpoint group we've integrated — not just Reference data — so admins/managers can see and try each service from one place.
+## Problem
+On `/admin/ipen` → OCR tab, uploading an image shows toast "Maximum call stack size exceeded". Cause: `OcrTab` in `src/routes/_authenticated/admin.ipen.tsx` base64-encodes with `btoa(String.fromCharCode(...new Uint8Array(buf)))`. Spreading a large Uint8Array into `String.fromCharCode` blows the JS call stack for any real photo (>~100KB).
 
-## What I'll change
-
-Extend `src/routes/_authenticated/admin.ipen.tsx`. Keep the Connection card and the existing Reference explorer. Add a new **"IPEN services"** card below Reference data with a tabbed explorer covering every module already wired to server functions:
-
-1. **Policies** — list live policies (`listIpenPolicies`), open policy live drawer, motor & life quote wizards launch buttons.
-2. **Claims** — list claims (`listIpenClaims`), "File claim" launcher (existing dialog).
-3. **Payments (M-Pesa)** — "Initiate STK push" mini form (`initiateMpesaExpress`) + recent payment status lookup (`getPaymentStatus`).
-4. **Documents** — list uploaded documents (`listIpenDocuments`), open link helper.
-5. **OCR** — file input → run OCR (`runIpenOcr`) → show extracted JSON.
-6. **Profile** — show IPEN profile (`getIpenProfile`), inline edit fields (`updateIpenProfile`).
-7. **Portal** — dashboard widget preview (`getPortalDashboard`).
-8. **Assistant** — link/button to `/assistant` (already implemented) + one-shot ask box (`askIpenAssistant`).
-9. **Health** — keep existing pill; add "Ping /health" button.
-
-Each tab uses the same pattern as `RefList`: React Query + JSON preview + Refresh, plus small inline forms where an input is required (STK push, OCR upload, assistant question).
-
-No backend or schema changes. All server functions already exist under `src/lib/ipen/*.functions.ts`; this is purely a UI surface expansion.
+## Fix
+Replace the one-shot spread with the same chunked binary→base64 loop already used in `src/components/ipen/ocr-button.tsx` (0x8000-byte chunks via `String.fromCharCode.apply(null, Array.from(subarray))` then `btoa`).
 
 ## Files touched
-- `src/routes/_authenticated/admin.ipen.tsx` — add `ServicesExplorer` component and mount it under the Connection card when `connected` is true.
+- `src/routes/_authenticated/admin.ipen.tsx` — patch `OcrTab.onFile` only.
 
-## Out of scope
-- Auth flow changes, RLS changes, new endpoints, styling overhaul.
+Out of scope: OCR server function, IPEN upstream behavior, UI redesign.
