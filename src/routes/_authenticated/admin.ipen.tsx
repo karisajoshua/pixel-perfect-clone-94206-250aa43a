@@ -42,6 +42,7 @@ import { initiateMpesaExpressDirect } from "@/lib/ipen/payments.functions";
 import { ipenOcrExtract } from "@/lib/ipen/ocr.functions";
 import { Textarea } from "@/components/ui/textarea";
 import { Link } from "@tanstack/react-router";
+import { SmartRender, KeyValueGrid, RawJson, unwrap } from "@/lib/ipen/render";
 
 export const Route = createFileRoute("/_authenticated/admin/ipen")({
   beforeLoad: requireRole(["admin", "manager", "agent"]),
