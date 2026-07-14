@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getPolicy } from "@/lib/ipen/policies.functions";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { SmartRender } from "@/lib/ipen/render";
 
 export function IpenPolicyLiveDrawer({ open, onOpenChange, ipenPolicyId }: { open: boolean; onOpenChange: (o: boolean) => void; ipenPolicyId: string }) {
   const fn = useServerFn(getPolicy);
@@ -19,7 +20,7 @@ export function IpenPolicyLiveDrawer({ open, onOpenChange, ipenPolicyId }: { ope
           {q.isLoading && <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>}
           {q.error && <div className="text-destructive">{(q.error as Error).message}</div>}
           {q.data && (
-            <pre className="whitespace-pre-wrap bg-muted/40 p-3 rounded-md text-xs overflow-x-auto">{JSON.stringify(q.data, null, 2)}</pre>
+            <SmartRender data={q.data} emptyLabel="No policy details." />
           )}
         </div>
       </SheetContent>

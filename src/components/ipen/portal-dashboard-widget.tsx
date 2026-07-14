@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getIpenPortalDashboard } from "@/lib/ipen/portal.functions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { SmartRender } from "@/lib/ipen/render";
 
 export function IpenPortalDashboardWidget() {
   const fn = useServerFn(getIpenPortalDashboard);
@@ -24,9 +25,7 @@ export function IpenPortalDashboardWidget() {
           <div className="text-destructive text-xs">{(q.error as Error).message}</div>
         )}
         {q.data && (
-          <pre className="whitespace-pre-wrap bg-muted/40 p-3 rounded-md text-xs overflow-x-auto max-h-72">
-            {JSON.stringify(q.data, null, 2)}
-          </pre>
+          <SmartRender data={q.data} emptyLabel="Nothing to show yet." />
         )}
       </CardContent>
     </Card>
