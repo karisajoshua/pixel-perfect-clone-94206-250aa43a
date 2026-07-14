@@ -129,13 +129,14 @@ export function AutoTable({ rows, columns }: { rows: any[]; columns?: string[] }
   );
 }
 
-export function KeyValueGrid({ obj, columns = 2 }: { obj: Record<string, any>; columns?: number }) {
+export function KeyValueGrid({ obj, columns = 2 }: { obj: Record<string, any>; columns?: 2 | 3 }) {
   const entries = Object.entries(obj).filter(([k, v]) => !HIDE_KEYS.test(k) && v !== null && v !== undefined && v !== "");
   if (!entries.length) {
     return <div className="rounded-md border p-6 text-center text-sm text-muted-foreground">No details.</div>;
   }
+  const gridCls = columns === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2";
   return (
-    <div className={`grid gap-x-6 gap-y-3 sm:grid-cols-${columns === 3 ? "3" : "2"}`}>
+    <div className={`grid gap-x-6 gap-y-3 ${gridCls}`}>
       {entries.map(([k, v]) => (
         <div key={k} className="flex flex-col border-b pb-2">
           <span className="text-xs uppercase tracking-wide text-muted-foreground">{humanize(k)}</span>
