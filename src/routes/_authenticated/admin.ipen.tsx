@@ -661,9 +661,8 @@ function JsonPanel({ fn, cacheKey, label }: { fn: any; cacheKey: string; label: 
           {(data as any).error}
         </div>
       )}
-      <div className="max-h-[420px] overflow-auto rounded border">
-        <pre className="p-3 text-xs">{JSON.stringify(data ?? {}, null, 2)}</pre>
-      </div>
+      {!isLoading && !error && <SmartRender data={data} emptyLabel={`No ${label}.`} />}
+      {!isLoading && data != null && <RawJson data={data} />}
     </div>
   );
 }
@@ -712,8 +711,9 @@ function PaymentTab() {
         Send STK push
       </Button>
       {result && (
-        <div className="max-h-[300px] overflow-auto rounded border">
-          <pre className="p-3 text-xs">{JSON.stringify(result, null, 2)}</pre>
+        <div className="space-y-3">
+          <KeyValueGrid obj={unwrap(result) ?? {}} />
+          <RawJson data={result} />
         </div>
       )}
     </div>
@@ -790,8 +790,9 @@ function OcrTab() {
       </div>
       {busy && <div className="text-sm text-muted-foreground">Extracting…</div>}
       {result && (
-        <div className="max-h-[420px] overflow-auto rounded border">
-          <pre className="p-3 text-xs">{JSON.stringify(result, null, 2)}</pre>
+        <div className="space-y-3">
+          <SmartRender data={result} />
+          <RawJson data={result} />
         </div>
       )}
     </div>
@@ -827,10 +828,25 @@ function AssistantTab() {
         Ask
       </Button>
       {reply && (
-        <div className="max-h-[420px] overflow-auto rounded border">
-          <pre className="p-3 text-xs">{JSON.stringify(reply, null, 2)}</pre>
-        </div>
+        <AssistantReply reply={reply} />
       )}
+    </div>
+  );
+}
+
+function AssistantReply({ reply }: { reply: any }) {
+  const d = unwrap(reply);
+  const text =
+    (d && typeof d === "object" && (d.message ?? d.answer ?? d.reply ?? d.text ?? d.content)) ??
+    (typeof d === "string" ? d : null);
+  return (
+    <div className="space-y-3">
+      {text ? (
+        <div className="rounded-md border bg-muted/30 p-4 text-sm whitespace-pre-wrap">{String(text)}</div>
+      ) : (
+        <SmartRender data={reply} />
+      )}
+      <RawJson data={reply} />
     </div>
   );
 }
