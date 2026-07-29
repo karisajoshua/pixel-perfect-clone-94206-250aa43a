@@ -78,9 +78,14 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   const benefits: string[] = Array.isArray(li.benefits) ? li.benefits : [];
   const sumInsured = Number(quotation.sum_insured ?? 0);
   const basePremium = +(sumInsured * (ratePct / 100)).toFixed(2);
-  const benefitUnit = +(sumInsured * 0.0025).toFixed(2);
+  const benefitRatePct = li.benefit_rate_pct === undefined || li.benefit_rate_pct === null || li.benefit_rate_pct === ""
+    ? 0.25
+    : Number(li.benefit_rate_pct);
+  const benefitUnit = +(sumInsured * (benefitRatePct / 100)).toFixed(2);
   const benefitsTotal = +(benefitUnit * benefits.length).toFixed(2);
-  const grossPremium = +(basePremium + benefitsTotal).toFixed(2);
+  const pllAmount = li.pll_enabled ? Number(li.pll_amount ?? 0) : 0;
+  const paAmount = li.pa_enabled ? Number(li.pa_amount ?? 0) : 0;
+  const grossPremium = +(basePremium + benefitsTotal + pllAmount + paAmount).toFixed(2);
   const total = +(grossPremium + levies).toFixed(2);
 
   const coverLabel = `${titleCase(quotation.product_class)}\n${titleCase(quotation.cover_type)}`;
@@ -111,7 +116,10 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   ];
 
   const body: any[] = [];
-  const totalRows = Math.max(benefits.length, 1) + 1;
+  const extras: Array<{ label: string; amount: number }> = [];
+  if (pllAmount > 0) extras.push({ label: "Passenger Legal Liability (PLL)", amount: pllAmount });
+  if (paAmount > 0) extras.push({ label: "Personal Accident (PA)", amount: paAmount });
+  const totalRows = Math.max(benefits.length, 1) + extras.length + 1;
   body.push([
     { content: coverLabel, rowSpan: totalRows, styles: { fontStyle: "bold", valign: "top", fillColor: "#eaf2ff" } },
     "",
@@ -125,9 +133,12 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
     body.push(["", "", "", "", "", ""]);
   } else {
     benefits.forEach((b) => {
-      body.push([b, num(sumInsured), "0.25", num(benefitUnit), "", ""]);
+      body.push([b, num(sumInsured), String(benefitRatePct), num(benefitUnit), "", ""]);
     });
   }
+  extras.forEach((e) => {
+    body.push([e.label, "", "", num(e.amount), "", ""]);
+  });
   // Totals row
   body.push([
     { content: "Total premium payable", colSpan: 4, styles: { fontStyle: "bold", halign: "right", fillColor: "#f3f6fb" } },
