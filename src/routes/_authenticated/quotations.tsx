@@ -277,7 +277,11 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
   const benefitPremium = isThirdParty
     ? 0
     : +(sumInsured * (benefitRatePct / 100) * benefits.length).toFixed(2);
-  const premiumGross = +(basePremium + benefitPremium).toFixed(2);
+  const pllEnabled = !!li.pll_enabled;
+  const paEnabled = !!li.pa_enabled;
+  const pllAmount = isThirdParty || !pllEnabled ? 0 : Number(li.pll_amount ?? 0);
+  const paAmount = isThirdParty || !paEnabled ? 0 : Number(li.pa_amount ?? 0);
+  const premiumGross = +(basePremium + benefitPremium + pllAmount + paAmount).toFixed(2);
   const levies = +(premiumGross * 0.0045 + 40).toFixed(2);
   const total = +(premiumGross + levies).toFixed(2);
 
@@ -325,7 +329,16 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
       sum_insured: isThirdParty ? null : form.sum_insured ?? null,
       line_items: isThirdParty
         ? { flat_premium: flatPremium, levies }
-        : { rate_pct: ratePct, benefit_rate_pct: benefitRatePct, levies, benefits },
+        : {
+            rate_pct: ratePct,
+            benefit_rate_pct: benefitRatePct,
+            levies,
+            benefits,
+            pll_enabled: pllEnabled,
+            pll_amount: pllAmount,
+            pa_enabled: paEnabled,
+            pa_amount: paAmount,
+          },
       created_by: u.user?.id,
     };
     const op = initial?.id
