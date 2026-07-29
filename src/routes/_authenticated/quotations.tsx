@@ -464,7 +464,20 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
           {!isThirdParty && (
           <div className="sm:col-span-2 space-y-2">
             <Label>Additional Benefits</Label>
-            <p className="text-xs text-muted-foreground">Each selected benefit is priced at 0.25% of the sum insured.</p>
+            <div className="flex items-end gap-3">
+              <div className="space-y-1.5 w-40">
+                <Label className="text-xs">Benefit rate %</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={li.benefit_rate_pct ?? 0.25}
+                  onChange={(e) => setLi("benefit_rate_pct", e.target.value === "" ? "" : Number(e.target.value))}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground pb-2">
+                Each selected benefit is priced at {benefitRatePct}% of the sum insured. Editable for commercial risks.
+              </p>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {BENEFIT_OPTIONS.map((b) => {
                 const checked = benefits.includes(b);
