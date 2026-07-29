@@ -230,7 +230,7 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   // Stamp (right side)
   const stamp = await loadImage(stampAsset.url);
   const stampSize = 110;
-  const stampX = pageW - margin - stampSize;
+  const stampX = margin + payW + 24;
   const stampY = payY + (payH / 2) - (stampSize / 2);
   if (stamp) {
     try { doc.addImage(stamp, "PNG", stampX, stampY, stampSize, stampSize); } catch { /* ignore */ }
