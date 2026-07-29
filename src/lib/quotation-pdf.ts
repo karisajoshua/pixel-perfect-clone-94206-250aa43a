@@ -203,7 +203,7 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
     doc.addPage();
     payY = margin + 10;
   }
-  const payW = pageW - margin * 2 - 160; // leave space for stamp on the right
+  const payW = 400;
   // Payment panel
   doc.setDrawColor(BRAND);
   doc.setLineWidth(0.8);
