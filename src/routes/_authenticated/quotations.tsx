@@ -277,7 +277,11 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
   const benefitPremium = isThirdParty
     ? 0
     : +(sumInsured * (benefitRatePct / 100) * benefits.length).toFixed(2);
-  const premiumGross = +(basePremium + benefitPremium).toFixed(2);
+  const pllEnabled = !!li.pll_enabled;
+  const paEnabled = !!li.pa_enabled;
+  const pllAmount = isThirdParty || !pllEnabled ? 0 : Number(li.pll_amount ?? 0);
+  const paAmount = isThirdParty || !paEnabled ? 0 : Number(li.pa_amount ?? 0);
+  const premiumGross = +(basePremium + benefitPremium + pllAmount + paAmount).toFixed(2);
   const levies = +(premiumGross * 0.0045 + 40).toFixed(2);
   const total = +(premiumGross + levies).toFixed(2);
 
@@ -325,7 +329,16 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
       sum_insured: isThirdParty ? null : form.sum_insured ?? null,
       line_items: isThirdParty
         ? { flat_premium: flatPremium, levies }
-        : { rate_pct: ratePct, benefit_rate_pct: benefitRatePct, levies, benefits },
+        : {
+            rate_pct: ratePct,
+            benefit_rate_pct: benefitRatePct,
+            levies,
+            benefits,
+            pll_enabled: pllEnabled,
+            pll_amount: pllAmount,
+            pa_enabled: paEnabled,
+            pa_amount: paAmount,
+          },
       created_by: u.user?.id,
     };
     const op = initial?.id
@@ -489,12 +502,46 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
                 );
               })}
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className={`flex items-center gap-3 rounded-md border px-3 py-2 ${pllEnabled ? "border-primary bg-primary/5" : ""}`}>
+                <Checkbox checked={pllEnabled} onCheckedChange={(v) => setLi("pll_enabled", !!v)} />
+                <span className="text-sm flex-1">Passenger Legal Liability (PLL)</span>
+                <Input
+                  className="w-32"
+                  type="number"
+                  step="0.01"
+                  placeholder="Amount"
+                  disabled={!pllEnabled}
+                  value={li.pll_amount ?? ""}
+                  onChange={(e) => setLi("pll_amount", e.target.value ? Number(e.target.value) : 0)}
+                />
+              </div>
+              <div className={`flex items-center gap-3 rounded-md border px-3 py-2 ${paEnabled ? "border-primary bg-primary/5" : ""}`}>
+                <Checkbox checked={paEnabled} onCheckedChange={(v) => setLi("pa_enabled", !!v)} />
+                <span className="text-sm flex-1">Personal Accident (PA)</span>
+                <Input
+                  className="w-32"
+                  type="number"
+                  step="0.01"
+                  placeholder="Amount"
+                  disabled={!paEnabled}
+                  value={li.pa_amount ?? ""}
+                  onChange={(e) => setLi("pa_amount", e.target.value ? Number(e.target.value) : 0)}
+                />
+              </div>
+            </div>
           </div>
           )}
           <div className="sm:col-span-2 rounded-md border bg-muted/30 p-3 text-sm space-y-1">
             <div className="flex justify-between"><span className="text-muted-foreground">Base premium</span><span>KES {basePremium.toLocaleString()}</span></div>
             {!isThirdParty && (
               <div className="flex justify-between"><span className="text-muted-foreground">Additional benefits ({benefits.length})</span><span>KES {benefitPremium.toLocaleString()}</span></div>
+            )}
+            {!isThirdParty && pllEnabled && (
+              <div className="flex justify-between"><span className="text-muted-foreground">Passenger Legal Liability (PLL)</span><span>KES {pllAmount.toLocaleString()}</span></div>
+            )}
+            {!isThirdParty && paEnabled && (
+              <div className="flex justify-between"><span className="text-muted-foreground">Personal Accident (PA)</span><span>KES {paAmount.toLocaleString()}</span></div>
             )}
             <div className="flex justify-between"><span className="text-muted-foreground">Levies (0.45% + KES 40)</span><span>KES {levies.toLocaleString()}</span></div>
             <div className="flex justify-between font-semibold border-t pt-1 mt-1"><span>Total premium payable</span><span>KES {total.toLocaleString()}</span></div>
