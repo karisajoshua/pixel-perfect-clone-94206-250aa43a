@@ -268,12 +268,15 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
   const sumInsured = Number(form.sum_insured ?? 0);
   const isThirdParty = form.cover_type === "third_party" || form.cover_type === "third_party_fire_theft";
   const flatPremium = Number(li.flat_premium ?? 0);
+  const benefitRatePct = li.benefit_rate_pct === undefined || li.benefit_rate_pct === null || li.benefit_rate_pct === ""
+    ? 0.25
+    : Number(li.benefit_rate_pct);
   const basePremium = isThirdParty
     ? flatPremium
     : +(sumInsured * (ratePct / 100)).toFixed(2);
   const benefitPremium = isThirdParty
     ? 0
-    : +(sumInsured * 0.0025 * benefits.length).toFixed(2);
+    : +(sumInsured * (benefitRatePct / 100) * benefits.length).toFixed(2);
   const premiumGross = +(basePremium + benefitPremium).toFixed(2);
   const levies = +(premiumGross * 0.0045 + 40).toFixed(2);
   const total = +(premiumGross + levies).toFixed(2);
@@ -322,7 +325,7 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
       sum_insured: isThirdParty ? null : form.sum_insured ?? null,
       line_items: isThirdParty
         ? { flat_premium: flatPremium, levies }
-        : { rate_pct: ratePct, levies, benefits },
+        : { rate_pct: ratePct, benefit_rate_pct: benefitRatePct, levies, benefits },
       created_by: u.user?.id,
     };
     const op = initial?.id
