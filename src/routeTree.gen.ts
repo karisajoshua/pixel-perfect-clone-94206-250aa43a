@@ -30,6 +30,7 @@ import { Route as AuthenticatedClaimsRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedAssistantRouteImport } from './routes/_authenticated/assistant'
 import { Route as PortalPortalIndexRouteImport } from './routes/_portal/portal/index'
 import { Route as PlatformPlatformIndexRouteImport } from './routes/_platform/platform/index'
+import { Route as VerifyInvoiceIdRouteImport } from './routes/verify.invoice.$id'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as PortalPortalVehiclesRouteImport } from './routes/_portal/portal/vehicles'
 import { Route as PortalPortalProfileRouteImport } from './routes/_portal/portal/profile'
@@ -170,6 +171,11 @@ const PlatformPlatformIndexRoute = PlatformPlatformIndexRouteImport.update({
   id: '/platform/',
   path: '/platform/',
   getParentRoute: () => PlatformRouteRoute,
+} as any)
+const VerifyInvoiceIdRoute = VerifyInvoiceIdRouteImport.update({
+  id: '/verify/invoice/$id',
+  path: '/verify/invoice/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
@@ -424,6 +430,7 @@ export interface FileRoutesByFullPath {
   '/portal/profile': typeof PortalPortalProfileRoute
   '/portal/vehicles': typeof PortalPortalVehiclesRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/verify/invoice/$id': typeof VerifyInvoiceIdRoute
   '/platform/': typeof PlatformPlatformIndexRoute
   '/portal/': typeof PortalPortalIndexRoute
   '/platform/agencies/$id': typeof PlatformPlatformAgenciesIdRoute
@@ -482,6 +489,7 @@ export interface FileRoutesByTo {
   '/portal/profile': typeof PortalPortalProfileRoute
   '/portal/vehicles': typeof PortalPortalVehiclesRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/verify/invoice/$id': typeof VerifyInvoiceIdRoute
   '/platform': typeof PlatformPlatformIndexRoute
   '/portal': typeof PortalPortalIndexRoute
   '/platform/agencies/$id': typeof PlatformPlatformAgenciesIdRoute
@@ -544,6 +552,7 @@ export interface FileRoutesById {
   '/_portal/portal/profile': typeof PortalPortalProfileRoute
   '/_portal/portal/vehicles': typeof PortalPortalVehiclesRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/verify/invoice/$id': typeof VerifyInvoiceIdRoute
   '/_platform/platform/': typeof PlatformPlatformIndexRoute
   '/_portal/portal/': typeof PortalPortalIndexRoute
   '/_platform/platform/agencies/$id': typeof PlatformPlatformAgenciesIdRoute
@@ -604,6 +613,7 @@ export interface FileRouteTypes {
     | '/portal/profile'
     | '/portal/vehicles'
     | '/lovable/email/suppression'
+    | '/verify/invoice/$id'
     | '/platform/'
     | '/portal/'
     | '/platform/agencies/$id'
@@ -662,6 +672,7 @@ export interface FileRouteTypes {
     | '/portal/profile'
     | '/portal/vehicles'
     | '/lovable/email/suppression'
+    | '/verify/invoice/$id'
     | '/platform'
     | '/portal'
     | '/platform/agencies/$id'
@@ -723,6 +734,7 @@ export interface FileRouteTypes {
     | '/_portal/portal/profile'
     | '/_portal/portal/vehicles'
     | '/lovable/email/suppression'
+    | '/verify/invoice/$id'
     | '/_platform/platform/'
     | '/_portal/portal/'
     | '/_platform/platform/agencies/$id'
@@ -749,6 +761,7 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  VerifyInvoiceIdRoute: typeof VerifyInvoiceIdRoute
   ApiPublicHooksRenewalRemindersRoute: typeof ApiPublicHooksRenewalRemindersRoute
   ApiPublicIpenMpesaCallbackRoute: typeof ApiPublicIpenMpesaCallbackRoute
   ApiPublicIpenProcessExpressCallbackRoute: typeof ApiPublicIpenProcessExpressCallbackRoute
@@ -907,6 +920,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/platform/'
       preLoaderRoute: typeof PlatformPlatformIndexRouteImport
       parentRoute: typeof PlatformRouteRoute
+    }
+    '/verify/invoice/$id': {
+      id: '/verify/invoice/$id'
+      path: '/verify/invoice/$id'
+      fullPath: '/verify/invoice/$id'
+      preLoaderRoute: typeof VerifyInvoiceIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/lovable/email/suppression': {
       id: '/lovable/email/suppression'
@@ -1360,6 +1380,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  VerifyInvoiceIdRoute: VerifyInvoiceIdRoute,
   ApiPublicHooksRenewalRemindersRoute: ApiPublicHooksRenewalRemindersRoute,
   ApiPublicIpenMpesaCallbackRoute: ApiPublicIpenMpesaCallbackRoute,
   ApiPublicIpenProcessExpressCallbackRoute:
@@ -1373,13 +1394,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

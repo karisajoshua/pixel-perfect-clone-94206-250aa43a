@@ -1827,6 +1827,19 @@ export type Database = {
         }[]
       }
       user_branch: { Args: { _user_id: string }; Returns: string }
+      verify_invoice: {
+        Args: { _id: string }
+        Returns: {
+          agency_name: string
+          amount_paid: number
+          client_name: string
+          due_date: string
+          invoice_no: string
+          issue_date: string
+          status: string
+          total: number
+        }[]
+      }
     }
     Enums: {
       app_role:
