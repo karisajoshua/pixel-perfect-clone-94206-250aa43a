@@ -250,6 +250,7 @@ function PolicyDetail() {
           <CardHeader><CardTitle>Policy details</CardTitle></CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <Item label="Certificate no." value={p.certificate_no} />
               <Item label="Insurer" value={p.insurers?.name} />
               <Item label="Vehicle" value={p.vehicles?.registration_no ? `${p.vehicles.registration_no} (${[p.vehicles.make, p.vehicles.model].filter(Boolean).join(" ")})` : "—"} />
               <Item label="Start" value={p.start_date} />

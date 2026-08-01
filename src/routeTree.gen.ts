@@ -18,7 +18,6 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
-import { Route as AuthenticatedVehiclesRouteImport } from './routes/_authenticated/vehicles'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedRenewalsRouteImport } from './routes/_authenticated/renewals'
 import { Route as AuthenticatedQuotationsRouteImport } from './routes/_authenticated/quotations'
@@ -111,11 +110,6 @@ const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedVehiclesRoute = AuthenticatedVehiclesRouteImport.update({
-  id: '/vehicles',
-  path: '/vehicles',
-  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
   id: '/reports',
@@ -400,7 +394,6 @@ export interface FileRoutesByFullPath {
   '/quotations': typeof AuthenticatedQuotationsRoute
   '/renewals': typeof AuthenticatedRenewalsRoute
   '/reports': typeof AuthenticatedReportsRoute
-  '/vehicles': typeof AuthenticatedVehiclesRoute
   '/api/chat': typeof ApiChatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -459,7 +452,6 @@ export interface FileRoutesByTo {
   '/quotations': typeof AuthenticatedQuotationsRoute
   '/renewals': typeof AuthenticatedRenewalsRoute
   '/reports': typeof AuthenticatedReportsRoute
-  '/vehicles': typeof AuthenticatedVehiclesRoute
   '/api/chat': typeof ApiChatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -522,7 +514,6 @@ export interface FileRoutesById {
   '/_authenticated/quotations': typeof AuthenticatedQuotationsRoute
   '/_authenticated/renewals': typeof AuthenticatedRenewalsRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
-  '/_authenticated/vehicles': typeof AuthenticatedVehiclesRoute
   '/api/chat': typeof ApiChatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -583,7 +574,6 @@ export interface FileRouteTypes {
     | '/quotations'
     | '/renewals'
     | '/reports'
-    | '/vehicles'
     | '/api/chat'
     | '/email/unsubscribe'
     | '/admin/audit'
@@ -642,7 +632,6 @@ export interface FileRouteTypes {
     | '/quotations'
     | '/renewals'
     | '/reports'
-    | '/vehicles'
     | '/api/chat'
     | '/email/unsubscribe'
     | '/admin/audit'
@@ -704,7 +693,6 @@ export interface FileRouteTypes {
     | '/_authenticated/quotations'
     | '/_authenticated/renewals'
     | '/_authenticated/reports'
-    | '/_authenticated/vehicles'
     | '/api/chat'
     | '/email/unsubscribe'
     | '/_authenticated/admin/audit'
@@ -836,13 +824,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/vehicles': {
-      id: '/_authenticated/vehicles'
-      path: '/vehicles'
-      fullPath: '/vehicles'
-      preLoaderRoute: typeof AuthenticatedVehiclesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/reports': {
       id: '/_authenticated/reports'
@@ -1246,7 +1227,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedQuotationsRoute: typeof AuthenticatedQuotationsRoute
   AuthenticatedRenewalsRoute: typeof AuthenticatedRenewalsRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
-  AuthenticatedVehiclesRoute: typeof AuthenticatedVehiclesRoute
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
   AuthenticatedAdminBranchesRoute: typeof AuthenticatedAdminBranchesRoute
   AuthenticatedAdminDocsRoute: typeof AuthenticatedAdminDocsRoute
@@ -1272,7 +1252,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedQuotationsRoute: AuthenticatedQuotationsRoute,
   AuthenticatedRenewalsRoute: AuthenticatedRenewalsRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
-  AuthenticatedVehiclesRoute: AuthenticatedVehiclesRoute,
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
   AuthenticatedAdminBranchesRoute: AuthenticatedAdminBranchesRoute,
   AuthenticatedAdminDocsRoute: AuthenticatedAdminDocsRoute,
@@ -1394,13 +1373,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

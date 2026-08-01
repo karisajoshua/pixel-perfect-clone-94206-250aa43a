@@ -139,7 +139,7 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
     const allowed = [
-      "policy_no","client_id","vehicle_id","insurer_id","branch_id",
+      "policy_no","certificate_no","client_id","vehicle_id","insurer_id","branch_id",
       "product_class","cover_type","policy_term","sum_insured","premium_gross","premium_net",
       "commission","taxes","start_date","end_date","status","payment_status",
       "previous_policy_id","document_url","notes",
@@ -185,6 +185,7 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
         <DialogHeader><DialogTitle>{initial?.id ? "Edit policy" : renewFrom ? "Renew policy" : "New policy"}</DialogTitle></DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <F label="Policy number *" value={form.policy_no} onChange={(v) => set("policy_no", v)} />
+          <F label="Certificate number" value={form.certificate_no} onChange={(v) => set("certificate_no", v)} />
           <div className="space-y-1.5 min-w-0">
             <Label>Branch</Label>
             <Select value={form.branch_id ?? ""} onValueChange={(v) => set("branch_id", v || null)}>
