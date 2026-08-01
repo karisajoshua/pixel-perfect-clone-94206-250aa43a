@@ -74,8 +74,11 @@ export function InvoiceFormDialog({ open, onOpenChange, onSaved, initial }: any)
   const submit = async () => {
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
-    const payload = { ...form, subtotal, total, created_by: u.user?.id };
     let invoiceId = initial?.id;
+    const fields = ["invoice_no","client_id","policy_id","branch_id","issue_date","due_date","status","notes"] as const;
+    const payload: any = { subtotal, tax, total };
+    for (const k of fields) if (form[k] !== undefined) payload[k] = form[k];
+    if (!invoiceId) payload.created_by = u.user?.id;
     if (invoiceId) {
       const { error } = await supabase.from("invoices").update(payload).eq("id", invoiceId);
       if (error) { setSaving(false); return toast.error(error.message); }

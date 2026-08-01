@@ -8,9 +8,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
 import { Plus, Download, Search } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { InvoiceFormDialog } from "@/components/invoices/invoice-form-dialog";
 import { downloadInvoicePdf } from "@/lib/invoice-pdf";
+import { deleteInvoiceCascade } from "@/lib/invoice-delete";
+import { useMyRoles } from "@/hooks/use-auth";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/invoices")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: InvoicesLayout });
@@ -26,6 +30,10 @@ function InvoicesList() {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const { data: roles } = useMyRoles();
+  const canDelete = !!roles?.some((r) => r === "admin" || r === "manager");
+  const [toDelete, setToDelete] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data } = useQuery({
     queryKey: ["invoices", status],
@@ -110,6 +118,9 @@ function InvoicesList() {
                     <td className="px-4 py-3 text-right">
                       <Button size="sm" variant="ghost" onClick={() => handleDownload(i.id)}><Download className="h-4 w-4 mr-1" /> PDF</Button>
                       <Button asChild size="sm" variant="ghost"><Link to="/invoices/$id" params={{ id: i.id }}>Open</Link></Button>
+                      {canDelete && (
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setToDelete(i)}><Trash2 className="h-4 w-4" /></Button>
+                      )}
                     </td>
                   </tr>
                 );
