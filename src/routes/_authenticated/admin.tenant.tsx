@@ -137,6 +137,49 @@ function TenantSettings() {
       <Card>
         <CardHeader>
           <CardTitle>Underwriters</CardTitle>
+        </CardHeader>
+        <CardContent />
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment details</CardTitle>
+          <CardDescription>Printed on your quotations and invoices. Leave a field blank to hide that line.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>M-Pesa till number</Label><Input value={form.mpesa_till ?? ""} onChange={(e) => setForm({ ...form, mpesa_till: e.target.value })} /></div>
+            <div><Label>Paybill number</Label><Input value={form.mpesa_paybill ?? ""} onChange={(e) => setForm({ ...form, mpesa_paybill: e.target.value })} /></div>
+          </div>
+          <div><Label>Paybill account number</Label><Input value={form.paybill_account ?? ""} onChange={(e) => setForm({ ...form, paybill_account: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Bank name</Label><Input value={form.bank_name ?? ""} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} /></div>
+            <div><Label>Bank branch</Label><Input value={form.bank_branch ?? ""} onChange={(e) => setForm({ ...form, bank_branch: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Account name</Label><Input value={form.bank_account_name ?? ""} onChange={(e) => setForm({ ...form, bank_account_name: e.target.value })} /></div>
+            <div><Label>Account number</Label><Input value={form.bank_account_no ?? ""} onChange={(e) => setForm({ ...form, bank_account_no: e.target.value })} /></div>
+          </div>
+          <div><Label>Document footer note (optional)</Label><Textarea value={form.doc_footer_note ?? ""} onChange={(e) => setForm({ ...form, doc_footer_note: e.target.value })} /></div>
+          <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save payment details"}</Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Company stamp</CardTitle>
+          <CardDescription>Used on quotations and receipts. Only your agency's stamp is applied to your documents.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {form.stamp_url && <img src={form.stamp_url} alt="Company stamp" className="h-24 object-contain" />}
+          <Input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadStamp(f); }} />
+          <p className="text-xs text-muted-foreground">Transparent PNG works best.</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Underwriters</CardTitle>
           <CardDescription>Which insurance companies your agency works with.</CardDescription>
         </CardHeader>
         <CardContent>
