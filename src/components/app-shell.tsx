@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Users, Car, FileText, FileSignature, Receipt, ScrollText,
+  LayoutDashboard, Users, FileText, FileSignature, Receipt, ScrollText,
   BarChart3, ShieldCheck, LogOut, Building2, BellRing, Settings, Mail, Upload,
   BookOpen, Menu, Inbox, KeyRound, Clock, MoreHorizontal, Sparkles,
   Plug,
