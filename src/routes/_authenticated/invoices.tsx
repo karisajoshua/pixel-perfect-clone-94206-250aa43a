@@ -131,6 +131,36 @@ function InvoicesList() {
         </div>
       </Card>
       <InvoiceFormDialog open={open} onOpenChange={setOpen} onSaved={() => qc.invalidateQueries({ queryKey: ["invoices"] })} />
+      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {toDelete?.invoice_no}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the invoice along with its line items and any payments recorded against it. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={async (e) => {
+                e.preventDefault();
+                setDeleting(true);
+                try {
+                  await deleteInvoiceCascade(toDelete.id);
+                  toast.success("Invoice deleted");
+                  setToDelete(null);
+                  qc.invalidateQueries({ queryKey: ["invoices"] });
+                } catch (err: any) {
+                  toast.error(err?.message ?? "Delete failed");
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
