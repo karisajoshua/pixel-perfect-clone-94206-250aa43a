@@ -41,10 +41,70 @@ function AuthPage() {
   const [slide, setSlide] = useState(0);
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [showPassword, setShowPassword] = useState(false);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+
+  // Returns a verified TOTP factor id when this session still needs to step up.
+  const pendingMfaFactor = async (): Promise<string | null> => {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (!aal || aal.nextLevel !== "aal2" || aal.currentLevel === "aal2") return null;
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const totp = (factors?.totp ?? []).find((f) => f.status === "verified");
+    return totp?.id ?? null;
+  };
+
+  const routeAfterAuth = async () => {
+    const { data: u } = await supabase.auth.getUser();
+    const uid = u.user?.id;
+    if (!uid) return;
+    const [{ data: roles }, { data: member }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", uid),
+      supabase.from("tenant_members").select("tenant_id").eq("user_id", uid).maybeSingle(),
+    ]);
+    const list = (roles ?? []).map((r) => r.role);
+    const clientOnly = list.length > 0 && list.every((r) => r === "client");
+    const isSuper = list.includes("super_admin");
+    if (clientOnly) return navigate({ to: "/portal" });
+    if (!member && !isSuper) {
+      const { data: clientRow } = await supabase
+        .from("clients").select("id").eq("auth_user_id", uid).maybeSingle();
+      if (clientRow) return navigate({ to: "/portal" });
+      return navigate({ to: "/onboarding" });
+    }
+    navigate({ to: "/dashboard" });
+  };
+
+  const verifyMfa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mfaFactorId) return;
+    setLoading(true);
+    const { data: ch, error: chErr } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
+    if (chErr || !ch) { setLoading(false); return toast.error(chErr?.message ?? "Could not start verification"); }
+    const { error } = await supabase.auth.mfa.verify({
+      factorId: mfaFactorId,
+      challengeId: ch.id,
+      code: mfaCode.trim(),
+    });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    setMfaFactorId(null);
+    setMfaCode("");
+    toast.success("Verified");
+    await routeAfterAuth();
+  };
+
+  const cancelMfa = async () => {
+    setMfaFactorId(null);
+    setMfaCode("");
+    setPassword("");
+    await supabase.auth.signOut();
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) return;
+      const factorId = await pendingMfaFactor();
+      if (factorId) { setMfaFactorId(factorId); return; }
       const uid = data.session.user.id;
       const [{ data: roles }, { data: member }] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", uid),
@@ -82,8 +142,14 @@ function AuthPage() {
       credentials = { phone, password };
     }
     const { error } = await supabase.auth.signInWithPassword(credentials);
+    if (error) { setLoading(false); return toast.error(error.message); }
+    const factorId = await pendingMfaFactor();
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (factorId) {
+      setMfaFactorId(factorId);
+      setMfaCode("");
+      return;
+    }
     toast.success("Welcome back");
     const { data: u } = await supabase.auth.getUser();
     const uid = u.user!.id;
