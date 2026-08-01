@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useParams, useNavigate } from "@tanstack/react-router";
 import { requireRole } from "@/lib/roles";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -9,7 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Pencil, Plus, Download } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Download, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useMyRoles } from "@/hooks/use-auth";
+import { deleteInvoiceCascade } from "@/lib/invoice-delete";
 import { PageHeader } from "@/components/page-header";
 import { InvoiceFormDialog } from "@/components/invoices/invoice-form-dialog";
 import { toast } from "sonner";
@@ -23,6 +26,11 @@ function InvoiceDetail() {
   const qc = useQueryClient();
   const [edit, setEdit] = useState(false);
   const [pay, setPay] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const navigate = useNavigate();
+  const { data: roles } = useMyRoles();
+  const canDelete = !!roles?.some((r) => r === "admin" || r === "manager");
 
   const { data: inv } = useQuery({
     queryKey: ["invoice", id],
@@ -59,6 +67,9 @@ function InvoiceDetail() {
             }}><Download className="h-4 w-4 mr-1" /> Download PDF</Button>
             <Button variant="outline" onClick={() => setPay(true)}><Plus className="h-4 w-4 mr-1" /> Record payment</Button>
             <Button onClick={() => setEdit(true)}><Pencil className="h-4 w-4 mr-1" /> Edit</Button>
+            {canDelete && (
+              <Button variant="destructive" onClick={() => setConfirmDelete(true)}><Trash2 className="h-4 w-4 mr-1" /> Delete</Button>
+            )}
           </div>
         } />
 
@@ -121,6 +132,33 @@ function InvoiceDetail() {
 
       <InvoiceFormDialog open={edit} onOpenChange={setEdit} initial={{ ...inv, items: inv.invoice_items }} onSaved={() => qc.invalidateQueries({ queryKey: ["invoice", id] })} />
       <PaymentDialog open={pay} onOpenChange={setPay} invoiceId={id} max={balance} currentPaid={Number(inv.amount_paid)} total={Number(inv.total)} onSaved={() => { qc.invalidateQueries({ queryKey: ["invoice", id] }); qc.invalidateQueries({ queryKey: ["invoices"] }); }} />
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {inv.invoice_no}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the invoice along with its line items and any payments recorded against it. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={deleting} onClick={async (e) => {
+              e.preventDefault();
+              setDeleting(true);
+              try {
+                await deleteInvoiceCascade(id);
+                toast.success("Invoice deleted");
+                qc.invalidateQueries({ queryKey: ["invoices"] });
+                navigate({ to: "/invoices" });
+              } catch (err: any) {
+                toast.error(err?.message ?? "Delete failed");
+              } finally {
+                setDeleting(false);
+              }
+            }}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
