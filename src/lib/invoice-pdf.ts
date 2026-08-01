@@ -1,7 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import QRCode from "qrcode";
-import logoAsset from "@/assets/zia-logo-white.png.asset.json";
 import { getCurrentBrand } from "./tenant-brand";
 
 type Branch = { name?: string | null; address?: string | null; phone?: string | null; email?: string | null } | null | undefined;
@@ -72,7 +71,7 @@ export async function downloadInvoicePdf({ invoice, client, branch, policyNo, it
   doc.setFillColor(BRAND);
   doc.roundedRect(0, -20, pageW, bandH + 20, 18, 18, "F");
 
-  const logo = await loadLogo(brand.logo_url || logoAsset.url);
+  const logo = brand.logo_url ? await loadLogo(brand.logo_url) : null;
   const leftX = margin;
   if (logo) {
     try { doc.addImage(logo, "PNG", leftX, 46, 66, 66); } catch { /* ignore */ }
@@ -260,6 +259,29 @@ export async function downloadInvoicePdf({ invoice, client, branch, policyNo, it
 
   // ---------- Notes ----------
   const notesText = String(invoice.notes ?? "").trim();
+
+  // ---------- Payment details (per agency) ----------
+  const payLines: string[] = [];
+  if (brand.mpesa_till) payLines.push(`M-Pesa Till: ${brand.mpesa_till}`);
+  if (brand.mpesa_paybill) payLines.push(`${brand.bank_name ? brand.bank_name + " " : ""}Paybill: ${brand.mpesa_paybill}`);
+  if (brand.paybill_account) payLines.push(`Account Number: ${brand.paybill_account}`);
+  if (brand.bank_account_no) payLines.push(`${brand.bank_name || "Bank"} A/C${brand.bank_branch ? ` (${brand.bank_branch})` : ""}: ${brand.bank_account_no}`);
+  if (brand.bank_account_name) payLines.push(`Account Name: ${brand.bank_account_name}`);
+  if (payLines.length) {
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const boxW = pageW - margin * 2;
+    const boxH = payLines.length * 13 + 20;
+    if (y + 14 + boxH > pageHeight - 100) { doc.addPage(); y = 60; }
+    doc.setFont("helvetica", "bold"); doc.setTextColor(BRAND); doc.setFontSize(10);
+    doc.text("PAYMENT DETAILS", margin, y);
+    y += 10;
+    doc.setDrawColor("#e5e7eb"); doc.setFillColor("#f8fafc"); doc.setLineWidth(1);
+    doc.roundedRect(margin, y, boxW, boxH, 8, 8, "FD");
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor("#374151");
+    payLines.forEach((l, i) => doc.text(l, margin + 12, y + 20 + i * 13));
+    y += boxH + 14;
+  }
+
   if (notesText) {
     const pageHeight = doc.internal.pageSize.getHeight();
     const boxW = pageW - margin * 2;
@@ -290,7 +312,7 @@ export async function downloadInvoicePdf({ invoice, client, branch, policyNo, it
   doc.line(margin, pageH - 44, pageW - margin, pageH - 44);
 
   doc.setFontSize(8.5); doc.setTextColor(MUTED);
-  const footItems = [AGENCY_CONTACT.address, AGENCY_CONTACT.phone, AGENCY_CONTACT.email];
+  const footItems = [AGENCY_CONTACT.address, AGENCY_CONTACT.phone, AGENCY_CONTACT.email, brand.website].filter((t) => !!String(t ?? "").trim());
   let fx = margin;
   footItems.forEach((t, i) => {
     doc.text(String(t), fx, pageH - 26);

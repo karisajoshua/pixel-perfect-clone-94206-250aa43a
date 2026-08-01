@@ -1,7 +1,5 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import logoAsset from "@/assets/zia-logo-white.png.asset.json";
-import stampAsset from "@/assets/zest-stamp.png.asset.json";
 import { getCurrentBrand } from "./tenant-brand";
 
 type Branch = { name?: string | null; address?: string | null; phone?: string | null; email?: string | null } | null | undefined;
@@ -57,7 +55,7 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   doc.setFillColor(BRAND);
   doc.rect(0, 0, pageW, 110, "F");
 
-  const logo = await loadImage(brand.logo_url || logoAsset.url);
+  const logo = brand.logo_url ? await loadImage(brand.logo_url) : null;
   if (logo) {
     try { doc.addImage(logo, "PNG", margin, 18, 70, 70); } catch { /* ignore */ }
   }
@@ -204,31 +202,36 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
     payY = margin + 10;
   }
   const payW = 400;
-  // Payment panel
-  doc.setDrawColor(BRAND);
-  doc.setLineWidth(0.8);
-  doc.setFillColor("#eaf2ff");
-  doc.roundedRect(margin, payY, payW, payH, 4, 4, "FD");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(BRAND_DARK);
-  doc.text("Payment Details", margin + 12, payY + 18);
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.text("Safaricom Till Number:", margin + 12, payY + 36);
-  doc.setFont("helvetica", "normal");
-  doc.text("603830", margin + 145, payY + 36);
-  doc.setFont("helvetica", "bold");
-  doc.text("KCB Paybill:", margin + 12, payY + 52);
-  doc.setFont("helvetica", "normal");
-  doc.text("522533", margin + 145, payY + 52);
-  doc.setFont("helvetica", "bold");
-  doc.text("Account Number:", margin + 230, payY + 52);
-  doc.setFont("helvetica", "normal");
-  doc.text("1211118266", margin + 330, payY + 52);
+  // Payment lines — only what this agency has configured
+  const payLines: Array<[string, string]> = [];
+  if (brand.mpesa_till) payLines.push(["Safaricom Till Number:", brand.mpesa_till]);
+  if (brand.mpesa_paybill) payLines.push([`${brand.bank_name ? brand.bank_name + " " : ""}Paybill:`, brand.mpesa_paybill]);
+  if (brand.paybill_account) payLines.push(["Account Number:", brand.paybill_account]);
+  if (brand.bank_account_no) payLines.push([`${brand.bank_name || "Bank"} A/C${brand.bank_branch ? ` (${brand.bank_branch})` : ""}:`, brand.bank_account_no]);
+  if (brand.bank_account_name) payLines.push(["Account Name:", brand.bank_account_name]);
 
-  // Stamp (right side)
-  const stamp = await loadImage(stampAsset.url);
+  if (payLines.length) {
+    const boxH = Math.max(payH, 26 + payLines.length * 16);
+    doc.setDrawColor(BRAND);
+    doc.setLineWidth(0.8);
+    doc.setFillColor("#eaf2ff");
+    doc.roundedRect(margin, payY, payW, boxH, 4, 4, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(BRAND_DARK);
+    doc.text("Payment Details", margin + 12, payY + 18);
+    doc.setFontSize(9);
+    payLines.forEach(([label, value], i) => {
+      const ly = payY + 36 + i * 16;
+      doc.setFont("helvetica", "bold");
+      doc.text(label, margin + 12, ly);
+      doc.setFont("helvetica", "normal");
+      doc.text(value, margin + 175, ly);
+    });
+  }
+
+  // Company stamp (right side) — only when the agency uploaded one
+  const stamp = brand.stamp_url ? await loadImage(brand.stamp_url) : null;
   const stampSize = 110;
   const stampX = margin + payW + 24;
   const stampY = payY + (payH / 2) - (stampSize / 2);

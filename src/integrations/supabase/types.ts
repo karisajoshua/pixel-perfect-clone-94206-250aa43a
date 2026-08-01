@@ -1566,6 +1566,10 @@ export type Database = {
       tenants: {
         Row: {
           address: string | null
+          bank_account_name: string | null
+          bank_account_no: string | null
+          bank_branch: string | null
+          bank_name: string | null
           brand_accent: string | null
           brand_primary: string | null
           brand_secondary: string | null
@@ -1574,18 +1578,28 @@ export type Database = {
           contact_phone: string | null
           country: string | null
           created_at: string
+          doc_footer_note: string | null
           id: string
           logo_url: string | null
+          mpesa_paybill: string | null
+          mpesa_till: string | null
           name: string
           onboarded_at: string | null
+          paybill_account: string | null
           plan: string
           slug: string | null
+          stamp_url: string | null
           status: string
           tagline: string | null
           updated_at: string
+          website: string | null
         }
         Insert: {
           address?: string | null
+          bank_account_name?: string | null
+          bank_account_no?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
           brand_accent?: string | null
           brand_primary?: string | null
           brand_secondary?: string | null
@@ -1594,18 +1608,28 @@ export type Database = {
           contact_phone?: string | null
           country?: string | null
           created_at?: string
+          doc_footer_note?: string | null
           id?: string
           logo_url?: string | null
+          mpesa_paybill?: string | null
+          mpesa_till?: string | null
           name: string
           onboarded_at?: string | null
+          paybill_account?: string | null
           plan?: string
           slug?: string | null
+          stamp_url?: string | null
           status?: string
           tagline?: string | null
           updated_at?: string
+          website?: string | null
         }
         Update: {
           address?: string | null
+          bank_account_name?: string | null
+          bank_account_no?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
           brand_accent?: string | null
           brand_primary?: string | null
           brand_secondary?: string | null
@@ -1614,15 +1638,21 @@ export type Database = {
           contact_phone?: string | null
           country?: string | null
           created_at?: string
+          doc_footer_note?: string | null
           id?: string
           logo_url?: string | null
+          mpesa_paybill?: string | null
+          mpesa_till?: string | null
           name?: string
           onboarded_at?: string | null
+          paybill_account?: string | null
           plan?: string
           slug?: string | null
+          stamp_url?: string | null
           status?: string
           tagline?: string | null
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }

@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { resetBrandCache } from "@/lib/tenant-brand";
 import iconAsset from "@/assets/zest-icon-192.png.asset.json";
 import appleIconAsset from "@/assets/zest-icon-180.png.asset.json";
 
@@ -152,6 +153,8 @@ function RootComponent() {
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      // Brand/document details are per agency — never carry them across sessions.
+      resetBrandCache();
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
     });
