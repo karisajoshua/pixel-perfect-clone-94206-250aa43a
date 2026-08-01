@@ -11,8 +11,13 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/page-header";
 import { toast } from "sonner";
+
+function Hint({ children }: { children: React.ReactNode }) {
+  return <p className="mt-1 text-xs text-muted-foreground">{children}</p>;
+}
 
 export const Route = createFileRoute("/_authenticated/admin/tenant")({
   head: () => ({ meta: [{ title: "Agency settings" }] }),
