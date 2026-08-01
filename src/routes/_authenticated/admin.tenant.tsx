@@ -112,15 +112,6 @@ function TenantSettings() {
     form.bank_account_no ? `Account no: ${form.bank_account_no}` : null,
   ].filter(Boolean) as string[];
 
-  const _unusedSaveInsurerPicks = async () => {
-    try {
-      await saveInsurers({ data: { insurer_ids: [...selected] } });
-      toast.success("Underwriters saved");
-      qc.invalidateQueries({ queryKey: ["my-tenant-insurers"] });
-      qc.invalidateQueries({ queryKey: ["my-insurers"] });
-    } catch (e: any) { toast.error(e.message); }
-  };
-
   return (
     <div className="p-8 space-y-6 max-w-4xl">
       <PageHeader
