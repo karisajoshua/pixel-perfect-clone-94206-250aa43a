@@ -18,6 +18,16 @@ export type MyTenant = {
   tagline: string | null;
   status: string;
   plan: string;
+  website?: string | null;
+  mpesa_till?: string | null;
+  mpesa_paybill?: string | null;
+  paybill_account?: string | null;
+  bank_name?: string | null;
+  bank_branch?: string | null;
+  bank_account_name?: string | null;
+  bank_account_no?: string | null;
+  stamp_url?: string | null;
+  doc_footer_note?: string | null;
 };
 
 export const getMyTenant = createServerFn({ method: "GET" })
