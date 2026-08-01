@@ -152,6 +152,15 @@ const UpdateTenantInput = z.object({
   brand_secondary: z.string().max(20).optional().nullable(),
   brand_accent: z.string().max(20).optional().nullable(),
   logo_url: z.string().max(600).optional().nullable(),
+  website: z.string().max(200).optional().nullable(),
+  mpesa_till: z.string().max(30).optional().nullable(),
+  mpesa_paybill: z.string().max(30).optional().nullable(),
+  paybill_account: z.string().max(60).optional().nullable(),
+  bank_name: z.string().max(120).optional().nullable(),
+  bank_branch: z.string().max(120).optional().nullable(),
+  bank_account_name: z.string().max(160).optional().nullable(),
+  bank_account_no: z.string().max(60).optional().nullable(),
+  doc_footer_note: z.string().max(400).optional().nullable(),
 });
 
 export const updateMyTenant = createServerFn({ method: "POST" })
@@ -220,6 +229,30 @@ export const setTenantLogo = createServerFn({ method: "POST" })
     const url = signed?.signedUrl;
     if (!url) throw new Error("Failed to sign logo URL");
     const { error } = await supabaseAdmin.from("tenants").update({ logo_url: url }).eq("id", tid);
+    if (error) throw error;
+    return { url };
+  });
+
+// Upload company stamp: client uploads to storage, then calls this to persist a signed URL.
+export const setTenantStamp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v) => z.object({ storage_path: z.string().min(1) }).parse(v))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: member } = await supabase
+      .from("tenant_members").select("tenant_id, role").eq("user_id", userId).maybeSingle();
+    if (!member) throw new Error("No agency");
+    if (!["admin", "manager"].includes((member as any).role)) throw new Error("Forbidden");
+    const tid = (member as any).tenant_id;
+    if (!data.storage_path.startsWith(`${tid}/`)) throw new Error("Invalid upload path");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed } = await supabaseAdmin.storage
+      .from("tenant-brand")
+      .createSignedUrl(data.storage_path, 60 * 60 * 24 * 365 * 10);
+    const url = signed?.signedUrl;
+    if (!url) throw new Error("Failed to sign stamp URL");
+    const { error } = await supabaseAdmin.from("tenants").update({ stamp_url: url } as any).eq("id", tid);
     if (error) throw error;
     return { url };
   });
