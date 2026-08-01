@@ -1,7 +1,5 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import logoAsset from "@/assets/zest-icon-512.png.asset.json";
-import stampAsset from "@/assets/zest-stamp.png.asset.json";
 import { getCurrentBrand } from "./tenant-brand";
 
 type Branch = { name?: string | null; address?: string | null; phone?: string | null; email?: string | null } | null | undefined;
@@ -115,7 +113,7 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
   const rightBlockW = 200; // reserved width on the right for OFFICIAL RECEIPT + meta
   const leftTextX = margin + 70;
   const leftTextMaxW = pageW - margin - rightBlockW - leftTextX - 12;
-  const logo = await loadImage(brand.logo_url || logoAsset.url);
+  const logo = brand.logo_url ? await loadImage(brand.logo_url) : null;
   if (logo) {
     try { doc.addImage(logo, "PNG", margin, headerY, 56, 56); } catch {}
   }
@@ -287,7 +285,7 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
   doc.setTextColor(BRAND_DARK); doc.setFont("helvetica", "bold"); doc.setFontSize(9);
   doc.text("AUTHORIZED BY", authX + 12, sumStartY + 16);
 
-  const stamp = await loadImage(stampAsset.url);
+  const stamp = brand.stamp_url ? await loadImage(brand.stamp_url) : null;
   const stampSize = 70;
   const stampY = sumStartY + 22;
   if (stamp) {
