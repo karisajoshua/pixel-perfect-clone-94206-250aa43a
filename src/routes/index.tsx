@@ -247,6 +247,36 @@ function AuthPage() {
             className="h-16 w-auto object-contain mb-6 lg:hidden"
           />
           <Card className="w-full">
+          {mfaFactorId ? (
+            <>
+              <CardHeader>
+                <CardTitle>Two-factor verification</CardTitle>
+                <CardDescription>Enter the 6-digit code from your authenticator app.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={verifyMfa} className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="mfa">Authentication code</Label>
+                    <Input
+                      id="mfa"
+                      value={mfaCode}
+                      onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      placeholder="123456"
+                      autoFocus
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading || mfaCode.length < 6}>Verify</Button>
+                  <button type="button" className="text-xs text-muted-foreground underline" onClick={cancelMfa}>
+                    Use a different account
+                  </button>
+                </form>
+              </CardContent>
+            </>
+          ) : (
+          <>
           <CardHeader>
             <CardTitle>Welcome to Zest</CardTitle>
             <CardDescription>Sign in to the management workspace.</CardDescription>
@@ -310,6 +340,8 @@ function AuthPage() {
               </TabsContent>
             </Tabs>
           </CardContent>
+          </>
+          )}
           </Card>
         </div>
         <p className="absolute bottom-4 text-xs text-muted-foreground lg:hidden">
