@@ -161,11 +161,12 @@ export const getMyRequiredDocuments = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const client = await getMyClient(context.supabase, context.userId);
     const baseSlots = client.client_type === "corporate" ? CORPORATE_SLOTS : INDIVIDUAL_SLOTS;
-    const slots = [...baseSlots, ...VEHICLE_SLOTS];
+    const slots = baseSlots;
     const { data: rows, error } = await context.supabase
       .from("client_required_documents")
-      .select("id, doc_type, storage_path, file_name, status, rejection_reason, verified_at, created_at, expires_at")
-      .eq("client_id", client.id);
+      .select("id, doc_type, vehicle_id, storage_path, file_name, status, rejection_reason, verified_at, created_at, expires_at")
+      .eq("client_id", client.id)
+      .is("vehicle_id", null);
     if (error) throw error;
 
     const byType = new Map<string, any>();
@@ -189,11 +190,46 @@ export const getMyRequiredDocuments = createServerFn({ method: "GET" })
     const requiredTotal = items.filter((i) => i.required).length;
     const canSubmit = requiredDone === requiredTotal && client.kyc_status !== "in_review" && client.kyc_status !== "verified";
 
+    // Per-vehicle documents
+    const { data: vehicles } = await context.supabase
+      .from("vehicles")
+      .select("id, registration_no, make, model")
+      .eq("client_id", client.id)
+      .order("created_at", { ascending: false });
+    const vehicleIds = (vehicles ?? []).map((v: any) => v.id);
+    let vRows: any[] = [];
+    if (vehicleIds.length) {
+      const { data } = await context.supabase
+        .from("client_required_documents")
+        .select("id, doc_type, vehicle_id, storage_path, file_name, status, rejection_reason, verified_at")
+        .in("vehicle_id", vehicleIds);
+      vRows = data ?? [];
+    }
+    const vehicleGroups = await Promise.all(
+      (vehicles ?? []).map(async (v: any) => ({
+        vehicle: v,
+        items: await Promise.all(
+          VEHICLE_SLOTS.map(async (slot) => {
+            const row = vRows.find((r) => r.vehicle_id === v.id && r.doc_type === slot.doc_type) ?? null;
+            let url: string | null = null;
+            if (row?.storage_path) {
+              const { data: signed } = await context.supabase.storage
+                .from("client-documents")
+                .createSignedUrl(row.storage_path, 60 * 30);
+              url = signed?.signedUrl ?? null;
+            }
+            return { ...slot, row, url };
+          }),
+        ),
+      })),
+    );
+
     return {
       clientId: client.id,
       clientType: client.client_type as "individual" | "corporate",
       kycStatus: client.kyc_status as string,
       items,
+      vehicleGroups,
       requiredDone,
       requiredTotal,
       canSubmit,
@@ -206,42 +242,23 @@ export const recordKycUpload = createServerFn({ method: "POST" })
     doc_type: z.enum(DOC_TYPE_ENUM),
     storage_path: z.string().min(1),
     file_name: z.string().min(1),
+    vehicle_id: z.string().uuid().optional().nullable(),
   }).parse(d))
   .handler(async ({ data, context }) => {
     const client = await getMyClient(context.supabase, context.userId);
     if (!data.storage_path.startsWith(`${client.id}/kyc/`)) {
       throw new Error("Invalid upload path");
     }
-    // Remove previous file for this slot if any
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: existing } = await supabaseAdmin
-      .from("client_required_documents")
-      .select("storage_path")
-      .eq("client_id", client.id)
-      .eq("doc_type", data.doc_type)
-      .maybeSingle();
-    if (existing?.storage_path && existing.storage_path !== data.storage_path) {
-      await supabaseAdmin.storage.from("client-documents").remove([existing.storage_path]);
-    }
-    const { data: row, error } = await supabaseAdmin
-      .from("client_required_documents")
-      .upsert(
-        {
-          client_id: client.id,
-          tenant_id: client.tenant_id,
-          doc_type: data.doc_type,
-          storage_path: data.storage_path,
-          file_name: data.file_name,
-          status: "pending" as const,
-          rejection_reason: null,
-          verified_at: null,
-          verified_by: null,
-        } as any,
-        { onConflict: "client_id,doc_type" },
-      )
-      .select()
-      .single();
-    if (error) throw error;
+    const row = await saveDocRow(supabaseAdmin, {
+      client_id: client.id,
+      tenant_id: client.tenant_id,
+      vehicle_id: data.vehicle_id ?? null,
+      doc_type: data.doc_type,
+      storage_path: data.storage_path,
+      file_name: data.file_name,
+      status: "pending",
+    });
     // Reset KYC back to pending if it was rejected
     if (client.kyc_status === "rejected") {
       await context.supabase.from("clients").update({ kyc_status: "pending" }).eq("id", client.id);
@@ -255,11 +272,14 @@ export const createKycUploadUrl = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({
     doc_type: z.enum(DOC_TYPE_ENUM),
     file_name: z.string().min(1),
+    vehicle_id: z.string().uuid().optional().nullable(),
   }).parse(d))
   .handler(async ({ data, context }) => {
     const client = await getMyClient(context.supabase, context.userId);
     const safe = data.file_name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const path = `${client.id}/kyc/${data.doc_type}/${Date.now()}-${safe}`;
+    const path = data.vehicle_id
+      ? `${client.id}/kyc/vehicles/${data.vehicle_id}/${data.doc_type}/${Date.now()}-${safe}`
+      : `${client.id}/kyc/${data.doc_type}/${Date.now()}-${safe}`;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: signed, error } = await supabaseAdmin.storage
       .from("client-documents")
@@ -274,11 +294,14 @@ export const staffCreateKycUploadUrl = createServerFn({ method: "POST" })
     client_id: z.string().uuid(),
     doc_type: z.enum(DOC_TYPE_ENUM),
     file_name: z.string().min(1),
+    vehicle_id: z.string().uuid().optional().nullable(),
   }).parse(d))
   .handler(async ({ data, context }) => {
     await assertStaff(context.supabase, context.userId);
     const safe = data.file_name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const path = `${data.client_id}/kyc/${data.doc_type}/${Date.now()}-${safe}`;
+    const path = data.vehicle_id
+      ? `${data.client_id}/kyc/vehicles/${data.vehicle_id}/${data.doc_type}/${Date.now()}-${safe}`
+      : `${data.client_id}/kyc/${data.doc_type}/${Date.now()}-${safe}`;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: signed, error } = await supabaseAdmin.storage
       .from("client-documents")
@@ -291,23 +314,29 @@ export const removeKycUpload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({
     doc_type: z.enum(DOC_TYPE_ENUM),
+    vehicle_id: z.string().uuid().optional().nullable(),
   }).parse(d))
   .handler(async ({ data, context }) => {
     const client = await getMyClient(context.supabase, context.userId);
-    const { data: row } = await context.supabase
-      .from("client_required_documents")
-      .select("storage_path")
-      .eq("client_id", client.id)
-      .eq("doc_type", data.doc_type)
-      .maybeSingle();
+    const { data: row } = await vehicleFilter(
+      context.supabase
+        .from("client_required_documents")
+        .select("storage_path")
+        .eq("client_id", client.id)
+        .eq("doc_type", data.doc_type),
+      data.vehicle_id ?? null,
+    ).maybeSingle();
     if (row?.storage_path) {
       await context.supabase.storage.from("client-documents").remove([row.storage_path]);
     }
-    await context.supabase
-      .from("client_required_documents")
-      .delete()
-      .eq("client_id", client.id)
-      .eq("doc_type", data.doc_type);
+    await vehicleFilter(
+      context.supabase
+        .from("client_required_documents")
+        .delete()
+        .eq("client_id", client.id)
+        .eq("doc_type", data.doc_type),
+      data.vehicle_id ?? null,
+    );
     return { ok: true };
   });
 
@@ -321,7 +350,8 @@ export const submitKycForReview = createServerFn({ method: "POST" })
     const { data: rows, error } = await context.supabase
       .from("client_required_documents")
       .select("doc_type")
-      .eq("client_id", client.id);
+      .eq("client_id", client.id)
+      .is("vehicle_id", null);
     if (error) throw error;
     const have = new Set((rows ?? []).map((r: any) => r.doc_type));
     const missing = required.filter((t) => !have.has(t));
