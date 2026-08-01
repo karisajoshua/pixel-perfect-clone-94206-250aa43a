@@ -1,7 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import QRCode from "qrcode";
-import logoAsset from "@/assets/zia-logo-white.png.asset.json";
 import { getCurrentBrand } from "./tenant-brand";
 
 type Branch = { name?: string | null; address?: string | null; phone?: string | null; email?: string | null } | null | undefined;
@@ -72,7 +71,7 @@ export async function downloadInvoicePdf({ invoice, client, branch, policyNo, it
   doc.setFillColor(BRAND);
   doc.roundedRect(0, -20, pageW, bandH + 20, 18, 18, "F");
 
-  const logo = await loadLogo(brand.logo_url || logoAsset.url);
+  const logo = brand.logo_url ? await loadLogo(brand.logo_url) : null;
   const leftX = margin;
   if (logo) {
     try { doc.addImage(logo, "PNG", leftX, 46, 66, 66); } catch { /* ignore */ }
