@@ -136,13 +136,6 @@ function TenantSettings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Underwriters</CardTitle>
-        </CardHeader>
-        <CardContent />
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Payment details</CardTitle>
           <CardDescription>Printed on your quotations and invoices. Leave a field blank to hide that line.</CardDescription>
         </CardHeader>
