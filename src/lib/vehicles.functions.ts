@@ -52,17 +52,18 @@ function mimeFromPath(p: string): string {
 
 export const getClientLogbookDoc = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ client_id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) => z.object({ client_id: z.string().uuid(), vehicle_id: z.string().uuid().optional().nullable() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertStaff(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin
+    let q = supabaseAdmin
       .from("client_required_documents")
       .select("doc_type, storage_path, file_name, created_at")
       .eq("client_id", data.client_id)
       .in("doc_type", ["log_book", "importation_doc", "search_doc"])
-      .not("storage_path", "is", null)
-      .order("created_at", { ascending: false });
+      .not("storage_path", "is", null);
+    if (data.vehicle_id) q = q.eq("vehicle_id", data.vehicle_id);
+    const { data: rows, error } = await q.order("created_at", { ascending: false });
     if (error) throw error;
     if (!rows || rows.length === 0) return null;
     const priority = ["log_book", "importation_doc", "search_doc"];
