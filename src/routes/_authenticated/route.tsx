@@ -8,6 +8,11 @@ export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async () => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/" });
+    // Step-up gate: an enrolled second factor must be satisfied for this session.
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal && aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+      throw redirect({ to: "/" });
+    }
     const { data: rolesRow } = await supabase
       .from("user_roles")
       .select("role")

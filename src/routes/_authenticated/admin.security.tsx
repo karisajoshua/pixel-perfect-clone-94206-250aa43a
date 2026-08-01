@@ -10,6 +10,19 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ShieldCheck, ShieldOff } from "lucide-react";
+import { useTenantBrand } from "@/components/tenant-brand-provider";
+
+/** Rewrite the otpauth URI so authenticator apps show the agency + user email. */
+function brandOtpauthUri(uri: string, issuer: string, account: string) {
+  try {
+    const url = new URL(uri);
+    url.pathname = `/totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}`;
+    url.searchParams.set("issuer", issuer);
+    return url.toString();
+  } catch {
+    return uri;
+  }
+}
 
 export const Route = createFileRoute("/_authenticated/admin/security")({
   beforeLoad: requireRole(["admin"]),
@@ -17,6 +30,9 @@ export const Route = createFileRoute("/_authenticated/admin/security")({
 });
 
 function SecurityPage() {
+  const brand = useTenantBrand();
+  const issuer = brand?.name?.trim() || "Zest Insurance Agency";
+  const [account, setAccount] = useState("");
   const [factors, setFactors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState<{ id: string; uri: string; secret: string } | null>(null);
@@ -33,12 +49,23 @@ function SecurityPage() {
 
   useEffect(() => { refresh(); }, []);
 
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setAccount(data.user?.email ?? "account"));
+  }, []);
+
   const beginEnroll = async () => {
     setBusy(true);
-    const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: "Authenticator" });
+    const { data, error } = await supabase.auth.mfa.enroll({
+      factorType: "totp",
+      friendlyName: `${issuer} authenticator`,
+    });
     setBusy(false);
     if (error) return toast.error(error.message);
-    setEnrolling({ id: data.id, uri: data.totp.uri, secret: data.totp.secret });
+    setEnrolling({
+      id: data.id,
+      uri: brandOtpauthUri(data.totp.uri, issuer, account || "account"),
+      secret: data.totp.secret,
+    });
   };
 
   const verifyEnroll = async () => {
@@ -96,7 +123,12 @@ function SecurityPage() {
             </div>
           ) : enrolling ? (
             <div className="space-y-3">
-              <p>Scan this QR or enter the secret in your authenticator app (Google Authenticator, Authy, 1Password, etc.).</p>
+              <p>
+                Scan this QR or enter the secret in your authenticator app (Google Authenticator,
+                Authy, 1Password, etc.). It will be saved as{" "}
+                <span className="font-medium">{issuer}</span>
+                {account ? <> ({account})</> : null}.
+              </p>
               <div className="flex flex-col items-center gap-3 p-4 border rounded-md bg-muted/20">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(enrolling.uri)}`}
@@ -105,6 +137,10 @@ function SecurityPage() {
                 />
                 <code className="text-xs break-all">{enrolling.secret}</code>
               </div>
+              <p className="text-xs text-muted-foreground">
+                If you already added this account before, delete the old entry in your
+                authenticator app and scan again so it shows the correct name.
+              </p>
               <div>
                 <Label>6-digit code</Label>
                 <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" inputMode="numeric" maxLength={6} />
