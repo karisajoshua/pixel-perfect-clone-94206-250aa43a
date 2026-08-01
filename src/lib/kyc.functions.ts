@@ -49,6 +49,77 @@ const DOC_TYPE_ENUM = [
   "log_book","importation_doc","search_doc",
 ] as const;
 
+const VEHICLE_DOC_TYPES = ["log_book", "importation_doc", "search_doc"] as const;
+
+function vehicleFilter(q: any, vehicleId?: string | null) {
+  return vehicleId ? q.eq("vehicle_id", vehicleId) : q.is("vehicle_id", null);
+}
+
+/** Upsert a document row honouring the partial unique indexes (client-level vs per-vehicle). */
+async function saveDocRow(
+  admin: any,
+  args: {
+    client_id: string;
+    tenant_id?: string | null;
+    vehicle_id?: string | null;
+    doc_type: string;
+    storage_path: string;
+    file_name: string;
+    status: "pending" | "verified";
+    verified_by?: string | null;
+  },
+) {
+  const { data: existing } = await vehicleFilter(
+    admin
+      .from("client_required_documents")
+      .select("id, storage_path, tenant_id")
+      .eq("client_id", args.client_id)
+      .eq("doc_type", args.doc_type),
+    args.vehicle_id ?? null,
+  ).maybeSingle();
+
+  if (existing?.storage_path && existing.storage_path !== args.storage_path) {
+    await admin.storage.from("client-documents").remove([existing.storage_path]);
+  }
+
+  let tenantId = (args.tenant_id ?? existing?.tenant_id) as string | undefined | null;
+  if (!tenantId) {
+    const { data: c } = await admin.from("clients").select("tenant_id").eq("id", args.client_id).maybeSingle();
+    tenantId = (c as any)?.tenant_id;
+  }
+
+  const payload: any = {
+    client_id: args.client_id,
+    tenant_id: tenantId,
+    vehicle_id: args.vehicle_id ?? null,
+    doc_type: args.doc_type,
+    storage_path: args.storage_path,
+    file_name: args.file_name,
+    status: args.status,
+    rejection_reason: null,
+    verified_at: args.status === "verified" ? new Date().toISOString() : null,
+    verified_by: args.status === "verified" ? args.verified_by ?? null : null,
+  };
+
+  if (existing?.id) {
+    const { data, error } = await admin
+      .from("client_required_documents")
+      .update(payload)
+      .eq("id", existing.id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+  const { data, error } = await admin
+    .from("client_required_documents")
+    .insert(payload)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 async function maybeAutoVerifyClientKyc(clientId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: client } = await supabaseAdmin
