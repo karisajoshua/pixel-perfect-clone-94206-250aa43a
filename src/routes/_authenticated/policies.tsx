@@ -31,11 +31,11 @@ function PoliciesList() {
     queryFn: async () => {
       let q = supabase
         .from("policies")
-        .select("id, policy_no, status, payment_status, start_date, end_date, premium_gross, policy_term, client_id, clients(full_name, company_name, client_type), insurers(name), vehicles(registration_no)")
+        .select("id, policy_no, certificate_no, status, payment_status, start_date, end_date, premium_gross, policy_term, client_id, clients(full_name, company_name, client_type), insurers(name), vehicles(registration_no)")
         .order("end_date", { ascending: true })
         .limit(200);
       if (status !== "all") q = q.eq("status", status);
-      if (search) q = q.ilike("policy_no", `%${search}%`);
+      if (search) q = q.or(`policy_no.ilike.%${search}%,certificate_no.ilike.%${search}%`);
       const { data, error } = await q;
       if (error) throw error;
       return data;
@@ -83,7 +83,10 @@ function PoliciesList() {
                 const name = cl ? (cl.client_type === "corporate" ? cl.company_name ?? cl.full_name : cl.full_name) : "—";
                 return (
                   <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="px-4 py-3 font-mono font-medium">{p.policy_no}</td>
+                    <td className="px-4 py-3 font-mono font-medium">
+                      {p.policy_no}
+                      {p.certificate_no && <div className="text-[11px] font-normal text-muted-foreground">Cert. {p.certificate_no}</div>}
+                    </td>
                     <td className="px-4 py-3">{name}</td>
                     <td className="px-4 py-3 font-mono text-xs">{p.vehicles?.registration_no ?? "—"}</td>
                     <td className="px-4 py-3">{p.insurers?.name ?? "—"}</td>
