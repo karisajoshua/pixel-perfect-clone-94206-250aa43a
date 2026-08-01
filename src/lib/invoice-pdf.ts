@@ -258,6 +258,28 @@ export async function downloadInvoicePdf({ invoice, client, branch, policyNo, it
     y = (doc as any).lastAutoTable.finalY + 10;
   }
 
+  // ---------- Notes ----------
+  const notesText = String(invoice.notes ?? "").trim();
+  if (notesText) {
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const boxW = pageW - margin * 2;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
+    const lines: string[] = doc.splitTextToSize(notesText, boxW - 24);
+    const boxH = lines.length * 13 + 20;
+    const needed = 14 + boxH; // heading + panel
+    if (y + needed > pageHeight - 100) { doc.addPage(); y = 60; }
+
+    doc.setFont("helvetica", "bold"); doc.setTextColor(BRAND); doc.setFontSize(10);
+    doc.text("NOTES", margin, y);
+    y += 10;
+
+    doc.setDrawColor("#e5e7eb"); doc.setFillColor("#f8fafc"); doc.setLineWidth(1);
+    doc.roundedRect(margin, y, boxW, boxH, 8, 8, "FD");
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(MUTED);
+    lines.forEach((l, i) => doc.text(l, margin + 12, y + 20 + i * 13));
+    y += boxH + 14;
+  }
+
   // ---------- Footer ----------
   const pageH = doc.internal.pageSize.getHeight();
   doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(MUTED);
