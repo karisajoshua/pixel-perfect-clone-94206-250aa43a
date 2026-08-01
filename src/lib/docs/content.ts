@@ -24,9 +24,9 @@ export const DOC_SECTIONS: DocSection[] = [
   {
     id: "vehicles",
     title: "Vehicles",
-    route: "/vehicles",
+    route: "/clients",
     summary: "Vehicles attached to a client for motor policies.",
-    body: `Each vehicle belongs to a client. Capture registration, make/model/year, value, and use this vehicle when issuing a motor quotation or policy.`,
+    body: `Vehicles live on the client page under the **Vehicles** tab. Open a client, switch to Vehicles, and add or edit vehicles there. Each card shows the vehicle particulars plus its cover: certificate number, commencement and expiry dates, term, cancellation details, and any payment extensions.`,
   },
   {
     id: "policies",
