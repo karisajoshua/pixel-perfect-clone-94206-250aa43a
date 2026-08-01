@@ -378,14 +378,12 @@ export const listClientKycDocuments = createServerFn({ method: "GET" })
       .maybeSingle();
     if (cErr) throw cErr;
     if (!client) throw new Error("Client not found");
-    const slots = [
-      ...(client.client_type === "corporate" ? CORPORATE_SLOTS : INDIVIDUAL_SLOTS),
-      ...VEHICLE_SLOTS,
-    ];
+    const slots = client.client_type === "corporate" ? CORPORATE_SLOTS : INDIVIDUAL_SLOTS;
     const { data: rows, error } = await context.supabase
       .from("client_required_documents")
       .select("*")
-      .eq("client_id", client.id);
+      .eq("client_id", client.id)
+      .is("vehicle_id", null);
     if (error) throw error;
     const byType = new Map<string, any>((rows ?? []).map((r: any) => [r.doc_type, r]));
     const items = await Promise.all(
@@ -404,6 +402,37 @@ export const listClientKycDocuments = createServerFn({ method: "GET" })
     return { kycStatus: client.kyc_status as string, items };
   });
 
+export const listVehicleKycDocuments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ vehicle_ids: z.array(z.string().uuid()) }).parse(d))
+  .handler(async ({ data, context }) => {
+    if (data.vehicle_ids.length === 0) return { groups: [] as any[] };
+    const { data: rows, error } = await context.supabase
+      .from("client_required_documents")
+      .select("*")
+      .in("vehicle_id", data.vehicle_ids);
+    if (error) throw error;
+    const groups = await Promise.all(
+      data.vehicle_ids.map(async (vid) => ({
+        vehicle_id: vid,
+        items: await Promise.all(
+          VEHICLE_SLOTS.map(async (slot) => {
+            const row = (rows ?? []).find((r: any) => r.vehicle_id === vid && r.doc_type === slot.doc_type) ?? null;
+            let url: string | null = null;
+            if (row?.storage_path) {
+              const { data: signed } = await context.supabase.storage
+                .from("client-documents")
+                .createSignedUrl(row.storage_path, 60 * 30);
+              url = signed?.signedUrl ?? null;
+            }
+            return { ...slot, row, url };
+          }),
+        ),
+      })),
+    );
+    return { groups };
+  });
+
 async function assertStaff(supabase: any, userId: string) {
   const roles = ["admin", "manager", "agent"] as const;
   for (const r of roles) {
@@ -420,6 +449,7 @@ export const staffUploadKycDocument = createServerFn({ method: "POST" })
     doc_type: z.enum(DOC_TYPE_ENUM),
     storage_path: z.string().min(1),
     file_name: z.string().min(1),
+    vehicle_id: z.string().uuid().optional().nullable(),
   }).parse(d))
   .handler(async ({ data, context }) => {
     await assertStaff(context.supabase, context.userId);
@@ -427,39 +457,15 @@ export const staffUploadKycDocument = createServerFn({ method: "POST" })
       throw new Error("Invalid upload path");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: existing } = await supabaseAdmin
-      .from("client_required_documents")
-      .select("storage_path, tenant_id")
-      .eq("client_id", data.client_id)
-      .eq("doc_type", data.doc_type)
-      .maybeSingle();
-    if (existing?.storage_path && existing.storage_path !== data.storage_path) {
-      await supabaseAdmin.storage.from("client-documents").remove([existing.storage_path]);
-    }
-    let tenantId = existing?.tenant_id as string | undefined;
-    if (!tenantId) {
-      const { data: c } = await supabaseAdmin.from("clients").select("tenant_id").eq("id", data.client_id).maybeSingle();
-      tenantId = (c as any)?.tenant_id;
-    }
-    const { data: row, error } = await supabaseAdmin
-      .from("client_required_documents")
-      .upsert(
-        {
-          client_id: data.client_id,
-          tenant_id: tenantId,
-          doc_type: data.doc_type,
-          storage_path: data.storage_path,
-          file_name: data.file_name,
-          status: "verified" as const,
-          rejection_reason: null,
-          verified_at: new Date().toISOString(),
-          verified_by: context.userId,
-        } as any,
-        { onConflict: "client_id,doc_type" },
-      )
-      .select()
-      .single();
-    if (error) throw error;
+    const row = await saveDocRow(supabaseAdmin, {
+      client_id: data.client_id,
+      vehicle_id: data.vehicle_id ?? null,
+      doc_type: data.doc_type,
+      storage_path: data.storage_path,
+      file_name: data.file_name,
+      status: "verified",
+      verified_by: context.userId,
+    });
     await maybeAutoVerifyClientKyc(data.client_id);
     return row;
   });
