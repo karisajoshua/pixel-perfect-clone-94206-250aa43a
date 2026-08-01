@@ -993,6 +993,7 @@ export type Database = {
           cancellation_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          certificate_no: string | null
           client_id: string
           commission: number | null
           cover_type: string
@@ -1025,6 +1026,7 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          certificate_no?: string | null
           client_id: string
           commission?: number | null
           cover_type?: string
@@ -1057,6 +1059,7 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          certificate_no?: string | null
           client_id?: string
           commission?: number | null
           cover_type?: string
