@@ -91,6 +91,7 @@ export function ClientKycPanel({ clientId }: { clientId: string }) {
           <div>
             <div className="text-sm font-medium">Overall KYC status</div>
             <div className="text-xs text-muted-foreground capitalize">{data.kycStatus.replace("_", " ")}</div>
+            <div className="text-xs text-muted-foreground mt-1">Vehicle paperwork (log book, importation, search) is verified per vehicle in the Vehicles tab.</div>
           </div>
           <div className="flex gap-2">
             <Button size="sm" onClick={() => setStatus.mutate("verified")} disabled={setStatus.isPending}>

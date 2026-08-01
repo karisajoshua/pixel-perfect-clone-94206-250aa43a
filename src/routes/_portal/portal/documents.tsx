@@ -188,6 +188,51 @@ function Page() {
         </div>
       )}
 
+      {(data?.vehicleGroups ?? []).length > 0 && (
+        <div className="space-y-4">
+          {data!.vehicleGroups.map((g: any) => (
+            <Card key={g.vehicle.id}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-mono">
+                  {g.vehicle.registration_no}
+                  <span className="ml-2 text-xs font-sans text-muted-foreground">
+                    {[g.vehicle.make, g.vehicle.model].filter(Boolean).join(" ")}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {g.items.map((item: any) => (
+                    <DocSlot
+                      key={`${g.vehicle.id}-${item.doc_type}`}
+                      clientId={data!.clientId}
+                      docType={item.doc_type}
+                      label={item.label}
+                      description={item.description}
+                      required={item.required}
+                      row={item.row}
+                      url={item.url}
+                      locked={locked}
+                      createUploadUrl={(file_name) => createUrlFn({ data: { doc_type: item.doc_type, file_name, vehicle_id: g.vehicle.id } })}
+                      onUploaded={async (path, file_name) => {
+                        await recordFn({ data: { doc_type: item.doc_type, storage_path: path, file_name, vehicle_id: g.vehicle.id } });
+                        qc.invalidateQueries({ queryKey: ["portal-kyc"] });
+                        qc.invalidateQueries({ queryKey: ["portal-overview"] });
+                      }}
+                      onRemove={async () => {
+                        await removeFn({ data: { doc_type: item.doc_type, vehicle_id: g.vehicle.id } });
+                        qc.invalidateQueries({ queryKey: ["portal-kyc"] });
+                        qc.invalidateQueries({ queryKey: ["portal-overview"] });
+                      }}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {(shared ?? []).filter((f: any) => f.folder === "shared").length > 0 && (
         <Card>
           <CardHeader className="pb-2">

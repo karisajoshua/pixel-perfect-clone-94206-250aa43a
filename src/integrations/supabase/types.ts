@@ -277,6 +277,7 @@ export type Database = {
           storage_path: string
           tenant_id: string
           updated_at: string
+          vehicle_id: string | null
           verified_at: string | null
           verified_by: string | null
         }
@@ -292,6 +293,7 @@ export type Database = {
           storage_path: string
           tenant_id: string
           updated_at?: string
+          vehicle_id?: string | null
           verified_at?: string | null
           verified_by?: string | null
         }
@@ -307,6 +309,7 @@ export type Database = {
           storage_path?: string
           tenant_id?: string
           updated_at?: string
+          vehicle_id?: string | null
           verified_at?: string | null
           verified_by?: string | null
         }
@@ -323,6 +326,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_required_documents_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]

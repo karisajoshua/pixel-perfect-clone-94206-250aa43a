@@ -9,6 +9,7 @@ import { Link } from "@tanstack/react-router";
 import { VehicleFormDialog } from "@/components/vehicles/vehicle-form-dialog";
 import { TransferOwnershipDialog } from "@/components/vehicles/transfer-ownership-dialog";
 import { useMyRoles } from "@/hooks/use-auth";
+import { VehicleDocuments, useVehicleDocuments, vehicleDocsBadge } from "@/components/clients/vehicle-documents";
 
 const TERMS: Record<string, string> = {
   tor: "One month (TOR)",
@@ -53,6 +54,10 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["client-vehicles", clientId] });
 
+  const vehicleIds = (data?.vehicles ?? []).map((v: any) => v.id);
+  const docsKey = ["vehicle-kyc", vehicleIds.join(",")];
+  const { data: docs } = useVehicleDocuments(vehicleIds);
+
   if (isLoading) return <div className="p-8 text-muted-foreground">Loading vehicles…</div>;
 
   const vehicles = data?.vehicles ?? [];
@@ -70,6 +75,7 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
 
       {vehicles.map((v: any) => {
         const policies = [...(v.policies ?? [])].sort((a: any, b: any) => (b.start_date ?? "").localeCompare(a.start_date ?? ""));
+        const docItems = docs?.groups?.find((g: any) => g.vehicle_id === v.id)?.items;
         return (
           <Card key={v.id}>
             <CardHeader className="flex flex-row items-start justify-between space-y-0 gap-3">
@@ -77,6 +83,7 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
                 <CardTitle className="flex items-center gap-2 font-mono">
                   <Car className="h-4 w-4 text-muted-foreground" /> {v.registration_no}
                   {!v.active && <Badge variant="secondary">Inactive</Badge>}
+                  {vehicleDocsBadge(docItems)}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
                   {[v.make, v.model, v.year].filter(Boolean).join(" ") || "—"} • {v.usage_type ?? "—"}
@@ -105,6 +112,13 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
                 <D label="Inspection due" value={v.inspection_due} />
                 <D label="Next inspection" value={v.next_inspection_date} />
               </dl>
+
+              <div className="space-y-3">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">Documents (KYC)</div>
+                {docItems
+                  ? <VehicleDocuments clientId={clientId} vehicleId={v.id} items={docItems} queryKey={docsKey} />
+                  : <p className="text-sm text-muted-foreground">Loading documents…</p>}
+              </div>
 
               <div className="space-y-3">
                 <div className="text-xs uppercase tracking-wider text-muted-foreground">Cover</div>
