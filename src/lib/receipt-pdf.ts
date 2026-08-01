@@ -126,7 +126,7 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
   const addrLines = doc.splitTextToSize(AGENCY.address, leftTextMaxW);
   doc.text(addrLines, leftTextX, headerY + 46);
   const contactLines = doc.splitTextToSize(
-    `${AGENCY.phone}  ·  ${AGENCY.email}  ·  ${AGENCY.website}`,
+    [AGENCY.phone, AGENCY.email, AGENCY.website].filter(Boolean).join("  ·  "),
     leftTextMaxW,
   );
   doc.text(contactLines, leftTextX, headerY + 46 + addrLines.length * 12);
@@ -298,7 +298,7 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
   doc.setDrawColor("#9ca3af"); doc.setLineWidth(0.6);
   doc.line(authX + 20, lineY, authX + authW - 20, lineY);
   doc.setTextColor(INK); doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-  doc.text(receivedBy || "Elizabeth Grace", authX + authW / 2, sumStartY + authH - 16, { align: "center" });
+  doc.text(receivedBy || "", authX + authW / 2, sumStartY + authH - 16, { align: "center" });
   doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(MUTED);
   doc.text("Authorized Signatory", authX + authW / 2, sumStartY + authH - 6, { align: "center" });
 
@@ -320,7 +320,7 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
   doc.setDrawColor(BRAND); doc.setLineWidth(1.2);
   doc.line(margin, fY, pageW - margin, fY);
   doc.setTextColor(MUTED); doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-  doc.text(`${AGENCY.name}  ·  ${AGENCY.website}`, margin, fY + 14);
+  doc.text([AGENCY.name, AGENCY.website].filter(Boolean).join("  ·  "), margin, fY + 14);
   doc.setTextColor(BRAND_DARK); doc.setFont("helvetica", "italic");
   doc.text(`Thank you for choosing ${brand.name}.`, pageW - margin, fY + 14, { align: "right" });
 
