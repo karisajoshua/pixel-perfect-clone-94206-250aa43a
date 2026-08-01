@@ -1,7 +1,5 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import logoAsset from "@/assets/zia-logo-white.png.asset.json";
-import stampAsset from "@/assets/zest-stamp.png.asset.json";
 import { getCurrentBrand } from "./tenant-brand";
 
 type Branch = { name?: string | null; address?: string | null; phone?: string | null; email?: string | null } | null | undefined;
@@ -57,7 +55,7 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   doc.setFillColor(BRAND);
   doc.rect(0, 0, pageW, 110, "F");
 
-  const logo = await loadImage(brand.logo_url || logoAsset.url);
+  const logo = brand.logo_url ? await loadImage(brand.logo_url) : null;
   if (logo) {
     try { doc.addImage(logo, "PNG", margin, 18, 70, 70); } catch { /* ignore */ }
   }
