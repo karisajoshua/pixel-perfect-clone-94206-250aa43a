@@ -1830,6 +1830,7 @@ export type Database = {
     }
     Functions: {
       current_client_id: { Args: never; Returns: string }
+      current_client_tenant_id: { Args: never; Returns: string }
       current_tenant_id: { Args: never; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
