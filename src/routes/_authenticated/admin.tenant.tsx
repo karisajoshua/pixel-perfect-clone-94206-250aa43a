@@ -103,6 +103,24 @@ function TenantSettings() {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  const paymentLines: string[] = [
+    form.mpesa_till ? `Safaricom Till: ${form.mpesa_till}` : null,
+    form.mpesa_paybill ? `Paybill: ${form.mpesa_paybill}` : null,
+    form.paybill_account ? `Account: ${form.paybill_account}` : null,
+    form.bank_name ? `Bank: ${form.bank_name}${form.bank_branch ? ` — ${form.bank_branch}` : ""}` : null,
+    form.bank_account_name ? `Account name: ${form.bank_account_name}` : null,
+    form.bank_account_no ? `Account no: ${form.bank_account_no}` : null,
+  ].filter(Boolean) as string[];
+
+  const _unusedSaveInsurerPicks = async () => {
+    try {
+      await saveInsurers({ data: { insurer_ids: [...selected] } });
+      toast.success("Underwriters saved");
+      qc.invalidateQueries({ queryKey: ["my-tenant-insurers"] });
+      qc.invalidateQueries({ queryKey: ["my-insurers"] });
+    } catch (e: any) { toast.error(e.message); }
+  };
+
   return (
     <div className="p-8 space-y-6 max-w-4xl">
       <PageHeader
