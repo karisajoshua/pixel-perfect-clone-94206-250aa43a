@@ -21,6 +21,8 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import logoRed from "@/assets/zia-logo-red.png.asset.json";
 import { TenantBrandProvider, useTenantBrand } from "@/components/tenant-brand-provider";
+import { TourProvider, TourRestartButton } from "@/components/tour/tour-provider";
+import { PORTAL_TOUR_ID, portalTourSteps } from "@/components/tour/tour-steps";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
 const nav: NavItem[] = [
@@ -48,7 +50,9 @@ const mobileMoreItems: NavItem[] = [
 export function PortalShell({ children }: { children: ReactNode }) {
   return (
     <TenantBrandProvider>
-      <PortalShellInner>{children}</PortalShellInner>
+      <TourProvider tourId={PORTAL_TOUR_ID} steps={portalTourSteps}>
+        <PortalShellInner>{children}</PortalShellInner>
+      </TourProvider>
     </TenantBrandProvider>
   );
 }
@@ -113,6 +117,7 @@ function PortalShellInner({ children }: { children: ReactNode }) {
                 <DropdownMenuItem onClick={() => navigate({ to: "/portal/profile" })}>
                   <UserCircle className="h-4 w-4 mr-2" /> Profile
                 </DropdownMenuItem>
+                <PortalTourMenuItem />
                 <DropdownMenuItem onClick={signOut}>
                   <LogOut className="h-4 w-4 mr-2" /> Sign out
                 </DropdownMenuItem>
@@ -130,6 +135,7 @@ function PortalShellInner({ children }: { children: ReactNode }) {
                 <Link
                   key={n.to}
                   to={n.to}
+                  data-tour={`portal-nav-${n.to}`}
                   className={cn(
                     "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
                     active ? "bg-primary/10 text-primary font-medium" : "text-foreground/80 hover:bg-muted",
@@ -167,6 +173,7 @@ function PortalShellInner({ children }: { children: ReactNode }) {
               <li key={n.to}>
                 <Link
                   to={n.to}
+                  data-tour={`portal-nav-${n.to}`}
                   className={cn(
                     "relative flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] text-[10px] font-medium transition-colors",
                     active ? "text-primary" : "text-muted-foreground",
@@ -204,6 +211,7 @@ function PortalShellInner({ children }: { children: ReactNode }) {
                       <Link
                         key={n.to}
                         to={n.to}
+                        data-tour={`portal-nav-${n.to}`}
                         className={cn(
                           "flex items-center gap-3 rounded-lg px-3 py-3 text-sm",
                           active ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted",
@@ -214,6 +222,7 @@ function PortalShellInner({ children }: { children: ReactNode }) {
                       </Link>
                     );
                   })}
+                  <TourRestartButton className="hover:bg-muted" />
                   <button
                     onClick={signOut}
                     className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-destructive hover:bg-destructive/10 text-left"
