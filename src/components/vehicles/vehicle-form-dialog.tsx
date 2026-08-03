@@ -403,13 +403,15 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
                 ? "Editing this vehicle's current policy."
                 : suggestedCoverId
                   ? `Prefilled from this client's policy ${suggestedCoverNo ?? ""} — saving will link it to this vehicle.`
-                  : "Optional — fill these in to record cover for this vehicle. Policy number, commencement and expiry are required to create one."}
+                  : copiedCoverFrom
+                    ? `Copied from ${copiedCoverFrom.policy_no ?? "this client's policy"}${copiedCoverFrom.reg ? ` on ${copiedCoverFrom.reg}` : ""} — check the details before saving. A new policy record will be created for this vehicle.`
+                    : "Optional — fill these in to record cover for this vehicle. Policy number, commencement and expiry are required to create one."}
             </p>
-            {suggestedCoverId && (
+            {(suggestedCoverId || copiedCoverFrom) && (
               <button
                 type="button"
                 className="text-xs underline text-muted-foreground mt-1"
-                onClick={() => { setSuggestedCoverId(null); setSuggestedCoverNo(null); setCover({}); }}
+                onClick={() => { setSuggestedCoverId(null); setSuggestedCoverNo(null); setCopiedCoverFrom(null); setCover({}); }}
               >Clear and start blank</button>
             )}
           </div>
