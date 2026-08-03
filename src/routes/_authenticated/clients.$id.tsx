@@ -150,7 +150,6 @@ function ClientDetail() {
           <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
           <TabsTrigger value="kyc">KYC</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="comms">Communications</TabsTrigger>
         </TabsList>
         <TabsContent value="overview">
           <Card>
@@ -181,9 +180,6 @@ function ClientDetail() {
         </TabsContent>
         <TabsContent value="documents">
           <ClientDocuments clientId={id} />
-        </TabsContent>
-        <TabsContent value="comms">
-          <ClientCommunications clientId={id} />
         </TabsContent>
       </Tabs>
 
