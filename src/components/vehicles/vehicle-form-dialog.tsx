@@ -36,6 +36,7 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
   const [coverId, setCoverId] = useState<string | null>(null);
   const [suggestedCoverId, setSuggestedCoverId] = useState<string | null>(null);
   const [suggestedCoverNo, setSuggestedCoverNo] = useState<string | null>(null);
+  const [copiedCoverFrom, setCopiedCoverFrom] = useState<{ policy_no: string | null; reg: string | null } | null>(null);
   const [cover, setCover] = useState<any>({});
   const fileRef = useRef<HTMLInputElement>(null);
   const extractFn = useServerFn(extractLogbookFields);
@@ -67,8 +68,9 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
     setCoverId(null);
     setSuggestedCoverId(null);
     setSuggestedCoverNo(null);
+    setCopiedCoverFrom(null);
     let cancelled = false;
-    const cols = "id, policy_no, certificate_no, start_date, end_date, insurer_id, policy_term, status";
+    const cols = "id, policy_no, certificate_no, start_date, end_date, insurer_id, policy_term, status, vehicles(registration_no)";
     const fill = (data: any) => setCover({
       policy_no: data.policy_no ?? "",
       certificate_no: data.certificate_no ?? "",
@@ -94,10 +96,21 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
         .from("policies").select(cols)
         .eq("client_id", clientId).is("vehicle_id", null).neq("status", "cancelled")
         .order("start_date", { ascending: false }).limit(1).maybeSingle();
-      if (cancelled || !data) return;
-      setSuggestedCoverId(data.id);
-      setSuggestedCoverNo(data.policy_no ?? null);
-      fill(data);
+      if (cancelled) return;
+      if (data) {
+        setSuggestedCoverId(data.id);
+        setSuggestedCoverNo(data.policy_no ?? null);
+        fill(data);
+        return;
+      }
+      // 3. Otherwise copy the client's most recent policy (attached to another vehicle)
+      const { data: other } = await supabase
+        .from("policies").select(cols)
+        .eq("client_id", clientId).neq("status", "cancelled")
+        .order("start_date", { ascending: false }).limit(1).maybeSingle();
+      if (cancelled || !other) return;
+      setCopiedCoverFrom({ policy_no: other.policy_no ?? null, reg: (other as any).vehicles?.registration_no ?? null });
+      fill(other);
     })();
     return () => { cancelled = true; };
   }, [open, initial?.id, initial?.client_id, defaultClientId]);
@@ -390,13 +403,15 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
                 ? "Editing this vehicle's current policy."
                 : suggestedCoverId
                   ? `Prefilled from this client's policy ${suggestedCoverNo ?? ""} — saving will link it to this vehicle.`
-                  : "Optional — fill these in to record cover for this vehicle. Policy number, commencement and expiry are required to create one."}
+                  : copiedCoverFrom
+                    ? `Copied from ${copiedCoverFrom.policy_no ?? "this client's policy"}${copiedCoverFrom.reg ? ` on ${copiedCoverFrom.reg}` : ""} — check the details before saving. A new policy record will be created for this vehicle.`
+                    : "Optional — fill these in to record cover for this vehicle. Policy number, commencement and expiry are required to create one."}
             </p>
-            {suggestedCoverId && (
+            {(suggestedCoverId || copiedCoverFrom) && (
               <button
                 type="button"
                 className="text-xs underline text-muted-foreground mt-1"
-                onClick={() => { setSuggestedCoverId(null); setSuggestedCoverNo(null); setCover({}); }}
+                onClick={() => { setSuggestedCoverId(null); setSuggestedCoverNo(null); setCopiedCoverFrom(null); setCover({}); }}
               >Clear and start blank</button>
             )}
           </div>
