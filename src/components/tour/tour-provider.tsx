@@ -151,10 +151,20 @@ function Spotlight({
 
   const vh = typeof window !== "undefined" ? window.innerHeight : 800;
   const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
-  const below = rect.top + rect.height + 12;
-  const placeBelow = below + 200 < vh;
-  const cardTop = placeBelow ? below : Math.max(12, rect.top - 212);
-  const cardLeft = Math.min(Math.max(12, rect.left), Math.max(12, vw - 340));
+  const cardW = Math.min(320, vw - 24);
+  const cardH = 210;
+  const rightRoom = vw - (rect.left + rect.width + 16) > cardW;
+  let cardTop: number;
+  let cardLeft: number;
+  if (rightRoom && rect.width < vw * 0.5) {
+    // Anchor beside narrow targets (sidebar links, buttons) instead of covering neighbours.
+    cardLeft = rect.left + rect.width + 16;
+    cardTop = Math.min(Math.max(12, rect.top - 8), Math.max(12, vh - cardH - 12));
+  } else {
+    const below = rect.top + rect.height + 12;
+    cardTop = below + cardH < vh ? below : Math.max(12, rect.top - cardH - 12);
+    cardLeft = Math.min(Math.max(12, rect.left), Math.max(12, vw - cardW - 12));
+  }
 
   return (
     <>
