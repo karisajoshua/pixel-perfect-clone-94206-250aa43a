@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PageHeader } from "@/components/page-header";
-import { Plus, Pencil, ArrowRight, Download, Check, X, Send, Search } from "lucide-react";
+import { Plus, Pencil, ArrowRight, Download, Check, X, Send, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { downloadQuotationPdf } from "@/lib/quotation-pdf";
 import { useMyRoles } from "@/hooks/use-auth";
@@ -44,6 +44,7 @@ function QuotationsPage() {
   });
 
   const convert = async (q: any) => {
+    // eslint-disable-next-line no-alert
     if (!confirm(`Convert ${q.quote_no} to a policy?`)) return;
     const { data: u } = await supabase.auth.getUser();
     const today = new Date();
