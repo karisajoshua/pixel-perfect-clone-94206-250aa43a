@@ -10,7 +10,6 @@ import { ArrowLeft, Pencil, Upload, MessageSquarePlus, FileText, Trash2 } from "
 import { PageHeader } from "@/components/page-header";
 import { ClientFormDialog, CredentialsDialog, type PortalCreds } from "@/components/clients/client-form-dialog";
 import { ClientDocuments } from "@/components/clients/client-documents";
-import { ClientCommunications } from "@/components/clients/client-communications";
 import { ClientKycPanel } from "@/components/clients/client-kyc-panel";
 import { ClientVehicles } from "@/components/clients/client-vehicles";
 import { useServerFn } from "@tanstack/react-start";
@@ -150,7 +149,6 @@ function ClientDetail() {
           <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
           <TabsTrigger value="kyc">KYC</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="comms">Communications</TabsTrigger>
         </TabsList>
         <TabsContent value="overview">
           <Card>
@@ -181,9 +179,6 @@ function ClientDetail() {
         </TabsContent>
         <TabsContent value="documents">
           <ClientDocuments clientId={id} />
-        </TabsContent>
-        <TabsContent value="comms">
-          <ClientCommunications clientId={id} />
         </TabsContent>
       </Tabs>
 
