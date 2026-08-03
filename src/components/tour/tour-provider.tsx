@@ -97,7 +97,7 @@ function Spotlight({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onKey0(onNext), onBack, onSkip]);
+  }, [onNext, onBack, onSkip]);
 
   const isLast = index === steps.length - 1;
 
