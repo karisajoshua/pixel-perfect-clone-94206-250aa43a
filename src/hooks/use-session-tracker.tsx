@@ -12,6 +12,11 @@ export function useSessionTracker() {
   const idRef = useRef<string | null>(null);
   const startedRef = useRef(false);
 
+  const hasToken = async () => {
+    const { data } = await supabase.auth.getSession();
+    return Boolean(data.session?.access_token);
+  };
+
   useEffect(() => {
     let cancelled = false;
 
@@ -44,15 +49,17 @@ export function useSessionTracker() {
       startedRef.current = false;
       if (clearStore && typeof window !== "undefined") sessionStorage.removeItem(STORAGE_KEY);
       try {
+        if (!(await hasToken())) return;
         await endFn({ data: { id } });
       } catch {}
     };
 
     ensureStart();
 
-    const beat = () => {
+    const beat = async () => {
       const id = idRef.current;
       if (!id || document.visibilityState !== "visible") return;
+      if (!(await hasToken())) return;
       beatFn({ data: { id } }).catch(() => {});
     };
     const interval = window.setInterval(beat, 60_000);
@@ -67,7 +74,7 @@ export function useSessionTracker() {
     const onUnload = () => {
       const id = idRef.current;
       if (!id) return;
-      endFn({ data: { id } }).catch(() => {});
+      void endNow(false);
     };
     window.addEventListener("beforeunload", onUnload);
 
