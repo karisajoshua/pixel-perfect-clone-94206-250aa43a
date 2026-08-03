@@ -44,7 +44,7 @@ function ClaimsPage() {
   return (
     <div className="p-8 space-y-6">
       <PageHeader title="Claims" subtitle="Incident reports tracked from first notice to settlement."
-        actions={<Button onClick={() => { setEdit(null); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> New claim</Button>} />
+        actions={<Button data-tour="claims-new" onClick={() => { setEdit(null); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> New claim</Button>} />
       <div className="flex gap-1 flex-wrap">
         {["all", ...STATUSES].map(s => (
           <Button key={s} size="sm" variant={status === s ? "default" : "outline"} onClick={() => setStatus(s)}>{s.replace("_", " ")}</Button>

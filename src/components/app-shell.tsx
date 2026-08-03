@@ -16,6 +16,8 @@ import logoWhite from "@/assets/zia-logo-white.png.asset.json";
 import { AiAssistant } from "@/components/ai-assistant";
 import { TenantBrandProvider, useTenantBrand } from "@/components/tenant-brand-provider";
 import { PlatformNoticeBanner } from "@/components/platform-notice-banner";
+import { TourProvider, TourRestartButton } from "@/components/tour/tour-provider";
+import { STAFF_TOUR_ID, staffTourSteps } from "@/components/tour/tour-steps";
 
 type Role = "admin" | "manager" | "agent" | "viewer" | "client";
 const nav: { to: string; label: string; icon: typeof Users; roles: Role[] }[] = [
@@ -121,6 +123,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
         )}
       </nav>
       <div className="p-3 border-t border-sidebar-border">
+        <TourRestartButton className="w-full text-sidebar-foreground/80 hover:bg-sidebar-accent/60" />
         <div className="px-3 py-2 text-xs">
           <div className="font-medium truncate">{profile?.full_name ?? "Loading…"}</div>
           <div className="text-sidebar-foreground/60 truncate">{roles?.join(", ") || "—"}</div>
@@ -132,7 +135,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
     </>
   );
 
-  return (
+  const shell = (
     <div className="min-h-screen flex bg-background text-foreground">
       <aside className="hidden lg:flex w-64 shrink-0 bg-sidebar text-sidebar-foreground flex-col sticky top-0 h-screen max-h-screen overflow-hidden">
         {sidebarContent}
@@ -204,12 +207,24 @@ function AppShellInner({ children }: { children: ReactNode }) {
       <AiAssistant />
     </div>
   );
+
+  return (
+    <TourProvider
+      tourId={STAFF_TOUR_ID}
+      steps={staffTourSteps}
+      roles={roles ?? []}
+      enabled={!!roles && roles.length > 0}
+    >
+      {shell}
+    </TourProvider>
+  );
 }
 
 function SideLink({ to, label, Icon, active }: { to: string; label: string; Icon: typeof Users; active: boolean }) {
   return (
     <Link
       to={to}
+      data-tour={`nav-${to}`}
       className={cn(
         "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
         active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60",

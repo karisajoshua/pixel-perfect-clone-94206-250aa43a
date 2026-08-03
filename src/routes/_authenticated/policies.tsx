@@ -45,7 +45,7 @@ function PoliciesList() {
   return (
     <div className="p-8 space-y-6">
       <PageHeader title="Policies" subtitle="All issued and in-force policies."
-        actions={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" /> New policy</Button>} />
+        actions={<Button data-tour="policies-new" onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" /> New policy</Button>} />
 
       <div className="flex flex-wrap gap-3">
         <div className="relative max-w-md flex-1 min-w-[200px]">

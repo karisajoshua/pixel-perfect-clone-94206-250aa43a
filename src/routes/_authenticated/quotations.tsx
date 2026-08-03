@@ -159,7 +159,7 @@ function QuotationsPage() {
             <Button variant="outline" onClick={() => setLifeOpen(true)}>
               <Heart className="h-4 w-4 mr-1" /> IPEN life quote
             </Button>
-            <Button onClick={() => { setEdit(null); setOpen(true); }}>
+            <Button data-tour="quotations-new" onClick={() => { setEdit(null); setOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> New quote
             </Button>
           </div>

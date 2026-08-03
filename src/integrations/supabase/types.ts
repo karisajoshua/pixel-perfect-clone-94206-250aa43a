@@ -1718,6 +1718,36 @@ export type Database = {
           },
         ]
       }
+      user_tour_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          last_step: number
+          status: string
+          tour_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          last_step?: number
+          status?: string
+          tour_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          last_step?: number
+          status?: string
+          tour_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       vehicles: {
         Row: {
           active: boolean
