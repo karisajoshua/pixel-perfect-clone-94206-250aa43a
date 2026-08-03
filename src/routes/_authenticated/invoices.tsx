@@ -66,7 +66,7 @@ function InvoicesList() {
   return (
     <div className="p-8 space-y-6">
       <PageHeader title="Invoices" subtitle="Premium and fee billing."
-        actions={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" /> New invoice</Button>} />
+        actions={<Button data-tour="invoices-new" onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" /> New invoice</Button>} />
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative w-full sm:w-auto sm:min-w-[280px]">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
