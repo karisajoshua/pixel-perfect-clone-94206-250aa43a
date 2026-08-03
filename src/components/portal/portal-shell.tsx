@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getPortalOverview } from "@/lib/portal.functions";
 import { KycBanner } from "@/components/portal/kyc-banner";
-import { LayoutDashboard, FileText, Car, Receipt, ScrollText, FolderOpen, UserCircle, LogOut, MoreHorizontal, Home } from "lucide-react";
+import { LayoutDashboard, FileText, Car, Receipt, ScrollText, FolderOpen, UserCircle, LogOut, MoreHorizontal, Home, Compass } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyProfile } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import logoRed from "@/assets/zia-logo-red.png.asset.json";
 import { TenantBrandProvider, useTenantBrand } from "@/components/tenant-brand-provider";
-import { TourProvider, TourRestartButton } from "@/components/tour/tour-provider";
+import { TourProvider, TourRestartButton, useTour } from "@/components/tour/tour-provider";
 import { PORTAL_TOUR_ID, portalTourSteps } from "@/components/tour/tour-steps";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
