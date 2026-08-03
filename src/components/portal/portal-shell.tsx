@@ -25,6 +25,15 @@ import { TourProvider, TourRestartButton } from "@/components/tour/tour-provider
 import { PORTAL_TOUR_ID, portalTourSteps } from "@/components/tour/tour-steps";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
+
+function PortalTourMenuItem() {
+  const { start } = useTour();
+  return (
+    <DropdownMenuItem onClick={start}>
+      <Compass className="h-4 w-4 mr-2" /> Take the tour
+    </DropdownMenuItem>
+  );
+}
 const nav: NavItem[] = [
   { to: "/portal", label: "Overview", icon: LayoutDashboard, exact: true },
   { to: "/portal/policies", label: "My Policies", icon: FileText },
