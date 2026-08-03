@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PageHeader } from "@/components/page-header";
-import { Plus, Pencil, ArrowRight, Download, Check, X, Send, Search } from "lucide-react";
+import { Plus, Pencil, ArrowRight, Download, Check, X, Send, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { downloadQuotationPdf } from "@/lib/quotation-pdf";
 import { useMyRoles } from "@/hooks/use-auth";
@@ -44,6 +44,7 @@ function QuotationsPage() {
   });
 
   const convert = async (q: any) => {
+    // eslint-disable-next-line no-alert
     if (!confirm(`Convert ${q.quote_no} to a policy?`)) return;
     const { data: u } = await supabase.auth.getUser();
     const today = new Date();
@@ -119,6 +120,18 @@ function QuotationsPage() {
     const { error } = await supabase.from("quotations").insert(newQuote);
     if (error) return toast.error(error.message);
     toast.success("Revision created");
+    qc.invalidateQueries({ queryKey: ["quotations"] });
+  };
+
+  const remove = async (q: any) => {
+    if (q.status === "converted") {
+      return toast.error("This quote was converted to a policy. Cancel the policy first.");
+    }
+    if (!confirm(`Delete quote ${q.quote_no}? This cannot be undone.`)) return;
+    await supabase.from("quotations").update({ parent_quote_id: null }).eq("parent_quote_id", q.id);
+    const { error } = await supabase.from("quotations").delete().eq("id", q.id);
+    if (error) return toast.error(error.message);
+    toast.success(`${q.quote_no} deleted`);
     qc.invalidateQueries({ queryKey: ["quotations"] });
   };
 
@@ -208,6 +221,11 @@ function QuotationsPage() {
                       )}
                       {q.status !== "converted" && (
                         <Button size="sm" variant="outline" onClick={() => convert(q)}>Convert <ArrowRight className="h-3 w-3 ml-1" /></Button>
+                      )}
+                      {canApprove && q.status !== "converted" && (
+                        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => remove(q)} aria-label={`Delete ${q.quote_no}`}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       )}
                     </td>
                   </tr>
