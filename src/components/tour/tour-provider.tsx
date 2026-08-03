@@ -46,7 +46,11 @@ function useElementRect(selector: string | undefined, stepIndex: number) {
     let scrolled = false;
     const tick = () => {
       if (cancelled) return;
-      const el = document.querySelector(selector) as HTMLElement | null;
+      const candidates = Array.from(document.querySelectorAll(selector)) as HTMLElement[];
+      const el = candidates.find((c) => {
+        const r = c.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      });
       if (el) {
         if (!scrolled) {
           scrolled = true;
