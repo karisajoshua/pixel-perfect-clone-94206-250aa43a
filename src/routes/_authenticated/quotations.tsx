@@ -123,6 +123,18 @@ function QuotationsPage() {
     qc.invalidateQueries({ queryKey: ["quotations"] });
   };
 
+  const remove = async (q: any) => {
+    if (q.status === "converted") {
+      return toast.error("This quote was converted to a policy. Cancel the policy first.");
+    }
+    if (!confirm(`Delete quote ${q.quote_no}? This cannot be undone.`)) return;
+    await supabase.from("quotations").update({ parent_quote_id: null }).eq("parent_quote_id", q.id);
+    const { error } = await supabase.from("quotations").delete().eq("id", q.id);
+    if (error) return toast.error(error.message);
+    toast.success(`${q.quote_no} deleted`);
+    qc.invalidateQueries({ queryKey: ["quotations"] });
+  };
+
   const handleDownload = async (quoteId: string) => {
     const t = toast.loading("Preparing PDF…");
     try {
