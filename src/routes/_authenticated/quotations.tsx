@@ -222,6 +222,11 @@ function QuotationsPage() {
                       {q.status !== "converted" && (
                         <Button size="sm" variant="outline" onClick={() => convert(q)}>Convert <ArrowRight className="h-3 w-3 ml-1" /></Button>
                       )}
+                      {canApprove && q.status !== "converted" && (
+                        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => remove(q)} aria-label={`Delete ${q.quote_no}`}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 );
