@@ -82,14 +82,14 @@ function ClientsList() {
                 <Download className="h-4 w-4 mr-1" /> Export
               </Button>
             )}
-            <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" /> New client</Button>
+            <Button data-tour="clients-new" onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" /> New client</Button>
           </div>
         }
       />
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search name, email, phone…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        <Input data-tour="clients-search" placeholder="Search name, email, phone…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
       </div>
 
       <Card>
