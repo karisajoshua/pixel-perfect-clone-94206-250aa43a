@@ -32,6 +32,9 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
   const [autoFilled, setAutoFilled] = useState<Set<string>>(new Set());
   const [scanning, setScanning] = useState(false);
   const [storedLogbook, setStoredLogbook] = useState<{ storage_path: string; file_name: string; doc_type: string } | null>(null);
+  const [insurers, setInsurers] = useState<any[]>([]);
+  const [coverId, setCoverId] = useState<string | null>(null);
+  const [cover, setCover] = useState<any>({});
   const fileRef = useRef<HTMLInputElement>(null);
   const extractFn = useServerFn(extractLogbookFields);
   const getStoredFn = useServerFn(getClientLogbookDoc);
@@ -53,6 +56,37 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
     }
     supabase.from("branches").select("id, name").order("name").then(({ data }) => setBranches(data ?? []));
   }, [open, initial, defaultClientId]);
+
+  // Load insurers + the vehicle's current cover
+  useEffect(() => {
+    if (!open) return;
+    supabase.from("insurers").select("id, name").eq("active", true).order("name").then(({ data }) => setInsurers(data ?? []));
+    setCover({});
+    setCoverId(null);
+    if (!initial?.id) return;
+    let cancelled = false;
+    supabase
+      .from("policies")
+      .select("id, policy_no, certificate_no, start_date, end_date, insurer_id, policy_term, status")
+      .eq("vehicle_id", initial.id)
+      .neq("status", "cancelled")
+      .order("start_date", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        setCoverId(data.id);
+        setCover({
+          policy_no: data.policy_no ?? "",
+          certificate_no: data.certificate_no ?? "",
+          start_date: data.start_date ?? "",
+          end_date: data.end_date ?? "",
+          insurer_id: data.insurer_id ?? "",
+          policy_term: data.policy_term ?? "",
+        });
+      });
+    return () => { cancelled = true; };
+  }, [open, initial?.id]);
 
   // Hydrate typed text when editing an existing vehicle (fetch the single selected client)
   useEffect(() => {
@@ -108,12 +142,54 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
     ] as const;
     const clean: any = {};
     for (const k of COLS) if (form[k] !== undefined) clean[k] = form[k];
-    const op = initial?.id
-      ? supabase.from("vehicles").update(clean).eq("id", initial.id)
-      : supabase.from("vehicles").insert({ ...clean, created_by: u.user?.id } as any);
-    const { error } = await op;
+    let vehicleId = initial?.id as string | undefined;
+    if (vehicleId) {
+      const { error } = await supabase.from("vehicles").update(clean).eq("id", vehicleId);
+      if (error) { setSaving(false); return toast.error(error.message); }
+    } else {
+      const { data: created, error } = await supabase
+        .from("vehicles")
+        .insert({ ...clean, created_by: u.user?.id } as any)
+        .select("id")
+        .single();
+      if (error || !created) { setSaving(false); return toast.error(error?.message ?? "Could not save vehicle"); }
+      vehicleId = created.id;
+    }
+
+    // Cover details (optional) — update the existing policy or create one
+    const hasCover = ["policy_no", "certificate_no", "start_date", "end_date", "insurer_id", "policy_term"]
+      .some((k) => cover[k]);
+    if (hasCover) {
+      const payload: any = {
+        policy_no: cover.policy_no || null,
+        certificate_no: cover.certificate_no || null,
+        start_date: cover.start_date || null,
+        end_date: cover.end_date || null,
+        insurer_id: cover.insurer_id || null,
+        policy_term: cover.policy_term || null,
+      };
+      if (coverId) {
+        const { error: pErr } = await supabase.from("policies").update(payload).eq("id", coverId);
+        if (pErr) { setSaving(false); return toast.error(`Vehicle saved, but cover failed: ${pErr.message}`); }
+      } else {
+        if (!payload.policy_no || !payload.start_date || !payload.end_date) {
+          setSaving(false);
+          return toast.error("To add cover, provide policy number, commencement and expiry date.");
+        }
+        const { error: pErr } = await supabase.from("policies").insert({
+          ...payload,
+          client_id: form.client_id,
+          vehicle_id: vehicleId,
+          branch_id: form.branch_id ?? null,
+          product_class: "motor",
+          cover_type: "comprehensive",
+          status: "active",
+          created_by: u.user?.id,
+        } as any);
+        if (pErr) { setSaving(false); return toast.error(`Vehicle saved, but cover failed: ${pErr.message}`); }
+      }
+    }
     setSaving(false);
-    if (error) return toast.error(error.message);
     toast.success(initial?.id ? "Vehicle updated" : "Vehicle added");
     onSaved?.(); onOpenChange(false);
   };
@@ -287,6 +363,42 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
           <F label="Estimated value (KES)" type="number" value={form.estimated_value} onChange={(v) => set("estimated_value", v ? Number(v) : null)} />
           <F label="Inspection due" type="date" value={form.inspection_due} onChange={(v) => set("inspection_due", v || null)} />
           <div className="sm:col-span-2 space-y-1.5"><Label>Notes</Label><Textarea rows={2} value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value)} /></div>
+        </div>
+
+        <div className="rounded-md border p-3 space-y-3">
+          <div>
+            <div className="text-sm font-medium">Cover details</div>
+            <p className="text-xs text-muted-foreground">
+              {coverId
+                ? "Editing this vehicle's current policy."
+                : "Optional — fill these in to record cover for this vehicle. Policy number, commencement and expiry are required to create one."}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <F label="Policy number" value={cover.policy_no} onChange={(v) => setCover((c: any) => ({ ...c, policy_no: v.toUpperCase() }))} />
+            <F label="Certificate number" value={cover.certificate_no} onChange={(v) => setCover((c: any) => ({ ...c, certificate_no: v.toUpperCase() }))} />
+            <F label="Commencement date" type="date" value={cover.start_date} onChange={(v) => setCover((c: any) => ({ ...c, start_date: v }))} />
+            <F label="Expiry date" type="date" value={cover.end_date} onChange={(v) => setCover((c: any) => ({ ...c, end_date: v }))} />
+            <div className="space-y-1.5 min-w-0">
+              <Label>Insurer</Label>
+              <Select value={cover.insurer_id || ""} onValueChange={(v) => setCover((c: any) => ({ ...c, insurer_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Insurer" /></SelectTrigger>
+                <SelectContent>{insurers.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5 min-w-0">
+              <Label>Policy term</Label>
+              <Select value={cover.policy_term || ""} onValueChange={(v) => setCover((c: any) => ({ ...c, policy_term: v }))}>
+                <SelectTrigger><SelectValue placeholder="Term" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tor">One month (TOR)</SelectItem>
+                  <SelectItem value="one_month_extendable">One month extendable</SelectItem>
+                  <SelectItem value="six_months">6 months</SelectItem>
+                  <SelectItem value="annual">Annual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
