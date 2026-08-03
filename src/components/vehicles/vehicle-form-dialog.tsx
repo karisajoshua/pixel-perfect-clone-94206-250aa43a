@@ -34,6 +34,8 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
   const [storedLogbook, setStoredLogbook] = useState<{ storage_path: string; file_name: string; doc_type: string } | null>(null);
   const [insurers, setInsurers] = useState<any[]>([]);
   const [coverId, setCoverId] = useState<string | null>(null);
+  const [suggestedCoverId, setSuggestedCoverId] = useState<string | null>(null);
+  const [suggestedCoverNo, setSuggestedCoverNo] = useState<string | null>(null);
   const [cover, setCover] = useState<any>({});
   const fileRef = useRef<HTMLInputElement>(null);
   const extractFn = useServerFn(extractLogbookFields);
@@ -63,30 +65,42 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
     supabase.from("insurers").select("id, name").eq("active", true).order("name").then(({ data }) => setInsurers(data ?? []));
     setCover({});
     setCoverId(null);
-    if (!initial?.id) return;
+    setSuggestedCoverId(null);
+    setSuggestedCoverNo(null);
     let cancelled = false;
-    supabase
-      .from("policies")
-      .select("id, policy_no, certificate_no, start_date, end_date, insurer_id, policy_term, status")
-      .eq("vehicle_id", initial.id)
-      .neq("status", "cancelled")
-      .order("start_date", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled || !data) return;
-        setCoverId(data.id);
-        setCover({
-          policy_no: data.policy_no ?? "",
-          certificate_no: data.certificate_no ?? "",
-          start_date: data.start_date ?? "",
-          end_date: data.end_date ?? "",
-          insurer_id: data.insurer_id ?? "",
-          policy_term: data.policy_term ?? "",
-        });
-      });
+    const cols = "id, policy_no, certificate_no, start_date, end_date, insurer_id, policy_term, status";
+    const fill = (data: any) => setCover({
+      policy_no: data.policy_no ?? "",
+      certificate_no: data.certificate_no ?? "",
+      start_date: data.start_date ?? "",
+      end_date: data.end_date ?? "",
+      insurer_id: data.insurer_id ?? "",
+      policy_term: data.policy_term ?? "",
+    });
+    (async () => {
+      // 1. A policy already linked to this vehicle
+      if (initial?.id) {
+        const { data } = await supabase
+          .from("policies").select(cols)
+          .eq("vehicle_id", initial.id).neq("status", "cancelled")
+          .order("start_date", { ascending: false }).limit(1).maybeSingle();
+        if (cancelled) return;
+        if (data) { setCoverId(data.id); fill(data); return; }
+      }
+      // 2. Otherwise suggest the client's most recent unattached policy
+      const clientId = initial?.client_id ?? defaultClientId;
+      if (!clientId) return;
+      const { data } = await supabase
+        .from("policies").select(cols)
+        .eq("client_id", clientId).is("vehicle_id", null).neq("status", "cancelled")
+        .order("start_date", { ascending: false }).limit(1).maybeSingle();
+      if (cancelled || !data) return;
+      setSuggestedCoverId(data.id);
+      setSuggestedCoverNo(data.policy_no ?? null);
+      fill(data);
+    })();
     return () => { cancelled = true; };
-  }, [open, initial?.id]);
+  }, [open, initial?.id, initial?.client_id, defaultClientId]);
 
   // Hydrate typed text when editing an existing vehicle (fetch the single selected client)
   useEffect(() => {
@@ -168,8 +182,11 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
         insurer_id: cover.insurer_id || null,
         policy_term: cover.policy_term || null,
       };
-      if (coverId) {
-        const { error: pErr } = await supabase.from("policies").update(payload).eq("id", coverId);
+      if (coverId || suggestedCoverId) {
+        const { error: pErr } = await supabase
+          .from("policies")
+          .update(coverId ? payload : { ...payload, vehicle_id: vehicleId })
+          .eq("id", (coverId ?? suggestedCoverId)!);
         if (pErr) { setSaving(false); return toast.error(`Vehicle saved, but cover failed: ${pErr.message}`); }
       } else {
         if (!payload.policy_no || !payload.start_date || !payload.end_date) {
@@ -371,8 +388,17 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
             <p className="text-xs text-muted-foreground">
               {coverId
                 ? "Editing this vehicle's current policy."
-                : "Optional — fill these in to record cover for this vehicle. Policy number, commencement and expiry are required to create one."}
+                : suggestedCoverId
+                  ? `Prefilled from this client's policy ${suggestedCoverNo ?? ""} — saving will link it to this vehicle.`
+                  : "Optional — fill these in to record cover for this vehicle. Policy number, commencement and expiry are required to create one."}
             </p>
+            {suggestedCoverId && (
+              <button
+                type="button"
+                className="text-xs underline text-muted-foreground mt-1"
+                onClick={() => { setSuggestedCoverId(null); setSuggestedCoverNo(null); setCover({}); }}
+              >Clear and start blank</button>
+            )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <F label="Policy number" value={cover.policy_no} onChange={(v) => setCover((c: any) => ({ ...c, policy_no: v.toUpperCase() }))} />
