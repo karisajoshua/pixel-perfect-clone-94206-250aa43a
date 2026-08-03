@@ -75,6 +75,11 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
 
       {vehicles.map((v: any) => {
         const policies = [...(v.policies ?? [])].sort((a: any, b: any) => (b.start_date ?? "").localeCompare(a.start_date ?? ""));
+        const today = new Date().toISOString().slice(0, 10);
+        const active = policies.find(
+          (p: any) => p.status === "active" && (!p.start_date || p.start_date <= today) && (!p.end_date || p.end_date >= today)
+        );
+        const shown = active ?? policies.find((p: any) => p.status !== "cancelled") ?? policies[0];
         const docItems = docs?.groups?.find((g: any) => g.vehicle_id === v.id)?.items;
         return (
           <Card key={v.id}>
@@ -100,6 +105,27 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
               </div>
             </CardHeader>
             <CardContent className="space-y-5">
+              <div className="rounded-md border bg-muted/30 p-3">
+                {shown ? (
+                  <>
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                      {active ? "Active cover" : "Latest cover (not active)"}
+                    </div>
+                    <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2 text-sm">
+                      <D label="Policy no." value={shown.policy_no} mono />
+                      <D label="Certificate no." value={shown.certificate_no} mono />
+                      <D label="Commencing" value={shown.start_date} />
+                      <D label="Expiry" value={shown.end_date} />
+                    </dl>
+                  </>
+                ) : (
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm text-muted-foreground">No active cover on record.</span>
+                    <Button size="sm" variant="outline" onClick={() => { setEdit(v); setOpen(true); }}>Add cover</Button>
+                  </div>
+                )}
+              </div>
+
               <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 text-sm">
                 <D label="Chassis no." value={v.chassis_no} />
                 <D label="Engine no." value={v.engine_no} />
