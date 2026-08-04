@@ -447,6 +447,21 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
                 </SelectContent>
               </Select>
             </div>
+            <F label="Premium (KES)" type="number" value={cover.premium_gross}
+              onChange={(v) => setCover((c: any) => ({ ...c, premium_gross: v }))} />
+            <div className="space-y-1.5 min-w-0">
+              <Label>Payment status</Label>
+              <Select value={cover.payment_status || "unpaid"} onValueChange={(v) => setCover((c: any) => ({ ...c, payment_status: v }))}>
+                <SelectTrigger><SelectValue placeholder="Payment status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                  <SelectItem value="partial">Partially paid</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <F label="Balance due (KES)" type="number" value={cover.balance_due}
+              onChange={(v) => setCover((c: any) => ({ ...c, balance_due: v }))} />
           </div>
         </div>
         <DialogFooter>
