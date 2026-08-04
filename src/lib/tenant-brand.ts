@@ -24,6 +24,7 @@ export type TenantBrand = {
 };
 
 /** Neutral defaults — never another agency's details. */
+// eslint-disable-next-line
 const FALLBACK: TenantBrand = {
   name: "",
   tagline: "",
