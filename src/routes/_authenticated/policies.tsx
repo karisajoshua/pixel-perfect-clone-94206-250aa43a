@@ -35,6 +35,7 @@ function PoliciesList() {
         .order("end_date", { ascending: true })
         .limit(200);
       if (status === "rop") q = q.in("policy_term", ["six_months", "annual"]);
+      else if (status === "tor") q = q.in("policy_term", ["tor"]);
       else if (status !== "all") q = q.eq("status", status);
       if (search) q = q.or(`policy_no.ilike.%${search}%,certificate_no.ilike.%${search}%`);
       const { data, error } = await q;
@@ -54,8 +55,8 @@ function PoliciesList() {
           <Input placeholder="Search policy number…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
         <div className="flex gap-1 flex-wrap">
-          {["all", "active", "pending", "expired", "cancelled", "rop"].map((s) => (
-            <Button key={s} size="sm" variant={status === s ? "default" : "outline"} onClick={() => setStatus(s)}>{s === "rop" ? "ROP" : s}</Button>
+          {["all", "active", "pending", "expired", "cancelled", "rop", "tor"].map((s) => (
+            <Button key={s} size="sm" variant={status === s ? "default" : "outline"} onClick={() => setStatus(s)}>{s === "rop" ? "ROP" : s === "tor" ? "1 mo TOR" : s}</Button>
           ))}
         </div>
       </div>
