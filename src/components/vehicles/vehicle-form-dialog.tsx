@@ -70,7 +70,7 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
     setSuggestedCoverNo(null);
     setCopiedCoverFrom(null);
     let cancelled = false;
-    const cols = "id, policy_no, certificate_no, start_date, end_date, insurer_id, policy_term, status, vehicles(registration_no)";
+    const cols = "id, policy_no, certificate_no, start_date, end_date, insurer_id, policy_term, premium_gross, payment_status, balance_due, status, vehicles(registration_no)";
     const fill = (data: any) => setCover({
       policy_no: data.policy_no ?? "",
       certificate_no: data.certificate_no ?? "",
@@ -78,6 +78,9 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
       end_date: data.end_date ?? "",
       insurer_id: data.insurer_id ?? "",
       policy_term: data.policy_term ?? "",
+      premium_gross: data.premium_gross ?? "",
+      payment_status: data.payment_status ?? "unpaid",
+      balance_due: data.balance_due ?? "",
     });
     (async () => {
       // 1. A policy already linked to this vehicle
@@ -184,7 +187,7 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
     }
 
     // Cover details (optional) — update the existing policy or create one
-    const hasCover = ["policy_no", "certificate_no", "start_date", "end_date", "insurer_id", "policy_term"]
+    const hasCover = ["policy_no", "certificate_no", "start_date", "end_date", "insurer_id", "policy_term", "premium_gross"]
       .some((k) => cover[k]);
     if (hasCover) {
       const payload: any = {
@@ -194,6 +197,11 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
         end_date: cover.end_date || null,
         insurer_id: cover.insurer_id || null,
         policy_term: cover.policy_term || null,
+        premium_gross: cover.premium_gross === "" || cover.premium_gross === undefined || cover.premium_gross === null
+          ? null : Number(cover.premium_gross),
+        payment_status: cover.payment_status || "unpaid",
+        balance_due: cover.balance_due === "" || cover.balance_due === undefined || cover.balance_due === null
+          ? null : Number(cover.balance_due),
       };
       if (coverId || suggestedCoverId) {
         const { error: pErr } = await supabase
