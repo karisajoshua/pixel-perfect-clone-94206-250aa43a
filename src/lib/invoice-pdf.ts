@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import QRCode from "qrcode";
 import { getCurrentBrand } from "./tenant-brand";
+import { parseLocalDate } from "./date-only";
 
 type Branch = { name?: string | null; address?: string | null; phone?: string | null; email?: string | null } | null | undefined;
 type Client = { full_name?: string | null; company_name?: string | null; client_type?: string | null; email?: string | null; phone?: string | null } | null | undefined;
@@ -40,8 +41,8 @@ const money = (n: number) => `KES ${Number(n || 0).toLocaleString(undefined, { m
 
 const fmtDate = (d: any) => {
   if (!d) return "—";
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return String(d);
+  const dt = parseLocalDate(d);
+  if (!dt) return String(d);
   return dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 };
 
