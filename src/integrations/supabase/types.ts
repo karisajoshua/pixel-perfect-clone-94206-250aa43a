@@ -1587,6 +1587,8 @@ export type Database = {
           onboarded_at: string | null
           paybill_account: string | null
           plan: string
+          signatory_name: string | null
+          signatory_title: string | null
           slug: string | null
           stamp_url: string | null
           status: string
@@ -1617,6 +1619,8 @@ export type Database = {
           onboarded_at?: string | null
           paybill_account?: string | null
           plan?: string
+          signatory_name?: string | null
+          signatory_title?: string | null
           slug?: string | null
           stamp_url?: string | null
           status?: string
@@ -1647,6 +1651,8 @@ export type Database = {
           onboarded_at?: string | null
           paybill_account?: string | null
           plan?: string
+          signatory_name?: string | null
+          signatory_title?: string | null
           slug?: string | null
           stamp_url?: string | null
           status?: string
