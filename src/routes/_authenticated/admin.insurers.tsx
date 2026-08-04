@@ -53,7 +53,7 @@ function Insurers() {
                 <tr key={i.id} className="border-b last:border-0">
                   <td className="px-4 py-3 font-medium">
                     <div className="flex flex-col gap-2">
-                      <span>{i.name}</span>
+                      <span>{String(i.name ?? "").trim().toUpperCase()}</span>
                       {i.logo_url ? (
                         <img src={i.logo_url} alt={`${i.name} logo`} className="h-10 w-auto object-contain" />
                       ) : (
