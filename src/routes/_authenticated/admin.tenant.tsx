@@ -59,6 +59,8 @@ function TenantSettings() {
         bank_name: form.bank_name ?? null, bank_branch: form.bank_branch ?? null,
         bank_account_name: form.bank_account_name ?? null, bank_account_no: form.bank_account_no ?? null,
         doc_footer_note: form.doc_footer_note ?? null,
+        signatory_name: form.signatory_name ?? null,
+        signatory_title: form.signatory_title ?? null,
       }});
       resetBrandCache();
       toast.success("Agency updated");
@@ -263,13 +265,27 @@ function TenantSettings() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Company stamp</CardTitle>
-              <CardDescription>Stamped on your quotations and receipts. Only your agency's stamp is used on your documents.</CardDescription>
+              <CardTitle>Company stamp & authorized signatory</CardTitle>
+              <CardDescription>Stamped and signed on your quotations and receipts. Only your agency's stamp and signatory are used on your documents.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {form.stamp_url && <img src={form.stamp_url} alt="Company stamp" className="h-24 object-contain" />}
               <Input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadStamp(f); }} />
               <Hint>Transparent PNG works best. Saved as soon as you pick a file. If no stamp is uploaded, the stamp area is left blank.</Hint>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                <div>
+                  <Label>Authorized signatory name</Label>
+                  <Input value={form.signatory_name ?? ""} onChange={(e) => setForm({ ...form, signatory_name: e.target.value })} placeholder="e.g. Elizabeth Grace" />
+                  <Hint>Printed on the signature line of receipts. Leave blank to print the staff member who recorded the payment.</Hint>
+                </div>
+                <div>
+                  <Label>Signatory title (optional)</Label>
+                  <Input value={form.signatory_title ?? ""} onChange={(e) => setForm({ ...form, signatory_title: e.target.value })} placeholder="e.g. Finance Manager" />
+                  <Hint>Printed under the name. Defaults to "Authorized Signatory".</Hint>
+                </div>
+              </div>
+              <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save signatory"}</Button>
             </CardContent>
           </Card>
         </TabsContent>
