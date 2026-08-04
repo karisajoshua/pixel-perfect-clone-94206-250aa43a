@@ -305,6 +305,17 @@ export async function downloadInvoicePdf({ invoice, client, branch, policyNo, it
 
   // ---------- Footer ----------
   const pageH = doc.internal.pageSize.getHeight();
+
+  // ---------- Company stamp ----------
+  const stampImg = brand.stamp_url ? await loadLogo(brand.stamp_url) : null;
+  if (stampImg) {
+    const stampSize = 90;
+    const stampY = Math.min(y + 6, pageH - 74 - stampSize);
+    if (stampY > y - 20) {
+      try { doc.addImage(stampImg, "PNG", pageW - margin - stampSize, stampY, stampSize, stampSize); } catch { /* ignore */ }
+    }
+  }
+
   doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(MUTED);
   doc.text(`Thank you for choosing ${brand.name}.`, margin, pageH - 74);
   doc.text(`Generated on ${new Date().toLocaleDateString("en-GB")}`, margin, pageH - 60);
