@@ -267,8 +267,10 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
     setClientText("");
     supabase.from("clients").select("id, full_name, company_name, client_type").order("full_name").then(({ data }) => setClients(data ?? []));
     supabase.from("tenant_insurers").select("insurers(id, name, active)").eq("enabled", true).then(({ data }) => {
-      const rows = (data ?? []).map((r: any) => r.insurers).filter((i: any) => i && i.active).sort((a: any, b: any) => a.name.localeCompare(b.name));
-      setInsurers(rows);
+      const rows = (data ?? []).map((r: any) => r.insurers).filter((i: any) => i && i.active);
+      const seen = new Map<string, any>();
+      for (const i of rows) if (!seen.has(i.id)) seen.set(i.id, { ...i, name: String(i.name ?? "").trim().toUpperCase() });
+      setInsurers([...seen.values()].sort((a: any, b: any) => a.name.localeCompare(b.name)));
     });
     supabase.from("vehicles").select("id, registration_no, client_id").then(({ data }) => setVehicles(data ?? []));
   }, [open, initial]);

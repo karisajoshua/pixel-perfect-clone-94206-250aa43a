@@ -53,7 +53,7 @@ function Insurers() {
                 <tr key={i.id} className="border-b last:border-0">
                   <td className="px-4 py-3 font-medium">
                     <div className="flex flex-col gap-2">
-                      <span>{i.name}</span>
+                      <span>{String(i.name ?? "").trim().toUpperCase()}</span>
                       {i.logo_url ? (
                         <img src={i.logo_url} alt={`${i.name} logo`} className="h-10 w-auto object-contain" />
                       ) : (
@@ -90,10 +90,11 @@ function InsurerDialog({ open, onOpenChange, initial, onSaved }: any) {
 
   const submit = async () => {
     setSaving(true);
-    const op = initial?.id ? supabase.from("insurers").update(form).eq("id", initial.id) : supabase.from("insurers").insert(form);
+    const payload = { ...form, name: String(form.name ?? "").trim().toUpperCase() };
+    const op = initial?.id ? supabase.from("insurers").update(payload).eq("id", initial.id) : supabase.from("insurers").insert(payload);
     const { error } = await op;
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(error.message.includes("insurers_name_unique_ci") ? "An insurer with this name already exists." : error.message);
     toast.success("Saved"); onSaved?.(); onOpenChange(false);
   };
 
