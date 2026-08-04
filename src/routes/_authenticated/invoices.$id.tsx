@@ -13,6 +13,7 @@ import { ArrowLeft, Pencil, Plus, Download, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useMyRoles } from "@/hooks/use-auth";
 import { deleteInvoiceCascade } from "@/lib/invoice-delete";
+import { syncPolicyFromInvoice } from "@/lib/policy-payment-sync";
 import { PageHeader } from "@/components/page-header";
 import { InvoiceFormDialog } from "@/components/invoices/invoice-form-dialog";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ function InvoiceDetail() {
   const [edit, setEdit] = useState(false);
   const [pay, setPay] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deletePayment, setDeletePayment] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
   const { data: roles } = useMyRoles();
@@ -36,7 +38,7 @@ function InvoiceDetail() {
     queryKey: ["invoice", id],
     queryFn: async () => {
       const { data, error } = await supabase.from("invoices")
-        .select("*, clients(id, full_name, company_name, client_type, email, phone), policies(policy_no), invoice_items(*), payments(*), branches(name, address, phone, email)")
+        .select("*, clients(id, full_name, company_name, client_type, email, phone), policies(id, policy_no), invoice_items(*), payments(*), branches(name, address, phone, email)")
         .eq("id", id).single();
       if (error) throw error;
       return data as any;
@@ -123,6 +125,12 @@ function InvoiceDetail() {
                       toast.error(e?.message ?? "Download failed", { id: t });
                     }
                   }}><Download className="h-3.5 w-3.5 mr-1" /> Receipt</Button>
+                  {canDelete && (
+                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive"
+                      onClick={() => setDeletePayment(p)}>
+                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
@@ -131,7 +139,45 @@ function InvoiceDetail() {
       </div>
 
       <InvoiceFormDialog open={edit} onOpenChange={setEdit} initial={{ ...inv, items: inv.invoice_items }} onSaved={() => qc.invalidateQueries({ queryKey: ["invoice", id] })} />
-      <PaymentDialog open={pay} onOpenChange={setPay} invoiceId={id} max={balance} currentPaid={Number(inv.amount_paid)} total={Number(inv.total)} onSaved={() => { qc.invalidateQueries({ queryKey: ["invoice", id] }); qc.invalidateQueries({ queryKey: ["invoices"] }); }} />
+      <PaymentDialog open={pay} onOpenChange={setPay} invoiceId={id} max={balance} currentPaid={Number(inv.amount_paid)} total={Number(inv.total)} policyId={inv.policy_id} onSaved={() => { qc.invalidateQueries({ queryKey: ["invoice", id] }); qc.invalidateQueries({ queryKey: ["invoices"] }); qc.invalidateQueries({ queryKey: ["dashboard"] }); }} />
+      <AlertDialog open={!!deletePayment} onOpenChange={(o) => { if (!o) setDeletePayment(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this receipt?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the payment of KES {Number(deletePayment?.amount ?? 0).toLocaleString()} recorded on {deletePayment?.paid_date}.
+              The invoice balance and the policy payment status are recalculated. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={deleting} onClick={async (e) => {
+              e.preventDefault();
+              setDeleting(true);
+              try {
+                const paymentId = deletePayment.id;
+                const { error } = await supabase.from("payments").delete().eq("id", paymentId);
+                if (error) throw new Error(error.message);
+                const remaining = (inv.payments ?? []).filter((x: any) => x.id !== paymentId);
+                const newPaid = remaining.reduce((s: number, x: any) => s + Number(x.amount ?? 0), 0);
+                const total = Number(inv.total ?? 0);
+                const newStatus = newPaid <= 0 ? "unpaid" : newPaid >= total - 0.01 ? "paid" : "partial";
+                await supabase.from("invoices").update({ amount_paid: newPaid, status: newStatus }).eq("id", id);
+                await syncPolicyFromInvoice(inv.policy_id);
+                toast.success("Receipt deleted");
+                setDeletePayment(null);
+                qc.invalidateQueries({ queryKey: ["invoice", id] });
+                qc.invalidateQueries({ queryKey: ["invoices"] });
+                qc.invalidateQueries({ queryKey: ["dashboard"] });
+              } catch (err: any) {
+                toast.error(err?.message ?? "Delete failed");
+              } finally {
+                setDeleting(false);
+              }
+            }}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -163,7 +209,7 @@ function InvoiceDetail() {
   );
 }
 
-function PaymentDialog({ open, onOpenChange, invoiceId, max, currentPaid, total, onSaved }: any) {
+function PaymentDialog({ open, onOpenChange, invoiceId, max, currentPaid, total, policyId, onSaved }: any) {
   const [amount, setAmount] = useState<number>(max);
   const [method, setMethod] = useState("mpesa");
   const [reference, setReference] = useState("");
@@ -176,6 +222,7 @@ function PaymentDialog({ open, onOpenChange, invoiceId, max, currentPaid, total,
     const newPaid = currentPaid + amount;
     const newStatus = newPaid >= total ? "paid" : "partial";
     await supabase.from("invoices").update({ amount_paid: newPaid, status: newStatus }).eq("id", invoiceId);
+    try { await syncPolicyFromInvoice(policyId); } catch {}
     toast.success("Payment recorded");
     try {
       const { data: inv } = await supabase.from("invoices").select("invoice_no, client_id, clients(email, full_name, company_name, client_type)").eq("id", invoiceId).maybeSingle();
