@@ -59,6 +59,8 @@ function TenantSettings() {
         bank_name: form.bank_name ?? null, bank_branch: form.bank_branch ?? null,
         bank_account_name: form.bank_account_name ?? null, bank_account_no: form.bank_account_no ?? null,
         doc_footer_note: form.doc_footer_note ?? null,
+        signatory_name: form.signatory_name ?? null,
+        signatory_title: form.signatory_title ?? null,
       }});
       resetBrandCache();
       toast.success("Agency updated");
