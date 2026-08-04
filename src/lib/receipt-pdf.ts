@@ -73,7 +73,7 @@ function kesInWords(n: number): string {
 }
 
 export function deriveReceiptNo(payment: { id?: string; paid_date?: string }): string {
-  const year = (payment?.paid_date ? new Date(payment.paid_date) : new Date()).getFullYear();
+  const year = (parseLocalDate(payment?.paid_date) ?? new Date()).getFullYear();
   const tail = String(payment?.id ?? "").replace(/-/g, "").slice(-6).toUpperCase();
   return `RCP-${year}-${tail || "000001"}`;
 }
@@ -100,9 +100,8 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
   const amount = Number(payment?.amount ?? 0);
   const priorPaid = Math.max(0, newPaid - amount);
   const isFull = balance <= 0.01;
-  const dateStr = payment?.paid_date
-    ? new Date(payment.paid_date).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })
-    : new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+  const dateStr = (parseLocalDate(payment?.paid_date) ?? new Date())
+    .toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
 
   // ===== Top brand rule =====
   doc.setFillColor(BRAND);

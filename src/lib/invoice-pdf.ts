@@ -40,8 +40,8 @@ const money = (n: number) => `KES ${Number(n || 0).toLocaleString(undefined, { m
 
 const fmtDate = (d: any) => {
   if (!d) return "—";
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return String(d);
+  const dt = parseLocalDate(d);
+  if (!dt) return String(d);
   return dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 };
 
