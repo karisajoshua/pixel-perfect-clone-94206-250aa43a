@@ -21,10 +21,12 @@ export type TenantBrand = {
   bank_account_name: string;
   bank_account_no: string;
   doc_footer_note: string;
+  /** Authorized signatory printed on receipts. Empty = fall back to the recorder. */
+  signatory_name: string;
+  signatory_title: string;
 };
 
 /** Neutral defaults — never another agency's details. */
-// eslint-disable-next-line
 const FALLBACK: TenantBrand = {
   name: "",
   tagline: "",
@@ -45,6 +47,8 @@ const FALLBACK: TenantBrand = {
   bank_account_name: "",
   bank_account_no: "",
   doc_footer_note: "",
+  signatory_name: "",
+  signatory_title: "",
 };
 
 let cached: Promise<TenantBrand> | null = null;
@@ -85,6 +89,8 @@ export function getCurrentBrand(): Promise<TenantBrand> {
         bank_account_name: t.bank_account_name || "",
         bank_account_no: t.bank_account_no || "",
         doc_footer_note: t.doc_footer_note || "",
+        signatory_name: t.signatory_name || "",
+        signatory_title: t.signatory_title || "",
       };
     } catch {
       return FALLBACK;
