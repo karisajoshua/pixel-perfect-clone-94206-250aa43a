@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS insurers_name_unique_ci ON public.insurers (upper(btrim(name)));
