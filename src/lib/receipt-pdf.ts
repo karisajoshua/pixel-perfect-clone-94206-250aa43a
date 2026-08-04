@@ -292,6 +292,10 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
     try {
       doc.addImage(stamp, "PNG", authX + (authW - stampSize) / 2, stampY, stampSize, stampSize);
     } catch {}
+  } else {
+    doc.setFont("helvetica", "italic"); doc.setFontSize(8); doc.setTextColor(MUTED);
+    doc.text("No company stamp uploaded", authX + authW / 2, stampY + stampSize / 2, { align: "center" });
+    doc.text("(Admin → Agency → Company stamp)", authX + authW / 2, stampY + stampSize / 2 + 11, { align: "center" });
   }
 
   const lineY = sumStartY + authH - 30;
