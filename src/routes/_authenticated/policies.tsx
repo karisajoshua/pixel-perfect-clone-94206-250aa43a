@@ -35,6 +35,7 @@ function PoliciesList() {
         .order("end_date", { ascending: true })
         .limit(200);
       if (status === "rop") q = q.in("policy_term", ["six_months", "annual"]);
+      else if (status === "tor") q = q.in("policy_term", ["tor"]);
       else if (status !== "all") q = q.eq("status", status);
       if (search) q = q.or(`policy_no.ilike.%${search}%,certificate_no.ilike.%${search}%`);
       const { data, error } = await q;
