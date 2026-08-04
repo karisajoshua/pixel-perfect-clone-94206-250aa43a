@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -20,6 +20,7 @@ export function TransferOwnershipDialog({ open, onOpenChange, vehicle, onDone }:
   const [clients, setClients] = useState<any[]>([]);
   const [clientText, setClientText] = useState("");
   const [showList, setShowList] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [newClientId, setNewClientId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
@@ -28,19 +29,30 @@ export function TransferOwnershipDialog({ open, onOpenChange, vehicle, onDone }:
   useEffect(() => {
     if (!open) return;
     setClientText(""); setNewClientId(null); setReason("");
-    supabase.from("clients").select("id, full_name, company_name, client_type").order("full_name").limit(500)
-      .then(({ data }) => setClients(data ?? []));
+    setClients([]);
   }, [open]);
 
-  const filtered = useMemo(() => {
-    const t = clientText.trim().toLowerCase();
-    const base = clients.filter((c) => c.id !== vehicle?.client_id);
-    if (!t) return base.slice(0, 8);
-    return base.filter((c) => {
-      const n = c.client_type === "corporate" ? (c.company_name ?? c.full_name) : c.full_name;
-      return n?.toLowerCase().includes(t);
-    }).slice(0, 8);
-  }, [clients, clientText, vehicle?.client_id]);
+  // Debounced server-side search across the whole client database
+  useEffect(() => {
+    if (!open) return;
+    const t = clientText.trim();
+    if (t.length < 2) { setClients([]); setSearching(false); return; }
+    setSearching(true);
+    const esc = t.replace(/[%,()]/g, " ");
+    const handle = setTimeout(async () => {
+      const { data } = await supabase
+        .from("clients")
+        .select("id, full_name, company_name, client_type")
+        .or(`full_name.ilike.%${esc}%,company_name.ilike.%${esc}%`)
+        .order("full_name")
+        .limit(20);
+      setClients(data ?? []);
+      setSearching(false);
+    }, 250);
+    return () => { clearTimeout(handle); setSearching(false); };
+  }, [open, clientText]);
+
+  const filtered = clients.filter((c) => c.id !== vehicle?.client_id);
 
   const submit = async () => {
     if (!vehicle || !newClientId) return;
@@ -75,9 +87,11 @@ export function TransferOwnershipDialog({ open, onOpenChange, vehicle, onDone }:
               onFocus={() => setShowList(true)}
               onBlur={() => setTimeout(() => setShowList(false), 150)}
             />
-            {showList && filtered.length > 0 && (
+            {showList && (searching || clientText.trim().length >= 2) && (
               <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-56 overflow-auto">
-                {filtered.map((c) => {
+                {searching && <div className="px-3 py-2 text-sm text-muted-foreground">Searching…</div>}
+                {!searching && filtered.length === 0 && <div className="px-3 py-2 text-sm text-muted-foreground">No clients match.</div>}
+                {!searching && filtered.map((c) => {
                   const name = c.client_type === "corporate" ? (c.company_name ?? c.full_name) : c.full_name;
                   return (
                     <button key={c.id} type="button"
@@ -90,7 +104,9 @@ export function TransferOwnershipDialog({ open, onOpenChange, vehicle, onDone }:
               </div>
             )}
             {clientText.trim() && !newClientId && (
-              <p className="text-xs text-muted-foreground">Pick a client from the list.</p>
+              <p className="text-xs text-muted-foreground">
+                {clientText.trim().length < 2 ? "Type at least 2 characters to search." : "Pick a client from the list."}
+              </p>
             )}
           </div>
           <div className="space-y-1.5">
