@@ -28,6 +28,8 @@ export type MyTenant = {
   bank_account_no?: string | null;
   stamp_url?: string | null;
   doc_footer_note?: string | null;
+  signatory_name?: string | null;
+  signatory_title?: string | null;
 };
 
 export const getMyTenant = createServerFn({ method: "GET" })
@@ -161,6 +163,8 @@ const UpdateTenantInput = z.object({
   bank_account_name: z.string().max(160).optional().nullable(),
   bank_account_no: z.string().max(60).optional().nullable(),
   doc_footer_note: z.string().max(400).optional().nullable(),
+  signatory_name: z.string().max(120).optional().nullable(),
+  signatory_title: z.string().max(120).optional().nullable(),
 });
 
 export const updateMyTenant = createServerFn({ method: "POST" })
