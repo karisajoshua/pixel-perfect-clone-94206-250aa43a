@@ -302,9 +302,10 @@ export async function downloadReceiptPdf(input: ReceiptPdfInput) {
   doc.setDrawColor("#9ca3af"); doc.setLineWidth(0.6);
   doc.line(authX + 20, lineY, authX + authW - 20, lineY);
   doc.setTextColor(INK); doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-  doc.text(receivedBy || "", authX + authW / 2, sumStartY + authH - 16, { align: "center" });
+  const signatory = brand.signatory_name || receivedBy || "";
+  doc.text(signatory, authX + authW / 2, sumStartY + authH - 16, { align: "center" });
   doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(MUTED);
-  doc.text("Authorized Signatory", authX + authW / 2, sumStartY + authH - 6, { align: "center" });
+  doc.text(brand.signatory_title || "Authorized Signatory", authX + authW / 2, sumStartY + authH - 6, { align: "center" });
 
   y = Math.max(sumEnd, sumStartY + authH) + 18;
 
