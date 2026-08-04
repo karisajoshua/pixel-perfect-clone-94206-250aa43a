@@ -34,7 +34,8 @@ function PoliciesList() {
         .select("id, policy_no, certificate_no, status, payment_status, start_date, end_date, premium_gross, policy_term, client_id, clients(full_name, company_name, client_type), insurers(name), vehicles(registration_no)")
         .order("end_date", { ascending: true })
         .limit(200);
-      if (status !== "all") q = q.eq("status", status);
+      if (status === "rop") q = q.in("policy_term", ["six_months", "annual"]);
+      else if (status !== "all") q = q.eq("status", status);
       if (search) q = q.or(`policy_no.ilike.%${search}%,certificate_no.ilike.%${search}%`);
       const { data, error } = await q;
       if (error) throw error;
@@ -53,8 +54,8 @@ function PoliciesList() {
           <Input placeholder="Search policy number…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
         <div className="flex gap-1 flex-wrap">
-          {["all", "active", "pending", "expired", "cancelled", "renewed"].map((s) => (
-            <Button key={s} size="sm" variant={status === s ? "default" : "outline"} onClick={() => setStatus(s)}>{s}</Button>
+          {["all", "active", "pending", "expired", "cancelled", "rop"].map((s) => (
+            <Button key={s} size="sm" variant={status === s ? "default" : "outline"} onClick={() => setStatus(s)}>{s === "rop" ? "ROP" : s}</Button>
           ))}
         </div>
       </div>
