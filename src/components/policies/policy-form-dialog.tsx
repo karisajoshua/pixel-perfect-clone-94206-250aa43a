@@ -146,7 +146,7 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
       "policy_no","certificate_no","client_id","vehicle_id","insurer_id","branch_id",
       "product_class","cover_type","policy_term","sum_insured","premium_gross","premium_net",
       "commission","taxes","start_date","end_date","status","payment_status",
-      "previous_policy_id","document_url","notes","installment_plan","rop_of_policy_id",
+      "balance_due","previous_policy_id","document_url","notes","installment_plan","rop_of_policy_id",
     ];
     const payload: any = {};
     for (const k of allowed) if (form[k] !== undefined) payload[k] = form[k];
@@ -319,6 +319,14 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
               </SelectContent>
             </Select>
           </div>
+          {form.payment_status !== "paid" && (
+            <div className="space-y-1.5 min-w-0">
+              <F label="Balance due (KES)" type="number" value={form.balance_due ?? ""} onChange={(v) => set("balance_due", v === "" ? null : Number(v))} />
+              {form.payment_status === "partial" && !form.premium_gross && (
+                <p className="text-xs text-destructive">Enter the gross premium so the outstanding balance can be shown.</p>
+              )}
+            </div>
+          )}
           <div className="sm:col-span-2 space-y-1.5"><Label>Notes</Label><Textarea rows={2} value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value)} /></div>
         </div>
         <DialogFooter>
