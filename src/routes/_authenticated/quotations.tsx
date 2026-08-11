@@ -304,7 +304,7 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
   const pllAmount = isThirdParty || !pllEnabled ? 0 : Number(li.pll_amount ?? 0);
   const paAmount = isThirdParty || !paEnabled ? 0 : Number(li.pa_amount ?? 0);
   const premiumGross = +(basePremium + benefitPremium + pllAmount + paAmount).toFixed(2);
-  const levies = +(premiumGross * 0.0045 + 40).toFixed(2);
+  const levies = isThirdParty ? 0 : +(premiumGross * 0.0045 + 40).toFixed(2);
   const total = +(premiumGross + levies).toFixed(2);
 
   const setLi = (k: string, v: any) => set("line_items", { ...li, [k]: v });
@@ -567,7 +567,9 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
             {!isThirdParty && paEnabled && (
               <div className="flex justify-between"><span className="text-muted-foreground">Personal Accident (PA)</span><span>KES {paAmount.toLocaleString()}</span></div>
             )}
-            <div className="flex justify-between"><span className="text-muted-foreground">Levies (0.45% + KES 40)</span><span>KES {levies.toLocaleString()}</span></div>
+            {!isThirdParty && (
+              <div className="flex justify-between"><span className="text-muted-foreground">Levies (0.45% + KES 40)</span><span>KES {levies.toLocaleString()}</span></div>
+            )}
             <div className="flex justify-between font-semibold border-t pt-1 mt-1"><span>Total premium payable</span><span>KES {total.toLocaleString()}</span></div>
           </div>
           <div className="sm:col-span-2 space-y-1.5"><Label>Notes</Label><Textarea rows={2} value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value)} /></div>
