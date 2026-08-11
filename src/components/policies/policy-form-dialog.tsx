@@ -140,6 +140,9 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
   }, [open, clientText]);
 
   const submit = async () => {
+    if (form.payment_status === "partial" && !form.premium_gross) {
+      return toast.error("Enter the gross premium before marking a policy partially paid.");
+    }
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
     const allowed = [
