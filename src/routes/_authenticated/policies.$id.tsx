@@ -16,6 +16,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { policyTermLabel } from "@/lib/utils";
+import {
+  isInstallmentTerm, computeInstallmentSummary, buildNextCoverPayload,
+  INSTALLMENT_PLAN_LABELS, type InstallmentPlan,
+} from "@/lib/policy-installments";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Check as CheckIcon } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { initiateMpesaExpress } from "@/lib/ipen/payments.functions";
@@ -43,6 +48,7 @@ function PolicyDetail() {
   const [benefitsOpen, setBenefitsOpen] = useState(false);
   const [benefits, setBenefits] = useState<any>(null);
   const [benefitsBusy, setBenefitsBusy] = useState(false);
+  const [issuing, setIssuing] = useState(false);
   const stkFn = useServerFn(initiateMpesaExpress);
   const benefitsFn = useServerFn(getLifeBenefitsSchedule);
 
@@ -79,6 +85,23 @@ function PolicyDetail() {
       if (ids.length === 0) return 0;
       const { data } = await supabase.from("payments").select("amount").in("invoice_id", ids);
       return (data ?? []).reduce((s: number, r: any) => s + Number(r.amount ?? 0), 0);
+    },
+  });
+
+  // Walk back the installment chain so the ROP always ends on the original anniversary.
+  const { data: chainStart } = useQuery({
+    queryKey: ["policy-chain-start", id],
+    enabled: !!p?.id,
+    queryFn: async () => {
+      let start: string = p.start_date;
+      let parent: string | null = p.rop_of_policy_id ?? null;
+      for (let i = 0; i < 5 && parent; i++) {
+        const { data } = await supabase.from("policies").select("start_date, rop_of_policy_id").eq("id", parent).maybeSingle();
+        if (!data) break;
+        start = (data as any).start_date;
+        parent = (data as any).rop_of_policy_id ?? null;
+      }
+      return start;
     },
   });
 
@@ -167,6 +190,48 @@ function PolicyDetail() {
   const overdueCount = pendingExts.filter((e) => e.due_date < today).length;
   const totalPaid = Number(paymentsAgg ?? 0);
   const gross = Number(p.premium_gross ?? 0);
+
+  const onInstallmentPath = isInstallmentTerm(p.policy_term);
+  const summary = computeInstallmentSummary({
+    premiumGross: p.premium_gross,
+    paid: totalPaid,
+    plan: p.installment_plan,
+    term: p.policy_term,
+  });
+  const nextIsRop = !(p.policy_term === "one_month_extendable" && p.installment_plan === "two_installments");
+
+  const setPlan = async (plan: InstallmentPlan) => {
+    const { error } = await supabase.from("policies").update({ installment_plan: plan } as any).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Payment plan saved");
+    qc.invalidateQueries({ queryKey: ["policy", id] });
+  };
+
+  const openExtension = () => {
+    setExtForm({
+      amount_due: summary.nextAmount ? String(summary.nextAmount) : "",
+      due_date: p.end_date ?? "",
+      reason: nextIsRop ? "Balance to clear before ROP" : "Second installment",
+    });
+    setExtOpen(true);
+  };
+
+  const issueNextCover = async () => {
+    if (!summary.cleared && !confirm(`There is still a balance of KES ${summary.balance.toLocaleString()}. Issue the next cover anyway?`)) return;
+    setIssuing(true);
+    const { data: u } = await supabase.auth.getUser();
+    const { term, payload } = buildNextCoverPayload({ ...p, installment_origin_start: chainStart ?? p.start_date }, summary);
+    const { data, error } = await supabase.from("policies").insert({
+      ...payload,
+      policy_no: `${p.policy_no}-${term === "rop" ? "ROP" : "I2"}`,
+      created_by: u.user?.id,
+    } as any).select("id").single();
+    setIssuing(false);
+    if (error) return toast.error(error.message);
+    toast.success(term === "rop" ? "ROP policy created" : "Second installment cover created");
+    qc.invalidateQueries({ queryKey: ["policies"] });
+    if (data?.id) window.location.href = `/policies/${data.id}`;
+  };
 
   const ipenProposalId = p.ipen_proposal_id ?? p.ipen_policy_id ?? null;
   const isLife = String(p.product_class ?? "").toLowerCase().includes("life");
