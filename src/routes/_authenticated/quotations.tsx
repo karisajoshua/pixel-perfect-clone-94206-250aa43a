@@ -51,7 +51,9 @@ function QuotationsPage() {
     const end = new Date(today);
     switch (q.policy_term) {
       case "tor":
-      case "one_month_extendable": end.setDate(end.getDate() + 30); break;
+      case "one_month_extendable":
+      case "second_installment": end.setDate(end.getDate() + 30); break;
+      case "rop": end.setFullYear(end.getFullYear() + 1); end.setDate(end.getDate() - 1); break;
       case "six_months": end.setDate(end.getDate() + 180); break;
       case "annual":
       default: end.setFullYear(end.getFullYear() + 1);
@@ -461,6 +463,8 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
               <SelectContent>
                 <SelectItem value="tor">One month (TOR)</SelectItem>
                 <SelectItem value="one_month_extendable">One month extendable</SelectItem>
+                <SelectItem value="second_installment">2nd installment</SelectItem>
+                <SelectItem value="rop">Rest of period (ROP)</SelectItem>
                 <SelectItem value="six_months">6 months</SelectItem>
                 <SelectItem value="annual">Annual</SelectItem>
               </SelectContent>

@@ -15,6 +15,8 @@ const TERMS: Record<string, string> = {
   tor: "One month (TOR)",
   one_month: "One month (TOR)",
   one_month_extendable: "One month extendable",
+  second_installment: "2nd installment",
+  rop: "Rest of period (ROP)",
   six_months: "6 months",
   annual: "Annual",
 };

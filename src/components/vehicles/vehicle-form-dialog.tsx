@@ -442,6 +442,8 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
                 <SelectContent>
                   <SelectItem value="tor">One month (TOR)</SelectItem>
                   <SelectItem value="one_month_extendable">One month extendable</SelectItem>
+                  <SelectItem value="second_installment">2nd installment</SelectItem>
+                  <SelectItem value="rop">Rest of period (ROP)</SelectItem>
                   <SelectItem value="six_months">6 months</SelectItem>
                   <SelectItem value="annual">Annual</SelectItem>
                 </SelectContent>
