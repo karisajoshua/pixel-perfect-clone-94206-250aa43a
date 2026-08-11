@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScanLine, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { extractLogbookFields, getClientLogbookDoc } from "@/lib/vehicles.functions";
+import { ProductClassFields } from "@/components/product-class-fields";
 
 type Props = {
   open: boolean;
