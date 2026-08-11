@@ -567,12 +567,3 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: "go
     </div>
   );
 }
-
-function ItemUnused({ label, value }: { label: string; value?: string | null }) {
-  return (
-    <div>
-      <dt className="text-xs uppercase tracking-wider text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5">{value || <span className="text-muted-foreground">—</span>}</dd>
-    </div>
-  );
-}
