@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { policyTermLabel } from "@/lib/utils";
+import { policyBalance, balanceLabel, formatKES } from "@/lib/policy-balance";
 import {
   isInstallmentTerm, computeInstallmentSummary, buildNextCoverPayload,
   INSTALLMENT_PLAN_LABELS, type InstallmentPlan,
@@ -192,6 +193,7 @@ function PolicyDetail() {
   const gross = Number(p.premium_gross ?? 0);
 
   const onInstallmentPath = isInstallmentTerm(p.policy_term);
+  const bal = policyBalance(p, totalPaid);
   const summary = computeInstallmentSummary({
     premiumGross: p.premium_gross,
     paid: totalPaid,
@@ -338,6 +340,13 @@ function PolicyDetail() {
               <Item label="Taxes" value={p.taxes ? `KES ${Number(p.taxes).toLocaleString()}` : "—"} />
               <Item label="Status" value={p.status} />
               <Item label="Payment" value={p.payment_status} />
+              <Item label="Amount paid" value={formatKES(bal.paid)} />
+              <div>
+                <dt className="text-xs uppercase tracking-wider text-muted-foreground">Balance due</dt>
+                <dd className={`mt-0.5 ${bal.outstanding ? "text-destructive font-medium" : ""} ${bal.unknown ? "text-muted-foreground" : ""}`}>
+                  {balanceLabel(bal)}
+                </dd>
+              </div>
               <Item label="Term" value={policyTermLabel(p.policy_term)} />
               <div className="col-span-2"><Item label="Notes" value={p.notes} /></div>
             </dl>

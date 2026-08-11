@@ -10,6 +10,7 @@ import { VehicleFormDialog } from "@/components/vehicles/vehicle-form-dialog";
 import { TransferOwnershipDialog } from "@/components/vehicles/transfer-ownership-dialog";
 import { useMyRoles } from "@/hooks/use-auth";
 import { VehicleDocuments, useVehicleDocuments, vehicleDocsBadge } from "@/components/clients/vehicle-documents";
+import { policyBalance, balanceLabel, formatKES } from "@/lib/policy-balance";
 
 const TERMS: Record<string, string> = {
   tor: "One month (TOR)",
@@ -42,6 +43,7 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
       if (error) throw error;
       const policyIds = (vehicles ?? []).flatMap((v: any) => (v.policies ?? []).map((p: any) => p.id));
       let extensions: any[] = [];
+      const paidByPolicy: Record<string, number> = {};
       if (policyIds.length) {
         const { data: ext } = await supabase
           .from("policy_payment_extensions")
@@ -49,8 +51,16 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
           .in("policy_id", policyIds)
           .order("due_date");
         extensions = ext ?? [];
+        const { data: invs } = await supabase
+          .from("invoices")
+          .select("policy_id, amount_paid")
+          .in("policy_id", policyIds);
+        for (const i of invs ?? []) {
+          if (!i.policy_id) continue;
+          paidByPolicy[i.policy_id] = (paidByPolicy[i.policy_id] ?? 0) + Number(i.amount_paid ?? 0);
+        }
       }
-      return { vehicles: vehicles ?? [], extensions };
+      return { vehicles: vehicles ?? [], extensions, paidByPolicy };
     },
   });
 
@@ -64,6 +74,7 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
 
   const vehicles = data?.vehicles ?? [];
   const extensions = data?.extensions ?? [];
+  const paidByPolicy = data?.paidByPolicy ?? {};
 
   return (
     <div className="space-y-4">
@@ -154,6 +165,7 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
                 {policies.map((p: any) => {
                   const exts = extensions.filter((e) => e.policy_id === p.id);
                   const cancelled = p.status === "cancelled";
+                  const bal = policyBalance(p, paidByPolicy[p.id] ?? null);
                   return (
                     <div key={p.id} className="rounded-md border p-3 space-y-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -173,7 +185,13 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
                         <D label="Term" value={termLabel(p.policy_term)} />
                         <D label="Premium" value={money(p.premium_gross)} />
                         <D label="Payment" value={p.payment_status} />
-                        <D label="Balance due" value={money(p.balance_due)} />
+                        <div>
+                          <dt className="text-xs uppercase tracking-wider text-muted-foreground">Balance due</dt>
+                          <dd className={`mt-0.5 ${bal.outstanding ? "text-destructive font-medium" : ""} ${bal.unknown ? "text-muted-foreground" : ""}`}>
+                            {balanceLabel(bal)}
+                          </dd>
+                        </div>
+                        <D label="Paid" value={bal.unknown ? null : formatKES(bal.paid)} />
                       </dl>
                       {cancelled && (
                         <div className="text-sm text-destructive">

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download, ArrowLeft } from "lucide-react";
 import { ServiceRequestButton } from "@/components/portal/service-request-button";
+import { policyBalance, formatKES } from "@/lib/policy-balance";
 
 export const Route = createFileRoute("/_portal/portal/policies/$id")({ component: Page });
 
@@ -18,6 +19,8 @@ function Page() {
   if (error) return <div className="text-destructive">{(error as Error).message}</div>;
   if (!data) return null;
   const p: any = data.policy;
+  const paid = (data.invoices ?? []).reduce((s: number, i: any) => s + Number(i.amount_paid ?? 0), 0);
+  const bal = policyBalance(p, paid);
   return (
     <div className="max-w-5xl space-y-6">
       <Link to="/portal/policies" className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:text-foreground"><ArrowLeft className="h-3.5 w-3.5" /> All policies</Link>
@@ -42,6 +45,8 @@ function Page() {
           <Row k="Period" v={`${p.start_date} → ${p.end_date}`} />
           <Row k="Sum insured" v={p.sum_insured ? Number(p.sum_insured).toLocaleString() : "—"} />
           <Row k="Gross premium" v={p.premium_gross ? Number(p.premium_gross).toLocaleString() : "—"} />
+          <Row k="Amount paid" v={formatKES(bal.paid)} />
+          {!bal.unknown && <Row k="Balance due" v={formatKES(bal.balance)} tone={bal.outstanding ? "bad" : undefined} />}
           <Row k="Payment" v={p.payment_status} />
         </CardContent></Card>
         <Card><CardHeader><CardTitle className="text-base">Vehicle</CardTitle></CardHeader><CardContent className="text-sm space-y-1">
@@ -71,6 +76,6 @@ function Page() {
   );
 }
 
-function Row({ k, v }: { k: string; v: string }) {
-  return <div className="flex justify-between gap-4"><span className="text-muted-foreground">{k}</span><span className="font-medium">{v}</span></div>;
+function Row({ k, v, tone }: { k: string; v: string; tone?: "bad" }) {
+  return <div className="flex justify-between gap-4"><span className="text-muted-foreground">{k}</span><span className={`font-medium ${tone === "bad" ? "text-destructive" : ""}`}>{v}</span></div>;
 }

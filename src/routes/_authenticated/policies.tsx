@@ -12,6 +12,7 @@ import { Plus, Search } from "lucide-react";
 import { PolicyFormDialog } from "@/components/policies/policy-form-dialog";
 import { policyTermLabel } from "@/lib/utils";
 import { isInstallmentTerm } from "@/lib/policy-installments";
+import { policyBalance, formatKES } from "@/lib/policy-balance";
 
 export const Route = createFileRoute("/_authenticated/policies")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: PoliciesLayout });
 
@@ -84,6 +85,7 @@ function PoliciesList() {
               {policies?.map((p: any) => {
                 const cl = p.clients;
                 const name = cl ? (cl.client_type === "corporate" ? cl.company_name ?? cl.full_name : cl.full_name) : "—";
+                const bal = policyBalance(p);
                 return (
                   <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3 font-mono font-medium">
@@ -95,10 +97,20 @@ function PoliciesList() {
                     <td className="px-4 py-3">{p.insurers?.name ?? "—"}</td>
                     <td className="px-4 py-3 text-xs">{p.start_date} → <span className="font-medium">{p.end_date}</span></td>
                     <td className="px-4 py-3 text-xs">{policyTermLabel(p.policy_term)}</td>
-                    <td className="px-4 py-3">{p.premium_gross ? `KES ${Number(p.premium_gross).toLocaleString()}` : "—"}</td>
+                    <td className="px-4 py-3">
+                      {p.premium_gross ? formatKES(Number(p.premium_gross)) : "—"}
+                      {p.payment_status === "partial" && !bal.unknown && (
+                        <div className="text-[11px] text-muted-foreground">Paid {formatKES(bal.paid)}</div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 space-x-1">
                       <StatusBadge status={p.status} />
                       <PayBadge status={p.payment_status} />
+                      {p.payment_status !== "paid" && (bal.outstanding || bal.unknown) && (
+                        <Badge variant="outline" className="border-destructive/40 text-destructive">
+                          {bal.unknown ? "Balance not set" : `Bal. ${formatKES(bal.balance)}`}
+                        </Badge>
+                      )}
                       {isInstallmentTerm(p.policy_term) && p.payment_status !== "paid" && p.end_date <= new Date().toISOString().slice(0, 10) && (
                         <Badge variant="destructive">Installment due</Badge>
                       )}
