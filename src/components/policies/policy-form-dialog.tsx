@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { sendTransactionalEmail, clientDisplayName, formatKES } from "@/lib/email/send";
+import { ProductClassFields } from "@/components/product-class-fields";
 
 type Props = {
   open: boolean;
@@ -148,6 +149,7 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
     const allowed = [
       "policy_no","certificate_no","client_id","vehicle_id","insurer_id","branch_id",
       "product_class","cover_type","policy_term","sum_insured","premium_gross","premium_net",
+      "product_subclass","tonnage",
       "commission","taxes","start_date","end_date","status","payment_status",
       "balance_due","previous_policy_id","document_url","notes","installment_plan","rop_of_policy_id",
     ];
@@ -253,21 +255,12 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
               <SelectContent>{insurers.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5 min-w-0">
-            <Label>Product class</Label>
-            <Select value={form.product_class} onValueChange={(v) => set("product_class", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="motor_private">Motor — Private</SelectItem>
-                <SelectItem value="motor_commercial">Motor — Commercial</SelectItem>
-                <SelectItem value="psv">PSV</SelectItem>
-                <SelectItem value="fire">Fire</SelectItem>
-                <SelectItem value="medical">Medical</SelectItem>
-                <SelectItem value="travel">Travel</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <ProductClassFields
+            productClass={form.product_class}
+            subclass={form.product_subclass}
+            tonnage={form.tonnage}
+            onChange={(patch) => setForm((f: any) => ({ ...f, ...patch }))}
+          />
           <div className="space-y-1.5 min-w-0">
             <Label>Cover type</Label>
             <Select value={form.cover_type} onValueChange={(v) => set("cover_type", v)}>

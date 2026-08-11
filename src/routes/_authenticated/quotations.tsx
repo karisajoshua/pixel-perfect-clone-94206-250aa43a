@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { downloadQuotationPdf } from "@/lib/quotation-pdf";
 import { useMyRoles } from "@/hooks/use-auth";
 import { LifeQuoteWizard } from "@/components/ipen/life-quote-wizard";
+import { ProductClassFields } from "@/components/product-class-fields";
 import { Heart } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/quotations")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: QuotationsPage });
@@ -61,7 +62,8 @@ function QuotationsPage() {
     const { data, error } = await supabase.from("policies").insert({
       policy_no: `POL-${Date.now()}`,
       client_id: q.client_id, vehicle_id: q.vehicle_id, insurer_id: q.insurer_id, branch_id: q.branch_id,
-      product_class: q.product_class, cover_type: q.cover_type, policy_term: q.policy_term ?? "annual",
+      product_class: q.product_class, product_subclass: q.product_subclass ?? null, tonnage: q.tonnage ?? null,
+      cover_type: q.cover_type, policy_term: q.policy_term ?? "annual",
       sum_insured: q.sum_insured, premium_gross: q.premium_gross, premium_net: q.premium_net,
       start_date: today.toISOString().slice(0,10), end_date: end.toISOString().slice(0,10),
       status: "pending", payment_status: "unpaid",
@@ -445,6 +447,12 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
               <SelectContent>{insurers.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
+          <ProductClassFields
+            productClass={form.product_class}
+            subclass={form.product_subclass}
+            tonnage={form.tonnage}
+            onChange={(patch: any) => setForm((f: any) => ({ ...f, ...patch }))}
+          />
           <div className="space-y-1.5">
             <Label>Cover type</Label>
             <Select value={form.cover_type} onValueChange={(v) => set("cover_type", v)}>

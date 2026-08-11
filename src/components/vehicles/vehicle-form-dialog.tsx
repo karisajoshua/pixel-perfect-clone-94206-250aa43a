@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScanLine, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { extractLogbookFields, getClientLogbookDoc } from "@/lib/vehicles.functions";
+import { ProductClassFields } from "@/components/product-class-fields";
 
 type Props = {
   open: boolean;
@@ -70,7 +71,7 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
     setSuggestedCoverNo(null);
     setCopiedCoverFrom(null);
     let cancelled = false;
-    const cols = "id, policy_no, certificate_no, start_date, end_date, insurer_id, policy_term, premium_gross, payment_status, balance_due, status, vehicles(registration_no)";
+    const cols = "id, policy_no, certificate_no, start_date, end_date, insurer_id, policy_term, premium_gross, payment_status, balance_due, status, product_class, product_subclass, tonnage, vehicles(registration_no)";
     const fill = (data: any) => setCover({
       policy_no: data.policy_no ?? "",
       certificate_no: data.certificate_no ?? "",
@@ -81,6 +82,9 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
       premium_gross: data.premium_gross ?? "",
       payment_status: data.payment_status ?? "unpaid",
       balance_due: data.balance_due ?? "",
+      product_class: data.product_class ?? "motor_private",
+      product_subclass: data.product_subclass ?? null,
+      tonnage: data.tonnage ?? null,
     });
     (async () => {
       // 1. A policy already linked to this vehicle
@@ -207,6 +211,9 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
         premium_gross: cover.premium_gross === "" || cover.premium_gross === undefined || cover.premium_gross === null
           ? null : Number(cover.premium_gross),
         payment_status: cover.payment_status || "unpaid",
+        product_class: cover.product_class || "motor_private",
+        product_subclass: cover.product_subclass || null,
+        tonnage: cover.tonnage === "" || cover.tonnage === undefined || cover.tonnage === null ? null : Number(cover.tonnage),
         balance_due: cover.balance_due === "" || cover.balance_due === undefined || cover.balance_due === null
           ? (cover.payment_status === "paid" ? 0 : (cover.payment_status === "unpaid" && cover.premium_gross ? Number(cover.premium_gross) : null))
           : Number(cover.balance_due),
@@ -227,8 +234,7 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
           client_id: form.client_id,
           vehicle_id: vehicleId,
           branch_id: form.branch_id ?? null,
-          product_class: "motor",
-          cover_type: "comprehensive",
+          cover_type: cover.cover_type || "comprehensive",
           status: "active",
           created_by: u.user?.id,
         } as any);
@@ -434,6 +440,12 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <F label="Policy number" value={cover.policy_no} onChange={(v) => setCover((c: any) => ({ ...c, policy_no: v.toUpperCase() }))} />
             <F label="Certificate number" value={cover.certificate_no} onChange={(v) => setCover((c: any) => ({ ...c, certificate_no: v.toUpperCase() }))} />
+            <ProductClassFields
+              productClass={cover.product_class ?? "motor_private"}
+              subclass={cover.product_subclass}
+              tonnage={cover.tonnage}
+              onChange={(patch: any) => setCover((c: any) => ({ ...c, ...patch }))}
+            />
             <F label="Commencement date" type="date" value={cover.start_date} onChange={(v) => setCover((c: any) => ({ ...c, start_date: v }))} />
             <F label="Expiry date" type="date" value={cover.end_date} onChange={(v) => setCover((c: any) => ({ ...c, end_date: v }))} />
             <div className="space-y-1.5 min-w-0">

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Pencil, RefreshCw, Ban } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { productClassLabel } from "@/lib/product-classes";
 import { PolicyFormDialog } from "@/components/policies/policy-form-dialog";
 import { IpenPolicyLiveDrawer } from "@/components/ipen/policy-live-drawer";
 import { Badge } from "@/components/ui/badge";
@@ -287,7 +288,7 @@ function PolicyDetail() {
       <Button asChild variant="ghost" size="sm"><Link to="/policies"><ArrowLeft className="h-4 w-4 mr-1" /> All policies</Link></Button>
       <PageHeader
         title={p.policy_no}
-        subtitle={`${clientName} • ${p.product_class} • ${p.cover_type}`}
+        subtitle={`${clientName} • ${productClassLabel(p.product_class, p.product_subclass, p.tonnage)} • ${p.cover_type}`}
         actions={
           <div className="flex gap-2">
             {p.ipen_policy_id && (

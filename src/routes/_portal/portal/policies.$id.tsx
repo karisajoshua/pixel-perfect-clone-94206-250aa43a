@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getMyPolicy } from "@/lib/portal.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { productClassLabel } from "@/lib/product-classes";
 import { Button } from "@/components/ui/button";
 import { Download, ArrowLeft } from "lucide-react";
 import { ServiceRequestButton } from "@/components/portal/service-request-button";
@@ -27,7 +28,7 @@ function Page() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold">{p.policy_no}</h1>
-          <div className="text-muted-foreground text-sm">{p.insurers?.name} · {p.product_class} · {p.cover_type}</div>
+          <div className="text-muted-foreground text-sm">{p.insurers?.name} · {productClassLabel(p.product_class, p.product_subclass, p.tonnage)} · {p.cover_type}</div>
         </div>
         <div className="flex gap-2">
           <Badge variant={p.status === "active" ? "default" : "secondary"}>{p.status}</Badge>

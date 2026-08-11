@@ -1023,12 +1023,14 @@ export type Database = {
           premium_net: number | null
           previous_policy_id: string | null
           product_class: string
+          product_subclass: string | null
           rop_of_policy_id: string | null
           start_date: string
           status: string
           sum_insured: number | null
           taxes: number | null
           tenant_id: string
+          tonnage: number | null
           updated_at: string
           vehicle_id: string | null
         }
@@ -1058,12 +1060,14 @@ export type Database = {
           premium_net?: number | null
           previous_policy_id?: string | null
           product_class?: string
+          product_subclass?: string | null
           rop_of_policy_id?: string | null
           start_date: string
           status?: string
           sum_insured?: number | null
           taxes?: number | null
           tenant_id: string
+          tonnage?: number | null
           updated_at?: string
           vehicle_id?: string | null
         }
@@ -1093,12 +1097,14 @@ export type Database = {
           premium_net?: number | null
           previous_policy_id?: string | null
           product_class?: string
+          product_subclass?: string | null
           rop_of_policy_id?: string | null
           start_date?: string
           status?: string
           sum_insured?: number | null
           taxes?: number | null
           tenant_id?: string
+          tonnage?: number | null
           updated_at?: string
           vehicle_id?: string | null
         }
@@ -1283,12 +1289,14 @@ export type Database = {
           premium_gross: number | null
           premium_net: number | null
           product_class: string
+          product_subclass: string | null
           quote_no: string
           rejection_reason: string | null
           revision: number
           status: string
           sum_insured: number | null
           tenant_id: string
+          tonnage: number | null
           updated_at: string
           valid_until: string | null
           vehicle_id: string | null
@@ -1314,12 +1322,14 @@ export type Database = {
           premium_gross?: number | null
           premium_net?: number | null
           product_class?: string
+          product_subclass?: string | null
           quote_no: string
           rejection_reason?: string | null
           revision?: number
           status?: string
           sum_insured?: number | null
           tenant_id: string
+          tonnage?: number | null
           updated_at?: string
           valid_until?: string | null
           vehicle_id?: string | null
@@ -1345,12 +1355,14 @@ export type Database = {
           premium_gross?: number | null
           premium_net?: number | null
           product_class?: string
+          product_subclass?: string | null
           quote_no?: string
           rejection_reason?: string | null
           revision?: number
           status?: string
           sum_insured?: number | null
           tenant_id?: string
+          tonnage?: number | null
           updated_at?: string
           valid_until?: string | null
           vehicle_id?: string | null

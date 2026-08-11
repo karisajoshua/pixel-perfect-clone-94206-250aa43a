@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { getCurrentBrand } from "./tenant-brand";
+import { productClassLabel } from "./product-classes";
 
 type Branch = { name?: string | null; address?: string | null; phone?: string | null; email?: string | null } | null | undefined;
 type Client = { full_name?: string | null; company_name?: string | null; client_type?: string | null; email?: string | null; phone?: string | null } | null | undefined;
@@ -86,7 +87,7 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   const grossPremium = +(basePremium + benefitsTotal + pllAmount + paAmount).toFixed(2);
   const total = +(grossPremium + levies).toFixed(2);
 
-  const coverLabel = `${titleCase(quotation.product_class)}\n${titleCase(quotation.cover_type)}`;
+  const coverLabel = `${productClassLabel(quotation.product_class, quotation.product_subclass, quotation.tonnage)}\n${titleCase(quotation.cover_type)}`;
 
   const remarks = [
     { title: "What you get in the policy", lines: [
