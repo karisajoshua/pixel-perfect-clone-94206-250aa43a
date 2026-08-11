@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getMyPolicy } from "@/lib/portal.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { productClassLabel } from "@/lib/product-classes";
 import { Button } from "@/components/ui/button";
 import { Download, ArrowLeft } from "lucide-react";
 import { ServiceRequestButton } from "@/components/portal/service-request-button";
