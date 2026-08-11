@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Pencil, RefreshCw, Ban } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { productClassLabel } from "@/lib/product-classes";
 import { PolicyFormDialog } from "@/components/policies/policy-form-dialog";
 import { IpenPolicyLiveDrawer } from "@/components/ipen/policy-live-drawer";
 import { Badge } from "@/components/ui/badge";
