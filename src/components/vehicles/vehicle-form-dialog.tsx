@@ -439,6 +439,12 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <F label="Policy number" value={cover.policy_no} onChange={(v) => setCover((c: any) => ({ ...c, policy_no: v.toUpperCase() }))} />
             <F label="Certificate number" value={cover.certificate_no} onChange={(v) => setCover((c: any) => ({ ...c, certificate_no: v.toUpperCase() }))} />
+            <ProductClassFields
+              productClass={cover.product_class ?? "motor_private"}
+              subclass={cover.product_subclass}
+              tonnage={cover.tonnage}
+              onChange={(patch: any) => setCover((c: any) => ({ ...c, ...patch }))}
+            />
             <F label="Commencement date" type="date" value={cover.start_date} onChange={(v) => setCover((c: any) => ({ ...c, start_date: v }))} />
             <F label="Expiry date" type="date" value={cover.end_date} onChange={(v) => setCover((c: any) => ({ ...c, end_date: v }))} />
             <div className="space-y-1.5 min-w-0">
