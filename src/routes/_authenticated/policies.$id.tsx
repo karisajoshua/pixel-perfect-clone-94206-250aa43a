@@ -221,13 +221,24 @@ function PolicyDetail() {
     setIssuing(true);
     const { data: u } = await supabase.auth.getUser();
     const { term, payload } = buildNextCoverPayload({ ...p, installment_origin_start: chainStart ?? p.start_date }, summary);
-    const { data, error } = await supabase.from("policies").insert({
-      ...payload,
-      policy_no: `${p.policy_no}-${term === "rop" ? "ROP" : "I2"}`,
-      created_by: u.user?.id,
-    } as any).select("id").single();
+    const suffix = term === "rop" ? "ROP" : "I2";
+    let data: { id: string } | null = null;
+    let error: any = null;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      const policyNo = attempt === 1 ? `${p.policy_no}-${suffix}` : `${p.policy_no}-${suffix}-${attempt}`;
+      const res = await supabase.from("policies").insert({
+        ...payload,
+        policy_no: policyNo,
+        created_by: u.user?.id,
+      } as any).select("id").single();
+      data = res.data as any;
+      error = res.error;
+      if (!error) break;
+      // 23505 = duplicate policy number; try the next suffix
+      if ((error as any).code !== "23505") break;
+    }
     setIssuing(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(error.message ?? "Could not create the next cover");
     toast.success(term === "rop" ? "ROP policy created" : "Second installment cover created");
     qc.invalidateQueries({ queryKey: ["policies"] });
     if (data?.id) window.location.href = `/policies/${data.id}`;
