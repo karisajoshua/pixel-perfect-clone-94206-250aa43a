@@ -86,7 +86,7 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   const grossPremium = +(basePremium + benefitsTotal + pllAmount + paAmount).toFixed(2);
   const total = +(grossPremium + levies).toFixed(2);
 
-  const coverLabel = `${titleCase(quotation.product_class)}\n${titleCase(quotation.cover_type)}`;
+  const coverLabel = `${productClassLabel(quotation.product_class, quotation.product_subclass, quotation.tonnage)}\n${titleCase(quotation.cover_type)}`;
 
   const remarks = [
     { title: "What you get in the policy", lines: [
