@@ -350,7 +350,7 @@ function PolicyDetail() {
             Payment extensions
             {overdueCount > 0 && <Badge variant="destructive">{overdueCount} overdue</Badge>}
           </CardTitle>
-          <Button size="sm" onClick={() => setExtOpen(true)}><Plus className="h-4 w-4 mr-1" /> Add extension</Button>
+          <Button size="sm" onClick={openExtension}><Plus className="h-4 w-4 mr-1" /> Add extension</Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
