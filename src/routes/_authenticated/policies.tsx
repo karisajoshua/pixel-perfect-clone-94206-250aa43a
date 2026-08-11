@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/page-header";
 import { Plus, Search } from "lucide-react";
 import { PolicyFormDialog } from "@/components/policies/policy-form-dialog";
 import { policyTermLabel } from "@/lib/utils";
+import { isInstallmentTerm } from "@/lib/policy-installments";
 
 export const Route = createFileRoute("/_authenticated/policies")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: PoliciesLayout });
 
