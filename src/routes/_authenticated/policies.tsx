@@ -34,7 +34,7 @@ function PoliciesList() {
         .select("id, policy_no, certificate_no, status, payment_status, start_date, end_date, premium_gross, policy_term, client_id, clients(full_name, company_name, client_type), insurers(name), vehicles(registration_no)")
         .order("end_date", { ascending: true })
         .limit(200);
-      if (status === "rop") q = q.in("policy_term", ["six_months", "annual"]);
+      if (status === "rop") q = q.in("policy_term", ["rop", "six_months", "annual"]);
       else if (status === "tor") q = q.in("policy_term", ["tor"]);
       else if (status !== "all") q = q.eq("status", status);
       if (search) q = q.or(`policy_no.ilike.%${search}%,certificate_no.ilike.%${search}%`);
