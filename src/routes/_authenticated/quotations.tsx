@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { downloadQuotationPdf } from "@/lib/quotation-pdf";
 import { useMyRoles } from "@/hooks/use-auth";
 import { LifeQuoteWizard } from "@/components/ipen/life-quote-wizard";
+import { ProductClassFields } from "@/components/product-class-fields";
 import { Heart } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/quotations")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: QuotationsPage });
@@ -450,7 +451,7 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
             productClass={form.product_class}
             subclass={form.product_subclass}
             tonnage={form.tonnage}
-            onChange={(patch) => setForm((f: any) => ({ ...f, ...patch }))}
+            onChange={(patch: any) => setForm((f: any) => ({ ...f, ...patch }))}
           />
           <div className="space-y-1.5">
             <Label>Cover type</Label>
