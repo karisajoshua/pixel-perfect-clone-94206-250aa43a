@@ -558,3 +558,21 @@ function Item({ label, value }: { label: string; value?: string | null }) {
     </div>
   );
 }
+
+function Stat({ label, value, tone }: { label: string; value: string; tone?: "good" | "bad" }) {
+  return (
+    <div className="rounded-md border p-3">
+      <div className="text-xs uppercase text-muted-foreground">{label}</div>
+      <div className={`text-lg font-semibold mt-1 ${tone === "bad" ? "text-destructive" : ""}`}>{value}</div>
+    </div>
+  );
+}
+
+function ItemUnused({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div>
+      <dt className="text-xs uppercase tracking-wider text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5">{value || <span className="text-muted-foreground">—</span>}</dd>
+    </div>
+  );
+}
