@@ -379,7 +379,7 @@ function PolicyDetail() {
               {summary.cleared
                 ? "Balance cleared — issue the Rest of Period cover to run to the annual anniversary."
                 : nextIsRop
-                  ? `Client clears KES ${summary.balance.toLocaleString()} by ${p.end_date}, then gets the Rest of Period up to ${chainStart ? "" : ""}the annual anniversary.`
+                  ? `Client clears KES ${summary.balance.toLocaleString()} by ${p.end_date}, then gets the Rest of Period running to the annual anniversary of ${chainStart ?? p.start_date}.`
                   : `Client pays KES ${summary.nextAmount.toLocaleString()} now for the 2nd month, then clears KES ${summary.afterNext.toLocaleString()} on the 3rd month to get the Rest of Period.`}
             </p>
           </CardContent>
