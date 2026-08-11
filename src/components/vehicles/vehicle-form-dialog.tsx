@@ -163,6 +163,13 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
   }, [open, form.client_id, getStoredFn]);
 
   const submit = async () => {
+    if (cover.payment_status === "partial") {
+      const prem = Number(cover.premium_gross ?? 0);
+      const balSet = cover.balance_due !== "" && cover.balance_due !== undefined && cover.balance_due !== null;
+      if (!prem && !balSet) {
+        return toast.error("For a partially paid cover, enter the premium or the balance due.");
+      }
+    }
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
     const COLS = [
@@ -201,7 +208,8 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
           ? null : Number(cover.premium_gross),
         payment_status: cover.payment_status || "unpaid",
         balance_due: cover.balance_due === "" || cover.balance_due === undefined || cover.balance_due === null
-          ? null : Number(cover.balance_due),
+          ? (cover.payment_status === "paid" ? 0 : (cover.payment_status === "unpaid" && cover.premium_gross ? Number(cover.premium_gross) : null))
+          : Number(cover.balance_due),
       };
       if (coverId || suggestedCoverId) {
         const { error: pErr } = await supabase
