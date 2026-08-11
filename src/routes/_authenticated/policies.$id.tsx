@@ -344,6 +344,48 @@ function PolicyDetail() {
         </Card>
       </div>
 
+      {onInstallmentPath && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="flex items-center gap-2">
+              Installment plan
+              <Badge variant="secondary">{policyTermLabel(p.policy_term)}</Badge>
+              {!summary.cleared && p.end_date <= today && <Badge variant="destructive">Installment due</Badge>}
+            </CardTitle>
+            <Button size="sm" onClick={issueNextCover} disabled={issuing}>
+              {issuing ? "Creating…" : nextIsRop ? "Issue ROP policy" : "Issue 2nd installment cover"}
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {p.policy_term === "one_month_extendable" && (
+              <div className="space-y-1.5 max-w-md">
+                <Label>Payment plan</Label>
+                <Select value={p.installment_plan ?? "clear_balance"} onValueChange={(v) => setPlan(v as InstallmentPlan)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="clear_balance">{INSTALLMENT_PLAN_LABELS.clear_balance}</SelectItem>
+                    <SelectItem value="two_installments">{INSTALLMENT_PLAN_LABELS.two_installments}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm">
+              <Stat label="Annual premium" value={summary.annual ? `KES ${summary.annual.toLocaleString()}` : "—"} />
+              <Stat label="Paid to date" value={`KES ${summary.paid.toLocaleString()}`} />
+              <Stat label="Balance to clear" value={`KES ${summary.balance.toLocaleString()}`} tone={summary.balance > 0 ? "bad" : "good"} />
+              <Stat label="Next installment" value={`KES ${summary.nextAmount.toLocaleString()}`} />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {summary.cleared
+                ? "Balance cleared — issue the Rest of Period cover to run to the annual anniversary."
+                : nextIsRop
+                  ? `Client clears KES ${summary.balance.toLocaleString()} by ${p.end_date}, then gets the Rest of Period up to ${chainStart ? "" : ""}the annual anniversary.`
+                  : `Client pays KES ${summary.nextAmount.toLocaleString()} now for the 2nd month, then clears KES ${summary.afterNext.toLocaleString()} on the 3rd month to get the Rest of Period.`}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="flex items-center gap-2">
