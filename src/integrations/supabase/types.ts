@@ -1012,6 +1012,7 @@ export type Database = {
           document_url: string | null
           end_date: string
           id: string
+          installment_plan: string | null
           insurer_id: string | null
           ipen_policy_id: string | null
           notes: string | null
@@ -1022,6 +1023,7 @@ export type Database = {
           premium_net: number | null
           previous_policy_id: string | null
           product_class: string
+          rop_of_policy_id: string | null
           start_date: string
           status: string
           sum_insured: number | null
@@ -1045,6 +1047,7 @@ export type Database = {
           document_url?: string | null
           end_date: string
           id?: string
+          installment_plan?: string | null
           insurer_id?: string | null
           ipen_policy_id?: string | null
           notes?: string | null
@@ -1055,6 +1058,7 @@ export type Database = {
           premium_net?: number | null
           previous_policy_id?: string | null
           product_class?: string
+          rop_of_policy_id?: string | null
           start_date: string
           status?: string
           sum_insured?: number | null
@@ -1078,6 +1082,7 @@ export type Database = {
           document_url?: string | null
           end_date?: string
           id?: string
+          installment_plan?: string | null
           insurer_id?: string | null
           ipen_policy_id?: string | null
           notes?: string | null
@@ -1088,6 +1093,7 @@ export type Database = {
           premium_net?: number | null
           previous_policy_id?: string | null
           product_class?: string
+          rop_of_policy_id?: string | null
           start_date?: string
           status?: string
           sum_insured?: number | null
@@ -1121,6 +1127,13 @@ export type Database = {
           {
             foreignKeyName: "policies_previous_policy_id_fkey"
             columns: ["previous_policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_rop_of_policy_id_fkey"
+            columns: ["rop_of_policy_id"]
             isOneToOne: false
             referencedRelation: "policies"
             referencedColumns: ["id"]

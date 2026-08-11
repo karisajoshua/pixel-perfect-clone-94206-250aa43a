@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/page-header";
 import { Plus, Search } from "lucide-react";
 import { PolicyFormDialog } from "@/components/policies/policy-form-dialog";
 import { policyTermLabel } from "@/lib/utils";
+import { isInstallmentTerm } from "@/lib/policy-installments";
 
 export const Route = createFileRoute("/_authenticated/policies")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: PoliciesLayout });
 
@@ -31,10 +32,10 @@ function PoliciesList() {
     queryFn: async () => {
       let q = supabase
         .from("policies")
-        .select("id, policy_no, certificate_no, status, payment_status, start_date, end_date, premium_gross, policy_term, client_id, clients(full_name, company_name, client_type), insurers(name), vehicles(registration_no)")
+        .select("id, policy_no, certificate_no, status, payment_status, start_date, end_date, premium_gross, policy_term, installment_plan, balance_due, client_id, clients(full_name, company_name, client_type), insurers(name), vehicles(registration_no)")
         .order("end_date", { ascending: true })
         .limit(200);
-      if (status === "rop") q = q.in("policy_term", ["six_months", "annual"]);
+      if (status === "rop") q = q.in("policy_term", ["rop", "six_months", "annual"]);
       else if (status === "tor") q = q.in("policy_term", ["tor"]);
       else if (status !== "all") q = q.eq("status", status);
       if (search) q = q.or(`policy_no.ilike.%${search}%,certificate_no.ilike.%${search}%`);
@@ -98,6 +99,9 @@ function PoliciesList() {
                     <td className="px-4 py-3 space-x-1">
                       <StatusBadge status={p.status} />
                       <PayBadge status={p.payment_status} />
+                      {isInstallmentTerm(p.policy_term) && p.payment_status !== "paid" && p.end_date <= new Date().toISOString().slice(0, 10) && (
+                        <Badge variant="destructive">Installment due</Badge>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Button asChild variant="ghost" size="sm"><Link to="/policies/$id" params={{ id: p.id }}>Open</Link></Button>

@@ -42,6 +42,8 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
     switch (term) {
       case "tor": return addDaysISO(start, 30);
       case "one_month_extendable": return addDaysISO(start, 30);
+      case "second_installment": return addDaysISO(start, 30);
+      case "rop": { const d = new Date(start); d.setFullYear(d.getFullYear() + 1); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); }
       case "six_months": return addDaysISO(start, 180);
       case "annual": return addYearsISO(start, 1);
       default: return undefined;
@@ -144,7 +146,7 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
       "policy_no","certificate_no","client_id","vehicle_id","insurer_id","branch_id",
       "product_class","cover_type","policy_term","sum_insured","premium_gross","premium_net",
       "commission","taxes","start_date","end_date","status","payment_status",
-      "previous_policy_id","document_url","notes",
+      "previous_policy_id","document_url","notes","installment_plan","rop_of_policy_id",
     ];
     const payload: any = {};
     for (const k of allowed) if (form[k] !== undefined) payload[k] = form[k];
@@ -279,6 +281,8 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
               <SelectContent>
                 <SelectItem value="tor">One month (TOR)</SelectItem>
                 <SelectItem value="one_month_extendable">One month extendable</SelectItem>
+                <SelectItem value="second_installment">2nd installment</SelectItem>
+                <SelectItem value="rop">Rest of period (ROP)</SelectItem>
                 <SelectItem value="six_months">6 months</SelectItem>
                 <SelectItem value="annual">Annual</SelectItem>
               </SelectContent>
