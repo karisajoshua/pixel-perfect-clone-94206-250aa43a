@@ -98,6 +98,8 @@ export function buildNextCoverPayload(policy: any, summary: InstallmentSummary) 
       insurer_id: policy.insurer_id ?? null,
       branch_id: policy.branch_id ?? null,
       product_class: policy.product_class,
+      product_subclass: policy.product_subclass ?? null,
+      tonnage: policy.tonnage ?? null,
       cover_type: policy.cover_type,
       sum_insured: policy.sum_insured ?? null,
       premium_gross: summary.balance || null,
