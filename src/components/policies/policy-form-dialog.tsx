@@ -185,6 +185,7 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
   };
 
   const vehiclesForClient = form.client_id ? vehicles.filter((v) => v.client_id === form.client_id) : vehicles;
+  const isThirdParty = form.cover_type === "third_party" || form.cover_type === "third_party_fire_theft";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -295,7 +296,9 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
           <F label="Gross premium" type="number" value={form.premium_gross} onChange={(v) => set("premium_gross", v ? Number(v) : null)} />
           <F label="Net premium" type="number" value={form.premium_net} onChange={(v) => set("premium_net", v ? Number(v) : null)} />
           <F label="Commission" type="number" value={form.commission} onChange={(v) => set("commission", v ? Number(v) : null)} />
-          <F label="Taxes" type="number" value={form.taxes} onChange={(v) => set("taxes", v ? Number(v) : null)} />
+          {!isThirdParty && (
+            <F label="Taxes" type="number" value={form.taxes} onChange={(v) => set("taxes", v ? Number(v) : null)} />
+          )}
           <F label="Start date *" type="date" value={form.start_date} onChange={onStartChange} />
           <F label="End date *" type="date" value={form.end_date} onChange={(v) => set("end_date", v)} />
           <div className="space-y-1.5 min-w-0">
