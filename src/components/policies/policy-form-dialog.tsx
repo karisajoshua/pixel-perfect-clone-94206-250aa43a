@@ -153,6 +153,7 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
     ];
     const payload: any = {};
     for (const k of allowed) if (form[k] !== undefined) payload[k] = form[k];
+    if (form.cover_type === "third_party" || form.cover_type === "third_party_fire_theft") payload.taxes = 0;
     const op = initial?.id
       ? supabase.from("policies").update(payload).eq("id", initial.id)
       : supabase.from("policies").insert({ ...payload, created_by: u.user?.id }).select("id").single();
