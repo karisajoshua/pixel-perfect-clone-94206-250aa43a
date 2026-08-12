@@ -10,7 +10,7 @@ import { VehicleFormDialog } from "@/components/vehicles/vehicle-form-dialog";
 import { TransferOwnershipDialog } from "@/components/vehicles/transfer-ownership-dialog";
 import { useMyRoles } from "@/hooks/use-auth";
 import { VehicleDocuments, useVehicleDocuments, vehicleDocsBadge } from "@/components/clients/vehicle-documents";
-import { policyBalance, balanceLabel, formatKES } from "@/lib/policy-balance";
+import { policyBalance, balanceLabel, formatKES, isCoverActive } from "@/lib/policy-balance";
 
 const TERMS: Record<string, string> = {
   tor: "One month (TOR)",
@@ -88,10 +88,7 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
 
       {vehicles.map((v: any) => {
         const policies = [...(v.policies ?? [])].sort((a: any, b: any) => (b.start_date ?? "").localeCompare(a.start_date ?? ""));
-        const today = new Date().toISOString().slice(0, 10);
-        const active = policies.find(
-          (p: any) => p.status === "active" && (!p.start_date || p.start_date <= today) && (!p.end_date || p.end_date >= today)
-        );
+        const active = policies.find((p: any) => isCoverActive(p));
         const shown = active ?? policies.find((p: any) => p.status !== "cancelled") ?? policies[0];
         const docItems = docs?.groups?.find((g: any) => g.vehicle_id === v.id)?.items;
         return (
