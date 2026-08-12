@@ -12,7 +12,7 @@ import { Plus, Search } from "lucide-react";
 import { PolicyFormDialog } from "@/components/policies/policy-form-dialog";
 import { policyTermLabel } from "@/lib/utils";
 import { isInstallmentTerm } from "@/lib/policy-installments";
-import { policyBalance, formatKES } from "@/lib/policy-balance";
+import { policyBalance, formatKES, isCoverActive } from "@/lib/policy-balance";
 
 export const Route = createFileRoute("/_authenticated/policies")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: PoliciesLayout });
 
