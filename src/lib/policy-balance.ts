@@ -53,6 +53,22 @@ export function policyBalance(policy: PolicyBalanceInput, paid?: number | null):
 
 export const formatKES = (n: number) => `KES ${Number(n).toLocaleString()}`;
 
+/**
+ * A cover is live when today falls inside its dates and its status is one of
+ * the "in force" states. Renewed and pending covers count as active — they are
+ * real cover, they just carry a workflow status.
+ */
+const ACTIVE_STATUSES = ["active", "renewed", "pending"];
+
+export function isCoverActive(policy: { status?: string | null; start_date?: string | null; end_date?: string | null } | null | undefined) {
+  if (!policy) return false;
+  if (!ACTIVE_STATUSES.includes(String(policy.status ?? ""))) return false;
+  const today = new Date().toISOString().slice(0, 10);
+  if (policy.start_date && policy.start_date > today) return false;
+  if (policy.end_date && policy.end_date < today) return false;
+  return true;
+}
+
 /** Display string for a balance, including the "not set" prompt. */
 export function balanceLabel(b: PolicyBalance) {
   return b.unknown ? "Balance not set — add the premium" : formatKES(b.balance);

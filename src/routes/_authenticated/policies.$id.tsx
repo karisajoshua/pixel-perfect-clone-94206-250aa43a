@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { policyTermLabel } from "@/lib/utils";
-import { policyBalance, balanceLabel, formatKES } from "@/lib/policy-balance";
+import { policyBalance, balanceLabel, formatKES, isCoverActive } from "@/lib/policy-balance";
 import {
   isInstallmentTerm, computeInstallmentSummary, buildNextCoverPayload,
   INSTALLMENT_PLAN_LABELS, type InstallmentPlan,
@@ -291,6 +291,9 @@ function PolicyDetail() {
         subtitle={`${clientName} • ${productClassLabel(p.product_class, p.product_subclass, p.tonnage)} • ${p.cover_type}`}
         actions={
           <div className="flex gap-2">
+            {isCoverActive(p) && (
+              <Badge variant="outline" className="self-center border-green-300 text-green-800">Cover active</Badge>
+            )}
             {p.ipen_policy_id && (
               <>
                 <Badge variant="secondary" className="self-center">IPEN</Badge>

@@ -12,7 +12,7 @@ import { Plus, Search } from "lucide-react";
 import { PolicyFormDialog } from "@/components/policies/policy-form-dialog";
 import { policyTermLabel } from "@/lib/utils";
 import { isInstallmentTerm } from "@/lib/policy-installments";
-import { policyBalance, formatKES } from "@/lib/policy-balance";
+import { policyBalance, formatKES, isCoverActive } from "@/lib/policy-balance";
 
 export const Route = createFileRoute("/_authenticated/policies")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: PoliciesLayout });
 
@@ -105,6 +105,9 @@ function PoliciesList() {
                     </td>
                     <td className="px-4 py-3 space-x-1">
                       <StatusBadge status={p.status} />
+                      {isCoverActive(p) && p.status !== "active" && (
+                        <Badge variant="outline" className="border-green-300 text-green-800">Cover active</Badge>
+                      )}
                       <PayBadge status={p.payment_status} />
                       {p.payment_status !== "paid" && (bal.outstanding || bal.unknown) && (
                         <Badge variant="outline" className="border-destructive/40 text-destructive">

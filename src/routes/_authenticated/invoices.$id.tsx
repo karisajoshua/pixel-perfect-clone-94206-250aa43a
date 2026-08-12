@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Pencil, Plus, Download, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Download, Trash2, User } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useMyRoles } from "@/hooks/use-auth";
 import { deleteInvoiceCascade } from "@/lib/invoice-delete";
@@ -57,6 +57,11 @@ function InvoiceDetail() {
       <PageHeader title={inv.invoice_no} subtitle={`${name} • Due ${inv.due_date}`}
         actions={
           <div className="flex gap-2">
+            {cl?.id && (
+              <Button asChild variant="outline">
+                <Link to="/clients/$id" params={{ id: cl.id }}><User className="h-4 w-4 mr-1" /> Open client</Link>
+              </Button>
+            )}
             <Button variant="outline" onClick={async () => {
               const t = toast.loading("Preparing PDF…");
               try {
