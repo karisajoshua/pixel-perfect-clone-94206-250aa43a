@@ -29,6 +29,10 @@ export const getPortalOverview = createServerFn({ method: "GET" })
 
     const active = (policies ?? []).filter((p: any) => p.status === "active");
     const nextRenewal = active.find((p: any) => p.end_date >= today && p.end_date <= in60) ?? active[0] ?? null;
+    const in30 = new Date(Date.now() + 30 * 86400_000).toISOString().slice(0, 10);
+    const expiringSoon = (policies ?? [])
+      .filter((p: any) => ["active", "renewed", "pending"].includes(p.status) && p.end_date && p.end_date >= today && p.end_date <= in30)
+      .map((p: any) => ({ id: p.id, policy_no: p.policy_no, end_date: p.end_date }));
     const outstanding = (invoices ?? []).reduce((s: number, i: any) => s + (Number(i.total) - Number(i.amount_paid || 0)), 0);
     const openClaims = (claims ?? []).filter((c: any) => c.status !== "settled" && c.status !== "closed").length;
 
@@ -54,6 +58,7 @@ export const getPortalOverview = createServerFn({ method: "GET" })
         openClaims,
       },
       recentClaims: claims ?? [],
+      expiringSoon,
       kyc: {
         status: client.kyc_status as string,
         missingFields,
