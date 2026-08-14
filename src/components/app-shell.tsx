@@ -16,6 +16,7 @@ import logoWhite from "@/assets/zia-logo-white.png.asset.json";
 import { AiAssistant } from "@/components/ai-assistant";
 import { TenantBrandProvider, useTenantBrand } from "@/components/tenant-brand-provider";
 import { PlatformNoticeBanner } from "@/components/platform-notice-banner";
+import { RenewalBell } from "@/components/renewal-bell";
 import { TourProvider, TourRestartButton } from "@/components/tour/tour-provider";
 import { STAFF_TOUR_ID, staffTourSteps } from "@/components/tour/tour-steps";
 
