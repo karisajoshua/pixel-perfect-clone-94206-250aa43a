@@ -102,6 +102,9 @@ function AppShellInner({ children }: { children: ReactNode }) {
           <div className="text-sm font-semibold text-sidebar-foreground truncate max-w-[10rem]">{agencyName}</div>
           <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/60">Agency Workspace</div>
         </div>
+        <div className="ml-auto">
+          <RenewalBell className="text-sidebar-foreground hover:bg-sidebar-accent" />
+        </div>
       </div>
       <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-0.5" onClick={() => setMobileOpen(false)}>
         {visibleNav.map((n) => (
@@ -161,8 +164,11 @@ function AppShellInner({ children }: { children: ReactNode }) {
           </Button>
           <img src={agencyLogo} alt={agencyName} className="h-7 w-auto object-contain" />
           <div className="ml-1 text-sm font-semibold truncate">{currentTitle}</div>
-          <div className="ml-auto h-8 w-8 rounded-full bg-sidebar-accent text-sidebar-accent-foreground grid place-items-center text-xs font-semibold">
+          <div className="ml-auto flex items-center gap-1">
+          <RenewalBell className="text-sidebar-foreground hover:bg-sidebar-accent" />
+          <div className="h-8 w-8 rounded-full bg-sidebar-accent text-sidebar-accent-foreground grid place-items-center text-xs font-semibold">
             {initials}
+          </div>
           </div>
         </div>
         <PlatformNoticeBanner />
