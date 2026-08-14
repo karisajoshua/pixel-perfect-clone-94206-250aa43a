@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Receipt, ScrollText, CalendarClock, ChevronRight, ShieldPlus, Upload, CreditCard } from "lucide-react";
 import { IpenPortalDashboardWidget } from "@/components/ipen/portal-dashboard-widget";
+import { RenewalBanner, daysUntil } from "@/components/portal/renewal-banner";
 
 export const Route = createFileRoute("/_portal/portal/")({
   component: Page,
@@ -31,6 +32,8 @@ function Page() {
         <p className="text-muted-foreground text-sm">Your insurance at a glance.</p>
       </div>
 
+      {data.expiringSoon?.length ? <RenewalBanner policies={data.expiringSoon} /> : null}
+
       {/* Quick actions — thumb-reach */}
       <div className="grid grid-cols-3 gap-3 md:hidden">
         <QuickAction to="/portal/claims" icon={ShieldPlus} label="Report claim" />
@@ -40,7 +43,16 @@ function Page() {
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <Kpi icon={FileText} label="Active policies" value={String(data.kpis.activePolicies)} />
-        <Kpi icon={CalendarClock} label="Next renewal" value={data.kpis.nextRenewal ? new Date(data.kpis.nextRenewal.end_date).toLocaleDateString() : "—"} sub={data.kpis.nextRenewal?.policy_no} />
+        <Kpi
+          icon={CalendarClock}
+          label="Next renewal"
+          value={data.kpis.nextRenewal ? new Date(data.kpis.nextRenewal.end_date).toLocaleDateString() : "—"}
+          sub={
+            data.kpis.nextRenewal
+              ? `${data.kpis.nextRenewal.policy_no} · in ${daysUntil(data.kpis.nextRenewal.end_date)} day${daysUntil(data.kpis.nextRenewal.end_date) === 1 ? "" : "s"}`
+              : undefined
+          }
+        />
         <Kpi icon={Receipt} label="Outstanding balance" value={KES.format(data.kpis.outstanding)} tone={data.kpis.outstanding > 0 ? "warn" : "ok"} />
         <Kpi icon={ScrollText} label="Open claims" value={String(data.kpis.openClaims)} />
       </div>
