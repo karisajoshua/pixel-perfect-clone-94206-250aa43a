@@ -118,9 +118,9 @@ function AgenciesList() {
             <TableHeader>
               <TableRow>
                 <TableHead>Agency</TableHead>
-                <TableHead>Plan</TableHead>
+                <TableHead className="hidden md:table-cell">Plan</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Onboarded</TableHead>
+                <TableHead className="hidden md:table-cell">Onboarded</TableHead>
                 <TableHead className="text-right">Clients</TableHead>
                 <TableHead className="text-right">Active policies</TableHead>
                 <TableHead className="text-right">Revenue</TableHead>
@@ -132,11 +132,11 @@ function AgenciesList() {
                 <TableRow key={a.id}>
                   <TableCell>
                     <Link to="/platform/agencies/$id" params={{ id: a.id }} className="font-medium hover:underline">{a.name}</Link>
-                    <div className="text-xs text-muted-foreground">{a.contact_email ?? "—"}</div>
+                    <div className="max-w-[14rem] truncate text-xs text-muted-foreground">{a.contact_email ?? "—"}</div>
                   </TableCell>
-                  <TableCell><Badge variant="outline">{a.plan}</Badge></TableCell>
+                  <TableCell className="hidden md:table-cell"><Badge variant="outline">{a.plan}</Badge></TableCell>
                   <TableCell><Badge variant={a.status === "active" ? "default" : "destructive"}>{a.status}</Badge></TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{a.onboarded_at ? new Date(a.onboarded_at).toLocaleDateString() : "—"}</TableCell>
+                  <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{a.onboarded_at ? new Date(a.onboarded_at).toLocaleDateString() : "—"}</TableCell>
                   <TableCell className="text-right">{a.clients}</TableCell>
                   <TableCell className="text-right">{a.activePolicies}</TableCell>
                   <TableCell className="text-right">{fmt(a.revenue)}</TableCell>

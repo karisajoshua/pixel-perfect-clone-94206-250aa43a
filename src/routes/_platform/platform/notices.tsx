@@ -31,7 +31,7 @@ function NoticesPage() {
 
   return (
     <div className="p-4 sm:p-8 space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">Notices</h1>
           <p className="text-sm text-muted-foreground">Broadcast messages to one agency or every agency on the platform.</p>
@@ -52,7 +52,7 @@ function NoticesPage() {
                 <TableHead>Audience</TableHead>
                 <TableHead>Severity</TableHead>
                 <TableHead>Title</TableHead>
-                <TableHead>Message</TableHead>
+                <TableHead className="hidden md:table-cell">Message</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -63,7 +63,7 @@ function NoticesPage() {
                   <TableCell><Badge variant="outline">{n.audience === "all" ? "All agencies" : n.tenant_name ?? "—"}</Badge></TableCell>
                   <TableCell><Badge variant={sevVariant(n.severity) as any}>{n.severity}</Badge></TableCell>
                   <TableCell className="font-medium">{n.title}</TableCell>
-                  <TableCell className="max-w-md truncate text-muted-foreground">{n.body}</TableCell>
+                  <TableCell className="hidden md:table-cell max-w-md truncate text-muted-foreground">{n.body}</TableCell>
                   <TableCell>
                     <Button variant="ghost" size="icon" onClick={() => { if (confirm("Delete this notice?")) del.mutate(n.id); }}>
                       <Trash2 className="h-4 w-4" />
