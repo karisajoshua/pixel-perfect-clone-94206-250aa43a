@@ -52,10 +52,10 @@ function AgenciesList() {
   const plans = Array.from(new Set((data?.agencies ?? []).map((a) => a.plan))).filter(Boolean);
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-8 space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold">All agencies</h1>
+          <h1 className="text-xl sm:text-2xl font-bold">All agencies</h1>
           <p className="text-sm text-muted-foreground">Click an agency to drill in.</p>
         </div>
         <SendNoticeDialog
@@ -65,48 +65,51 @@ function AgenciesList() {
       </div>
 
       <Card>
-        <CardContent className="pt-6 flex flex-wrap items-end gap-3">
-          <div className="relative w-72">
+        <CardContent className="pt-6 space-y-3 sm:space-y-0 sm:flex sm:flex-wrap sm:items-end sm:gap-3">
+          <div className="relative w-full sm:w-72">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or email" className="pl-8" />
           </div>
-          <div className="w-40">
-            <label className="text-xs text-muted-foreground">Status</label>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-3 sm:contents">
+            <div className="min-w-0 sm:w-40">
+              <label className="text-xs text-muted-foreground">Status</label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="min-w-0 sm:w-40">
+              <label className="text-xs text-muted-foreground">Plan</label>
+              <Select value={plan} onValueChange={setPlan}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  {plans.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2 min-w-0 sm:w-48">
+              <label className="text-xs text-muted-foreground">Sort by</label>
+              <Select value={sortKey} onValueChange={setSortKey}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="clients">Most clients</SelectItem>
+                  <SelectItem value="policies">Most active policies</SelectItem>
+                  <SelectItem value="revenue">Highest revenue</SelectItem>
+                  <SelectItem value="onboarded">Newest</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="w-40">
-            <label className="text-xs text-muted-foreground">Plan</label>
-            <Select value={plan} onValueChange={setPlan}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                {plans.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="w-48">
-            <label className="text-xs text-muted-foreground">Sort by</label>
-            <Select value={sortKey} onValueChange={setSortKey}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name">Name</SelectItem>
-                <SelectItem value="clients">Most clients</SelectItem>
-                <SelectItem value="policies">Most active policies</SelectItem>
-                <SelectItem value="revenue">Highest revenue</SelectItem>
-                <SelectItem value="onboarded">Newest</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="ml-auto text-sm text-muted-foreground">Showing {rows.length} of {data?.agencies?.length ?? 0}</div>
+          <div className="sm:ml-auto text-sm text-muted-foreground">Showing {rows.length} of {data?.agencies?.length ?? 0}</div>
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader><CardTitle>Agencies</CardTitle></CardHeader>
@@ -115,9 +118,9 @@ function AgenciesList() {
             <TableHeader>
               <TableRow>
                 <TableHead>Agency</TableHead>
-                <TableHead>Plan</TableHead>
+                <TableHead className="hidden md:table-cell">Plan</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Onboarded</TableHead>
+                <TableHead className="hidden md:table-cell">Onboarded</TableHead>
                 <TableHead className="text-right">Clients</TableHead>
                 <TableHead className="text-right">Active policies</TableHead>
                 <TableHead className="text-right">Revenue</TableHead>
@@ -129,11 +132,11 @@ function AgenciesList() {
                 <TableRow key={a.id}>
                   <TableCell>
                     <Link to="/platform/agencies/$id" params={{ id: a.id }} className="font-medium hover:underline">{a.name}</Link>
-                    <div className="text-xs text-muted-foreground">{a.contact_email ?? "—"}</div>
+                    <div className="max-w-[14rem] truncate text-xs text-muted-foreground">{a.contact_email ?? "—"}</div>
                   </TableCell>
-                  <TableCell><Badge variant="outline">{a.plan}</Badge></TableCell>
+                  <TableCell className="hidden md:table-cell"><Badge variant="outline">{a.plan}</Badge></TableCell>
                   <TableCell><Badge variant={a.status === "active" ? "default" : "destructive"}>{a.status}</Badge></TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{a.onboarded_at ? new Date(a.onboarded_at).toLocaleDateString() : "—"}</TableCell>
+                  <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{a.onboarded_at ? new Date(a.onboarded_at).toLocaleDateString() : "—"}</TableCell>
                   <TableCell className="text-right">{a.clients}</TableCell>
                   <TableCell className="text-right">{a.activePolicies}</TableCell>
                   <TableCell className="text-right">{fmt(a.revenue)}</TableCell>

@@ -44,7 +44,7 @@ export function SendNoticeDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="w-[calc(100vw-2rem)] sm:w-full sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Send a notice</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div>

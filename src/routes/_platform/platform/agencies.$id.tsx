@@ -47,30 +47,30 @@ function AgencyDetail() {
   const maxMonthly = Math.max(1, ...(data?.monthlyRevenue ?? []).map((m: any) => m.total));
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
+    <div className="p-4 sm:p-8 space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <Link to="/platform/agencies" className="text-sm text-muted-foreground hover:underline">← All agencies</Link>
-          <h1 className="text-2xl font-bold mt-1">{t.name}</h1>
-          <p className="text-sm text-muted-foreground">{t.contact_email} · {t.city ?? "—"}, {t.country ?? "—"}</p>
+          <h1 className="text-xl sm:text-2xl font-bold mt-1 break-words">{t.name}</h1>
+          <p className="text-sm text-muted-foreground break-words">{t.contact_email} · {t.city ?? "—"}, {t.country ?? "—"}</p>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center shrink-0">
           <Badge variant={t.status === "active" ? "default" : "destructive"}>{t.status}</Badge>
           <Button variant="outline" onClick={toggle}>{t.status === "active" ? "Suspend" : "Activate"}</Button>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
-        <Card><CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Clients</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{data?.clientCount ?? 0}</div></CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Policies</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{data?.policyCount ?? 0}</div></CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Active policies</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{data?.activePolicyCount ?? 0}</div></CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Branches</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{data?.branches.length ?? 0}</div></CardContent></Card>
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <Card><CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Clients</CardTitle></CardHeader><CardContent><div className="text-xl sm:text-2xl font-bold">{data?.clientCount ?? 0}</div></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Policies</CardTitle></CardHeader><CardContent><div className="text-xl sm:text-2xl font-bold">{data?.policyCount ?? 0}</div></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Active policies</CardTitle></CardHeader><CardContent><div className="text-xl sm:text-2xl font-bold">{data?.activePolicyCount ?? 0}</div></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Branches</CardTitle></CardHeader><CardContent><div className="text-xl sm:text-2xl font-bold">{data?.branches.length ?? 0}</div></CardContent></Card>
       </div>
 
       <Card>
         <CardHeader><CardTitle>Super admin actions</CardTitle></CardHeader>
-        <CardContent className="flex flex-wrap items-end gap-4">
-          <div className="w-48">
+        <CardContent className="flex flex-col items-stretch gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+          <div className="w-full sm:w-48">
             <label className="text-xs text-muted-foreground">Plan</label>
             <Select value={t.plan ?? "starter"} onValueChange={changePlan}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -95,10 +95,10 @@ function AgencyDetail() {
       <Card>
         <CardHeader><CardTitle>Revenue — last 6 months</CardTitle></CardHeader>
         <CardContent>
-          <div className="flex items-end gap-3 h-40">
+          <div className="flex items-end gap-1.5 sm:gap-3 h-40 overflow-x-auto">
             {(data?.monthlyRevenue ?? []).map((m: any) => (
               <div key={m.key} className="flex-1 flex flex-col items-center gap-1">
-                <div className="text-[10px] text-muted-foreground">{fmt(m.total)}</div>
+                <div className="text-[9px] sm:text-[10px] text-muted-foreground whitespace-nowrap">{fmt(m.total)}</div>
                 <div className="w-full bg-primary/80 rounded-t" style={{ height: `${(m.total / maxMonthly) * 100}%`, minHeight: 2 }} />
                 <div className="text-xs text-muted-foreground">{m.label}</div>
               </div>

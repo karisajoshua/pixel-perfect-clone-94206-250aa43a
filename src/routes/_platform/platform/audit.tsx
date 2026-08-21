@@ -29,14 +29,14 @@ function AuditPage() {
   });
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Platform audit log</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">Platform audit log</h1>
         <p className="text-sm text-muted-foreground">Recent activity across every agency.</p>
       </div>
       <Card>
-        <CardHeader className="flex flex-row gap-3 items-end flex-wrap">
-          <div className="w-64">
+        <CardHeader className="grid gap-3 sm:grid-cols-2 sm:items-end">
+          <div className="w-full sm:w-64 min-w-0">
             <label className="text-xs text-muted-foreground">Agency</label>
             <Select value={tenantId} onValueChange={setTenantId}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -46,7 +46,7 @@ function AuditPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="w-64">
+          <div className="w-full sm:w-64 min-w-0">
             <label className="text-xs text-muted-foreground">Action</label>
             <Input value={action} onChange={(e) => setAction(e.target.value)} placeholder="e.g. policy.created" />
           </div>
