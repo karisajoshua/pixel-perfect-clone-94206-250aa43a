@@ -47,7 +47,7 @@ function AgencyDetail() {
   const maxMonthly = Math.max(1, ...(data?.monthlyRevenue ?? []).map((m: any) => m.total));
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-8 space-y-6">
       <div className="flex items-start justify-between">
         <div>
           <Link to="/platform/agencies" className="text-sm text-muted-foreground hover:underline">← All agencies</Link>
@@ -61,10 +61,10 @@ function AgencyDetail() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-4">
-        <Card><CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Clients</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{data?.clientCount ?? 0}</div></CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Policies</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{data?.policyCount ?? 0}</div></CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Active policies</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{data?.activePolicyCount ?? 0}</div></CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Branches</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{data?.branches.length ?? 0}</div></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Clients</CardTitle></CardHeader><CardContent><div className="text-xl sm:text-2xl font-bold">{data?.clientCount ?? 0}</div></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Policies</CardTitle></CardHeader><CardContent><div className="text-xl sm:text-2xl font-bold">{data?.policyCount ?? 0}</div></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Active policies</CardTitle></CardHeader><CardContent><div className="text-xl sm:text-2xl font-bold">{data?.activePolicyCount ?? 0}</div></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Branches</CardTitle></CardHeader><CardContent><div className="text-xl sm:text-2xl font-bold">{data?.branches.length ?? 0}</div></CardContent></Card>
       </div>
 
       <Card>

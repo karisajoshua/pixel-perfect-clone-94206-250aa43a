@@ -29,9 +29,9 @@ function PlatformOverview() {
   ];
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Platform overview</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">Platform overview</h1>
         <p className="text-sm text-muted-foreground">Performance across every agency on the platform.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -41,7 +41,7 @@ function PlatformOverview() {
               <CardTitle className="text-xs font-medium text-muted-foreground">{tile.label}</CardTitle>
               <tile.icon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold">{tile.value}</div></CardContent>
+            <CardContent><div className="text-xl sm:text-2xl font-bold">{tile.value}</div></CardContent>
           </Card>
         ))}
       </div>

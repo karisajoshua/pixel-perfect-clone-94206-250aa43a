@@ -29,9 +29,9 @@ function AuditPage() {
   });
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Platform audit log</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">Platform audit log</h1>
         <p className="text-sm text-muted-foreground">Recent activity across every agency.</p>
       </div>
       <Card>
