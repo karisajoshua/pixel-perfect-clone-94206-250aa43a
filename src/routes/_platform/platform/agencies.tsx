@@ -65,48 +65,51 @@ function AgenciesList() {
       </div>
 
       <Card>
-        <CardContent className="pt-6 flex flex-wrap items-end gap-3">
-          <div className="relative w-72">
+        <CardContent className="pt-6 space-y-3 sm:space-y-0 sm:flex sm:flex-wrap sm:items-end sm:gap-3">
+          <div className="relative w-full sm:w-72">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or email" className="pl-8" />
           </div>
-          <div className="w-40">
-            <label className="text-xs text-muted-foreground">Status</label>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-3 sm:contents">
+            <div className="min-w-0 sm:w-40">
+              <label className="text-xs text-muted-foreground">Status</label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="min-w-0 sm:w-40">
+              <label className="text-xs text-muted-foreground">Plan</label>
+              <Select value={plan} onValueChange={setPlan}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  {plans.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2 min-w-0 sm:w-48">
+              <label className="text-xs text-muted-foreground">Sort by</label>
+              <Select value={sortKey} onValueChange={setSortKey}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="clients">Most clients</SelectItem>
+                  <SelectItem value="policies">Most active policies</SelectItem>
+                  <SelectItem value="revenue">Highest revenue</SelectItem>
+                  <SelectItem value="onboarded">Newest</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="w-40">
-            <label className="text-xs text-muted-foreground">Plan</label>
-            <Select value={plan} onValueChange={setPlan}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                {plans.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="w-48">
-            <label className="text-xs text-muted-foreground">Sort by</label>
-            <Select value={sortKey} onValueChange={setSortKey}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name">Name</SelectItem>
-                <SelectItem value="clients">Most clients</SelectItem>
-                <SelectItem value="policies">Most active policies</SelectItem>
-                <SelectItem value="revenue">Highest revenue</SelectItem>
-                <SelectItem value="onboarded">Newest</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="ml-auto text-sm text-muted-foreground">Showing {rows.length} of {data?.agencies?.length ?? 0}</div>
+          <div className="sm:ml-auto text-sm text-muted-foreground">Showing {rows.length} of {data?.agencies?.length ?? 0}</div>
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader><CardTitle>Agencies</CardTitle></CardHeader>
