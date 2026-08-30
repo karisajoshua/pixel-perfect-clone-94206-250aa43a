@@ -19,6 +19,9 @@ import { downloadQuotationPdf } from "@/lib/quotation-pdf";
 import { useMyRoles } from "@/hooks/use-auth";
 import { LifeQuoteWizard } from "@/components/ipen/life-quote-wizard";
 import { ProductClassFields } from "@/components/product-class-fields";
+import { RiskDetailsFields } from "@/components/risk-details-fields";
+import { isMotorClass, ratingModeFor, findClass, buildRiskLabel } from "@/lib/product-classes";
+import { computePremium, benefitRateOf } from "@/lib/premium-calc";
 import { Heart } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/quotations")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: QuotationsPage });
@@ -353,9 +356,17 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
       client_id: clientId,
       premium_gross: premiumGross,
       premium_net: basePremium,
-      sum_insured: isThirdParty ? null : form.sum_insured ?? null,
-      line_items: isThirdParty
-        ? { flat_premium: flatPremium, levies }
+      sum_insured: isThirdParty || ratingMode === "flat" ? null : form.sum_insured ?? null,
+      risk_details: isMotor ? {} : form.risk_details ?? {},
+      risk_label: isMotor ? null : buildRiskLabel(form.product_class, form.product_subclass, form.risk_details),
+      line_items: !isMotor
+        ? {
+            ...li,
+            levies,
+            ...(ratingMode === "sum_insured" ? { rate_pct: ratePct } : {}),
+          }
+        : isThirdParty
+        ? { flat_premium: Number(li.flat_premium ?? 0) || 0, levies }
         : {
             rate_pct: ratePct,
             benefit_rate_pct: benefitRatePct,
