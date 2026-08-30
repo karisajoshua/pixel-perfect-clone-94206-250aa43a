@@ -518,19 +518,26 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
               </SelectContent>
             </Select>
           </div>
-          {isThirdParty ? (
+          {isThirdParty || (!isMotor && ratingMode === "flat") ? (
             <div className="sm:col-span-2 space-y-1.5">
               <Label>Premium (KES)</Label>
               <Input type="number" step="0.01" value={li.flat_premium ?? ""} onChange={(e) => setLi("flat_premium", e.target.value ? Number(e.target.value) : 0)} />
-              <p className="text-xs text-muted-foreground">Flat premium for third-party cover.</p>
+              <p className="text-xs text-muted-foreground">
+                {isThirdParty ? "Flat premium for third-party cover." : "Quoted premium for this risk."}
+              </p>
             </div>
+          ) : !isMotor && ratingMode === "per_unit" ? (
+            <>
+              <div className="space-y-1.5"><Label>{classDef?.unitLabel ?? "Units"}</Label><Input type="number" value={li.units ?? ""} onChange={(e) => setLi("units", e.target.value ? Number(e.target.value) : 0)} /></div>
+              <div className="space-y-1.5"><Label>Premium per unit (KES)</Label><Input type="number" step="0.01" value={li.unit_premium ?? ""} onChange={(e) => setLi("unit_premium", e.target.value ? Number(e.target.value) : 0)} /></div>
+            </>
           ) : (
             <>
               <div className="space-y-1.5"><Label>Sum insured</Label><Input type="number" value={form.sum_insured ?? ""} onChange={(e) => set("sum_insured", e.target.value ? Number(e.target.value) : null)} /></div>
               <div className="space-y-1.5"><Label>Rate %</Label><Input type="number" step="0.01" value={li.rate_pct ?? ""} onChange={(e) => setLi("rate_pct", e.target.value ? Number(e.target.value) : 0)} /></div>
             </>
           )}
-          {!isThirdParty && (
+          {showBenefits && (
           <div className="sm:col-span-2 space-y-2">
             <Label>Additional Benefits</Label>
             <div className="flex items-end gap-3">
