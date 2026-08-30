@@ -33,7 +33,7 @@ function PoliciesList() {
     queryFn: async () => {
       let q = supabase
         .from("policies")
-        .select("id, policy_no, certificate_no, status, payment_status, start_date, end_date, premium_gross, policy_term, installment_plan, balance_due, client_id, clients(full_name, company_name, client_type), insurers(name), vehicles(registration_no)")
+        .select("id, policy_no, certificate_no, status, payment_status, start_date, end_date, premium_gross, policy_term, installment_plan, balance_due, client_id, product_class, risk_label, clients(full_name, company_name, client_type), insurers(name), vehicles(registration_no)")
         .order("end_date", { ascending: true })
         .limit(200);
       if (status === "rop") q = q.in("policy_term", ["rop", "six_months", "annual"]);
@@ -93,7 +93,7 @@ function PoliciesList() {
                       {p.certificate_no && <div className="text-[11px] font-normal text-muted-foreground">Cert. {p.certificate_no}</div>}
                     </td>
                     <td className="px-4 py-3">{name}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{p.vehicles?.registration_no ?? "—"}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{p.vehicles?.registration_no ?? p.risk_label ?? "—"}</td>
                     <td className="px-4 py-3">{p.insurers?.name ?? "—"}</td>
                     <td className="px-4 py-3 text-xs">{p.start_date} → <span className="font-medium">{p.end_date}</span></td>
                     <td className="px-4 py-3 text-xs">{policyTermLabel(p.policy_term)}</td>

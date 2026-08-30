@@ -334,7 +334,7 @@ function PolicyDetail() {
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
               <Item label="Certificate no." value={p.certificate_no} />
               <Item label="Insurer" value={p.insurers?.name} />
-              <Item label="Vehicle" value={p.vehicles?.registration_no ? `${p.vehicles.registration_no} (${[p.vehicles.make, p.vehicles.model].filter(Boolean).join(" ")})` : "—"} />
+              <Item label={p.vehicles?.registration_no ? "Vehicle" : "Risk"} value={p.vehicles?.registration_no ? `${p.vehicles.registration_no} (${[p.vehicles.make, p.vehicles.model].filter(Boolean).join(" ")})` : p.risk_label ?? "—"} />
               <Item label="Start" value={p.start_date} />
               <Item label="End" value={p.end_date} />
               <Item label="Sum insured" value={p.sum_insured ? `KES ${Number(p.sum_insured).toLocaleString()}` : "—"} />

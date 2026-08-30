@@ -19,6 +19,9 @@ import { downloadQuotationPdf } from "@/lib/quotation-pdf";
 import { useMyRoles } from "@/hooks/use-auth";
 import { LifeQuoteWizard } from "@/components/ipen/life-quote-wizard";
 import { ProductClassFields } from "@/components/product-class-fields";
+import { RiskDetailsFields } from "@/components/risk-details-fields";
+import { isMotorClass, ratingModeFor, findClass, buildRiskLabel } from "@/lib/product-classes";
+import { computePremium, benefitRateOf } from "@/lib/premium-calc";
 import { Heart } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/quotations")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: QuotationsPage });
@@ -64,6 +67,7 @@ function QuotationsPage() {
       client_id: q.client_id, vehicle_id: q.vehicle_id, insurer_id: q.insurer_id, branch_id: q.branch_id,
       product_class: q.product_class, product_subclass: q.product_subclass ?? null, tonnage: q.tonnage ?? null,
       cover_type: q.cover_type, policy_term: q.policy_term ?? "annual",
+      risk_details: q.risk_details ?? {}, risk_label: q.risk_label ?? null,
       sum_insured: q.sum_insured, premium_gross: q.premium_gross, premium_net: q.premium_net,
       start_date: today.toISOString().slice(0,10), end_date: end.toISOString().slice(0,10),
       status: "pending", payment_status: "unpaid",
@@ -194,7 +198,7 @@ function QuotationsPage() {
                   if (!term) return true;
                   const cl = q.clients;
                   const name = cl ? (cl.client_type === "corporate" ? cl.company_name ?? cl.full_name : cl.full_name) : "";
-                  return [q.quote_no, name, q.insurers?.name, q.vehicles?.registration_no]
+                  return [q.quote_no, name, q.insurers?.name, q.vehicles?.registration_no ?? q.risk_label]
                     .filter(Boolean).some((v: string) => v.toLowerCase().includes(term));
                 });
                 if (filtered.length === 0) return <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">{term ? "No matches." : "No quotes yet."}</td></tr>;
@@ -290,24 +294,27 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
   const ratePct = Number(li.rate_pct ?? 0);
   const benefits: string[] = Array.isArray(li.benefits) ? li.benefits : [];
   const sumInsured = Number(form.sum_insured ?? 0);
-  const isThirdParty = form.cover_type === "third_party" || form.cover_type === "third_party_fire_theft";
-  const flatPremium = Number(li.flat_premium ?? 0);
-  const benefitRatePct = li.benefit_rate_pct === undefined || li.benefit_rate_pct === null || li.benefit_rate_pct === ""
-    ? 0.25
-    : Number(li.benefit_rate_pct);
-  const basePremium = isThirdParty
-    ? flatPremium
-    : +(sumInsured * (ratePct / 100)).toFixed(2);
-  const benefitPremium = isThirdParty
-    ? 0
-    : +(sumInsured * (benefitRatePct / 100) * benefits.length).toFixed(2);
+  const isMotor = isMotorClass(form.product_class);
+  const ratingMode = ratingModeFor(form.product_class);
+  const classDef = findClass(form.product_class);
+  const isThirdParty = isMotor && (form.cover_type === "third_party" || form.cover_type === "third_party_fire_theft");
+  const benefitRatePct = benefitRateOf(li);
+  const calc = computePremium({
+    productClass: form.product_class,
+    coverType: form.cover_type,
+    sumInsured: form.sum_insured,
+    lineItems: li,
+  });
+  const basePremium = calc.base;
+  const benefitPremium = calc.benefits;
   const pllEnabled = !!li.pll_enabled;
   const paEnabled = !!li.pa_enabled;
-  const pllAmount = isThirdParty || !pllEnabled ? 0 : Number(li.pll_amount ?? 0);
-  const paAmount = isThirdParty || !paEnabled ? 0 : Number(li.pa_amount ?? 0);
-  const premiumGross = +(basePremium + benefitPremium + pllAmount + paAmount).toFixed(2);
-  const levies = isThirdParty ? 0 : +(premiumGross * 0.0045 + 40).toFixed(2);
-  const total = +(premiumGross + levies).toFixed(2);
+  const pllAmount = calc.pll;
+  const paAmount = calc.pa;
+  const premiumGross = calc.gross;
+  const levies = calc.levies;
+  const total = calc.total;
+  const showBenefits = isMotor && !isThirdParty;
 
   const setLi = (k: string, v: any) => set("line_items", { ...li, [k]: v });
   const toggleBenefit = (name: string) => {
@@ -350,9 +357,17 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
       client_id: clientId,
       premium_gross: premiumGross,
       premium_net: basePremium,
-      sum_insured: isThirdParty ? null : form.sum_insured ?? null,
-      line_items: isThirdParty
-        ? { flat_premium: flatPremium, levies }
+      sum_insured: isThirdParty || ratingMode === "flat" ? null : form.sum_insured ?? null,
+      risk_details: isMotor ? {} : form.risk_details ?? {},
+      risk_label: isMotor ? null : buildRiskLabel(form.product_class, form.product_subclass, form.risk_details),
+      line_items: !isMotor
+        ? {
+            ...li,
+            levies,
+            ...(ratingMode === "sum_insured" ? { rate_pct: ratePct } : {}),
+          }
+        : isThirdParty
+        ? { flat_premium: Number(li.flat_premium ?? 0) || 0, levies }
         : {
             rate_pct: ratePct,
             benefit_rate_pct: benefitRatePct,
@@ -433,13 +448,15 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
               <p className="text-xs text-muted-foreground">New client "{clientText.trim()}" will be created on save.</p>
             )}
           </div>
-          <div className="space-y-1.5">
-            <Label>Vehicle</Label>
-            <Select value={form.vehicle_id ?? ""} onValueChange={(v) => set("vehicle_id", v || null)}>
-              <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
-              <SelectContent>{vForClient.map((v) => <SelectItem key={v.id} value={v.id}>{v.registration_no}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
+          {isMotor && (
+            <div className="space-y-1.5">
+              <Label>Vehicle</Label>
+              <Select value={form.vehicle_id ?? ""} onValueChange={(v) => set("vehicle_id", v || null)}>
+                <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
+                <SelectContent>{vForClient.map((v) => <SelectItem key={v.id} value={v.id}>{v.registration_no}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label>Insurer</Label>
             <Select value={form.insurer_id ?? ""} onValueChange={(v) => set("insurer_id", v || null)}>
@@ -453,17 +470,25 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
             tonnage={form.tonnage}
             onChange={(patch: any) => setForm((f: any) => ({ ...f, ...patch }))}
           />
-          <div className="space-y-1.5">
-            <Label>Cover type</Label>
-            <Select value={form.cover_type} onValueChange={(v) => set("cover_type", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="comprehensive">Comprehensive</SelectItem>
-                <SelectItem value="third_party">Third party</SelectItem>
-                <SelectItem value="third_party_fire_theft">TPFT</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {isMotor ? (
+            <div className="space-y-1.5">
+              <Label>Cover type</Label>
+              <Select value={form.cover_type} onValueChange={(v) => set("cover_type", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="comprehensive">Comprehensive</SelectItem>
+                  <SelectItem value="third_party">Third party</SelectItem>
+                  <SelectItem value="third_party_fire_theft">TPFT</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <RiskDetailsFields
+              productClass={form.product_class}
+              details={form.risk_details}
+              onChange={(d) => set("risk_details", d)}
+            />
+          )}
           <div className="space-y-1.5">
             <Label>Policy term</Label>
             <Select value={form.policy_term ?? "annual"} onValueChange={(v) => set("policy_term", v)}>
@@ -494,19 +519,26 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
               </SelectContent>
             </Select>
           </div>
-          {isThirdParty ? (
+          {isThirdParty || (!isMotor && ratingMode === "flat") ? (
             <div className="sm:col-span-2 space-y-1.5">
               <Label>Premium (KES)</Label>
               <Input type="number" step="0.01" value={li.flat_premium ?? ""} onChange={(e) => setLi("flat_premium", e.target.value ? Number(e.target.value) : 0)} />
-              <p className="text-xs text-muted-foreground">Flat premium for third-party cover.</p>
+              <p className="text-xs text-muted-foreground">
+                {isThirdParty ? "Flat premium for third-party cover." : "Quoted premium for this risk."}
+              </p>
             </div>
+          ) : !isMotor && ratingMode === "per_unit" ? (
+            <>
+              <div className="space-y-1.5"><Label>{classDef?.unitLabel ?? "Units"}</Label><Input type="number" value={li.units ?? ""} onChange={(e) => setLi("units", e.target.value ? Number(e.target.value) : 0)} /></div>
+              <div className="space-y-1.5"><Label>Premium per unit (KES)</Label><Input type="number" step="0.01" value={li.unit_premium ?? ""} onChange={(e) => setLi("unit_premium", e.target.value ? Number(e.target.value) : 0)} /></div>
+            </>
           ) : (
             <>
               <div className="space-y-1.5"><Label>Sum insured</Label><Input type="number" value={form.sum_insured ?? ""} onChange={(e) => set("sum_insured", e.target.value ? Number(e.target.value) : null)} /></div>
               <div className="space-y-1.5"><Label>Rate %</Label><Input type="number" step="0.01" value={li.rate_pct ?? ""} onChange={(e) => setLi("rate_pct", e.target.value ? Number(e.target.value) : 0)} /></div>
             </>
           )}
-          {!isThirdParty && (
+          {showBenefits && (
           <div className="sm:col-span-2 space-y-2">
             <Label>Additional Benefits</Label>
             <div className="flex items-end gap-3">
@@ -566,17 +598,26 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
           )}
           <div className="sm:col-span-2 rounded-md border bg-muted/30 p-3 text-sm space-y-1">
             <div className="flex justify-between"><span className="text-muted-foreground">Base premium</span><span>KES {basePremium.toLocaleString()}</span></div>
-            {!isThirdParty && (
+            {showBenefits && (
               <div className="flex justify-between"><span className="text-muted-foreground">Additional benefits ({benefits.length})</span><span>KES {benefitPremium.toLocaleString()}</span></div>
             )}
-            {!isThirdParty && pllEnabled && (
+            {showBenefits && pllEnabled && (
               <div className="flex justify-between"><span className="text-muted-foreground">Passenger Legal Liability (PLL)</span><span>KES {pllAmount.toLocaleString()}</span></div>
             )}
-            {!isThirdParty && paEnabled && (
+            {showBenefits && paEnabled && (
               <div className="flex justify-between"><span className="text-muted-foreground">Personal Accident (PA)</span><span>KES {paAmount.toLocaleString()}</span></div>
             )}
             {!isThirdParty && (
-              <div className="flex justify-between"><span className="text-muted-foreground">Levies (0.45% + KES 40)</span><span>KES {levies.toLocaleString()}</span></div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Levies (0.45% + KES 40)</span>
+                <Input
+                  className="h-7 w-32 text-right"
+                  type="number"
+                  step="0.01"
+                  value={li.levies_override ?? levies}
+                  onChange={(e) => setLi("levies_override", e.target.value === "" ? "" : Number(e.target.value))}
+                />
+              </div>
             )}
             <div className="flex justify-between font-semibold border-t pt-1 mt-1"><span>Total premium payable</span><span>KES {total.toLocaleString()}</span></div>
           </div>

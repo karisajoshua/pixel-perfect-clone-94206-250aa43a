@@ -1024,6 +1024,8 @@ export type Database = {
           previous_policy_id: string | null
           product_class: string
           product_subclass: string | null
+          risk_details: Json
+          risk_label: string | null
           rop_of_policy_id: string | null
           start_date: string
           status: string
@@ -1061,6 +1063,8 @@ export type Database = {
           previous_policy_id?: string | null
           product_class?: string
           product_subclass?: string | null
+          risk_details?: Json
+          risk_label?: string | null
           rop_of_policy_id?: string | null
           start_date: string
           status?: string
@@ -1098,6 +1102,8 @@ export type Database = {
           previous_policy_id?: string | null
           product_class?: string
           product_subclass?: string | null
+          risk_details?: Json
+          risk_label?: string | null
           rop_of_policy_id?: string | null
           start_date?: string
           status?: string
@@ -1293,6 +1299,8 @@ export type Database = {
           quote_no: string
           rejection_reason: string | null
           revision: number
+          risk_details: Json
+          risk_label: string | null
           status: string
           sum_insured: number | null
           tenant_id: string
@@ -1326,6 +1334,8 @@ export type Database = {
           quote_no: string
           rejection_reason?: string | null
           revision?: number
+          risk_details?: Json
+          risk_label?: string | null
           status?: string
           sum_insured?: number | null
           tenant_id: string
@@ -1359,6 +1369,8 @@ export type Database = {
           quote_no?: string
           rejection_reason?: string | null
           revision?: number
+          risk_details?: Json
+          risk_label?: string | null
           status?: string
           sum_insured?: number | null
           tenant_id?: string
@@ -1970,6 +1982,13 @@ export type Database = {
         | "log_book"
         | "importation_doc"
         | "search_doc"
+        | "valuation_report"
+        | "business_permit"
+        | "employee_schedule"
+        | "stock_declaration"
+        | "contract_bq"
+        | "bill_of_lading"
+        | "member_list"
       kyc_status: "pending" | "in_review" | "verified" | "rejected" | "expired"
     }
     CompositeTypes: {
@@ -2122,6 +2141,13 @@ export const Constants = {
         "log_book",
         "importation_doc",
         "search_doc",
+        "valuation_report",
+        "business_permit",
+        "employee_schedule",
+        "stock_declaration",
+        "contract_bq",
+        "bill_of_lading",
+        "member_list",
       ],
       kyc_status: ["pending", "in_review", "verified", "rejected", "expired"],
     },
