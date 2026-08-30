@@ -198,7 +198,7 @@ function QuotationsPage() {
                   if (!term) return true;
                   const cl = q.clients;
                   const name = cl ? (cl.client_type === "corporate" ? cl.company_name ?? cl.full_name : cl.full_name) : "";
-                  return [q.quote_no, name, q.insurers?.name, q.vehicles?.registration_no]
+                  return [q.quote_no, name, q.insurers?.name, q.vehicles?.registration_no ?? q.risk_label]
                     .filter(Boolean).some((v: string) => v.toLowerCase().includes(term));
                 });
                 if (filtered.length === 0) return <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">{term ? "No matches." : "No quotes yet."}</td></tr>;
