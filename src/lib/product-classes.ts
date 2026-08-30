@@ -34,7 +34,7 @@ export type ProductClassDef = {
   riskFields?: RiskField[];
 };
 
-const MOTOR_CLASSES: ProductClassDef[] = [
+const MOTOR_CLASSES: ProductClassDef[] = ([
   { value: "motor_private", label: "Motor Private", subclasses: [] },
   {
     value: "motor_commercial",
@@ -66,12 +66,12 @@ const MOTOR_CLASSES: ProductClassDef[] = [
       { value: "psv_yellow_line", label: "Motor PSV Yellow-Line — TPO", tpoOnly: true },
     ],
   },
-].map((c) => ({ ...c, category: "motor" as const, group: "Motor", ratingMode: "motor" as const, levies: true }));
+] as ProductClassDef[]).map((c) => ({ ...c, category: "motor" as const, group: "Motor", ratingMode: "motor" as const, levies: true }));
 
 const LOCATION: RiskField = { key: "location", label: "Risk location / address", inLabel: true };
 const DESCRIPTION: RiskField = { key: "description", label: "Risk description", type: "textarea" };
 
-const NON_MOTOR_CLASSES: ProductClassDef[] = [
+const NON_MOTOR_CLASSES: ProductClassDef[] = ([
   {
     value: "fire_property",
     label: "Fire & Property",
@@ -214,7 +214,7 @@ const NON_MOTOR_CLASSES: ProductClassDef[] = [
       { value: "livestock", label: "Livestock" },
     ],
   },
-].map((c) => ({ category: "non_motor" as const, levies: true, ...c }));
+] as ProductClassDef[]).map((c) => ({ category: "non_motor" as const, levies: true, ...c }));
 
 export const PRODUCT_CLASSES: ProductClassDef[] = [...MOTOR_CLASSES, ...NON_MOTOR_CLASSES];
 
