@@ -469,17 +469,25 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
             tonnage={form.tonnage}
             onChange={(patch: any) => setForm((f: any) => ({ ...f, ...patch }))}
           />
-          <div className="space-y-1.5">
-            <Label>Cover type</Label>
-            <Select value={form.cover_type} onValueChange={(v) => set("cover_type", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="comprehensive">Comprehensive</SelectItem>
-                <SelectItem value="third_party">Third party</SelectItem>
-                <SelectItem value="third_party_fire_theft">TPFT</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {isMotor ? (
+            <div className="space-y-1.5">
+              <Label>Cover type</Label>
+              <Select value={form.cover_type} onValueChange={(v) => set("cover_type", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="comprehensive">Comprehensive</SelectItem>
+                  <SelectItem value="third_party">Third party</SelectItem>
+                  <SelectItem value="third_party_fire_theft">TPFT</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <RiskDetailsFields
+              productClass={form.product_class}
+              details={form.risk_details}
+              onChange={(d) => set("risk_details", d)}
+            />
+          )}
           <div className="space-y-1.5">
             <Label>Policy term</Label>
             <Select value={form.policy_term ?? "annual"} onValueChange={(v) => set("policy_term", v)}>
