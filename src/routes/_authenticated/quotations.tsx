@@ -290,24 +290,27 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
   const ratePct = Number(li.rate_pct ?? 0);
   const benefits: string[] = Array.isArray(li.benefits) ? li.benefits : [];
   const sumInsured = Number(form.sum_insured ?? 0);
-  const isThirdParty = form.cover_type === "third_party" || form.cover_type === "third_party_fire_theft";
-  const flatPremium = Number(li.flat_premium ?? 0);
-  const benefitRatePct = li.benefit_rate_pct === undefined || li.benefit_rate_pct === null || li.benefit_rate_pct === ""
-    ? 0.25
-    : Number(li.benefit_rate_pct);
-  const basePremium = isThirdParty
-    ? flatPremium
-    : +(sumInsured * (ratePct / 100)).toFixed(2);
-  const benefitPremium = isThirdParty
-    ? 0
-    : +(sumInsured * (benefitRatePct / 100) * benefits.length).toFixed(2);
+  const isMotor = isMotorClass(form.product_class);
+  const ratingMode = ratingModeFor(form.product_class);
+  const classDef = findClass(form.product_class);
+  const isThirdParty = isMotor && (form.cover_type === "third_party" || form.cover_type === "third_party_fire_theft");
+  const benefitRatePct = benefitRateOf(li);
+  const calc = computePremium({
+    productClass: form.product_class,
+    coverType: form.cover_type,
+    sumInsured: form.sum_insured,
+    lineItems: li,
+  });
+  const basePremium = calc.base;
+  const benefitPremium = calc.benefits;
   const pllEnabled = !!li.pll_enabled;
   const paEnabled = !!li.pa_enabled;
-  const pllAmount = isThirdParty || !pllEnabled ? 0 : Number(li.pll_amount ?? 0);
-  const paAmount = isThirdParty || !paEnabled ? 0 : Number(li.pa_amount ?? 0);
-  const premiumGross = +(basePremium + benefitPremium + pllAmount + paAmount).toFixed(2);
-  const levies = isThirdParty ? 0 : +(premiumGross * 0.0045 + 40).toFixed(2);
-  const total = +(premiumGross + levies).toFixed(2);
+  const pllAmount = calc.pll;
+  const paAmount = calc.pa;
+  const premiumGross = calc.gross;
+  const levies = calc.levies;
+  const total = calc.total;
+  const showBenefits = isMotor && !isThirdParty;
 
   const setLi = (k: string, v: any) => set("line_items", { ...li, [k]: v });
   const toggleBenefit = (name: string) => {
