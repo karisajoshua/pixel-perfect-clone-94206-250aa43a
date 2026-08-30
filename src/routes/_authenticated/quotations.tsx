@@ -447,13 +447,15 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
               <p className="text-xs text-muted-foreground">New client "{clientText.trim()}" will be created on save.</p>
             )}
           </div>
-          <div className="space-y-1.5">
-            <Label>Vehicle</Label>
-            <Select value={form.vehicle_id ?? ""} onValueChange={(v) => set("vehicle_id", v || null)}>
-              <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
-              <SelectContent>{vForClient.map((v) => <SelectItem key={v.id} value={v.id}>{v.registration_no}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
+          {isMotor && (
+            <div className="space-y-1.5">
+              <Label>Vehicle</Label>
+              <Select value={form.vehicle_id ?? ""} onValueChange={(v) => set("vehicle_id", v || null)}>
+                <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
+                <SelectContent>{vForClient.map((v) => <SelectItem key={v.id} value={v.id}>{v.registration_no}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label>Insurer</Label>
             <Select value={form.insurer_id ?? ""} onValueChange={(v) => set("insurer_id", v || null)}>
