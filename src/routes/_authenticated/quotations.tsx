@@ -67,6 +67,7 @@ function QuotationsPage() {
       client_id: q.client_id, vehicle_id: q.vehicle_id, insurer_id: q.insurer_id, branch_id: q.branch_id,
       product_class: q.product_class, product_subclass: q.product_subclass ?? null, tonnage: q.tonnage ?? null,
       cover_type: q.cover_type, policy_term: q.policy_term ?? "annual",
+      risk_details: q.risk_details ?? {}, risk_label: q.risk_label ?? null,
       sum_insured: q.sum_insured, premium_gross: q.premium_gross, premium_net: q.premium_net,
       start_date: today.toISOString().slice(0,10), end_date: end.toISOString().slice(0,10),
       status: "pending", payment_status: "unpaid",
