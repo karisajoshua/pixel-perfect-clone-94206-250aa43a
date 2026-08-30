@@ -1,6 +1,8 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { getCurrentBrand } from "./tenant-brand";
+import { isMotorClass } from "@/lib/product-classes";
+import { computePremium } from "@/lib/premium-calc";
 import { productClassLabel } from "./product-classes";
 
 type Branch = { name?: string | null; address?: string | null; phone?: string | null; email?: string | null } | null | undefined;
@@ -76,20 +78,28 @@ export async function downloadQuotationPdf({ quotation, client, branch, insurer,
   const levies = Number(li.levies ?? 0);
   const benefits: string[] = Array.isArray(li.benefits) ? li.benefits : [];
   const sumInsured = Number(quotation.sum_insured ?? 0);
-  const basePremium = +(sumInsured * (ratePct / 100)).toFixed(2);
+  const isMotor = isMotorClass(quotation.product_class);
+  const basePremium = computePremium({
+    productClass: quotation.product_class,
+    coverType: quotation.cover_type,
+    sumInsured: quotation.sum_insured,
+    lineItems: li,
+  }).base;
   const benefitRatePct = li.benefit_rate_pct === undefined || li.benefit_rate_pct === null || li.benefit_rate_pct === ""
     ? 0.25
     : Number(li.benefit_rate_pct);
-  const benefitUnit = +(sumInsured * (benefitRatePct / 100)).toFixed(2);
+  const benefitUnit = isMotor ? +(sumInsured * (benefitRatePct / 100)).toFixed(2) : 0;
   const benefitsTotal = +(benefitUnit * benefits.length).toFixed(2);
   const pllAmount = li.pll_enabled ? Number(li.pll_amount ?? 0) : 0;
   const paAmount = li.pa_enabled ? Number(li.pa_amount ?? 0) : 0;
   const grossPremium = +(basePremium + benefitsTotal + pllAmount + paAmount).toFixed(2);
   const total = +(grossPremium + levies).toFixed(2);
 
-  const coverLabel = `${productClassLabel(quotation.product_class, quotation.product_subclass, quotation.tonnage)}\n${titleCase(quotation.cover_type)}`;
+  const coverLabel = isMotor
+    ? `${productClassLabel(quotation.product_class, quotation.product_subclass, quotation.tonnage)}\n${titleCase(quotation.cover_type)}`
+    : [productClassLabel(quotation.product_class, quotation.product_subclass, quotation.tonnage), quotation.risk_label].filter(Boolean).join("\n");
 
-  const remarks = [
+  const remarks = !isMotor ? [] : [
     { title: "What you get in the policy", lines: [
       "Third party persons injury: As per statute",
       "Third party property damage: KES. 5,000,000",
