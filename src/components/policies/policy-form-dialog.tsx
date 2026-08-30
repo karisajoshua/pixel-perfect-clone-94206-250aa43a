@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { sendTransactionalEmail, clientDisplayName, formatKES } from "@/lib/email/send";
 import { ProductClassFields } from "@/components/product-class-fields";
+import { RiskDetailsFields } from "@/components/risk-details-fields";
+import { isMotorClass, buildRiskLabel } from "@/lib/product-classes";
 
 type Props = {
   open: boolean;
@@ -152,9 +154,19 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
       "product_subclass","tonnage",
       "commission","taxes","start_date","end_date","status","payment_status",
       "balance_due","previous_policy_id","document_url","notes","installment_plan","rop_of_policy_id",
+      "risk_details",
     ];
     const payload: any = {};
     for (const k of allowed) if (form[k] !== undefined) payload[k] = form[k];
+    const motor = isMotorClass(form.product_class);
+    if (!motor) {
+      payload.vehicle_id = null;
+      payload.risk_details = form.risk_details ?? {};
+      payload.risk_label = buildRiskLabel(form.product_class, form.product_subclass, form.risk_details);
+    } else {
+      payload.risk_details = {};
+      payload.risk_label = null;
+    }
     if (form.cover_type === "third_party" || form.cover_type === "third_party_fire_theft") payload.taxes = 0;
     const op = initial?.id
       ? supabase.from("policies").update(payload).eq("id", initial.id)
@@ -241,13 +253,15 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
               <p className="text-xs text-muted-foreground">Pick a client from the list.</p>
             )}
           </div>
-          <div className="space-y-1.5 min-w-0">
-            <Label>Vehicle</Label>
-            <Select value={form.vehicle_id ?? ""} onValueChange={(v) => set("vehicle_id", v || null)}>
-              <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
-              <SelectContent>{vehiclesForClient.map((v) => <SelectItem key={v.id} value={v.id}>{v.registration_no}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
+          {isMotorClass(form.product_class) && (
+            <div className="space-y-1.5 min-w-0">
+              <Label>Vehicle</Label>
+              <Select value={form.vehicle_id ?? ""} onValueChange={(v) => set("vehicle_id", v || null)}>
+                <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
+                <SelectContent>{vehiclesForClient.map((v) => <SelectItem key={v.id} value={v.id}>{v.registration_no}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-1.5 min-w-0">
             <Label>Insurer</Label>
             <Select value={form.insurer_id ?? ""} onValueChange={(v) => set("insurer_id", v || null)}>
@@ -261,17 +275,25 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
             tonnage={form.tonnage}
             onChange={(patch) => setForm((f: any) => ({ ...f, ...patch }))}
           />
-          <div className="space-y-1.5 min-w-0">
-            <Label>Cover type</Label>
-            <Select value={form.cover_type} onValueChange={(v) => set("cover_type", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="comprehensive">Comprehensive</SelectItem>
-                <SelectItem value="third_party">Third party</SelectItem>
-                <SelectItem value="third_party_fire_theft">TPFT</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {isMotorClass(form.product_class) ? (
+            <div className="space-y-1.5 min-w-0">
+              <Label>Cover type</Label>
+              <Select value={form.cover_type} onValueChange={(v) => set("cover_type", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="comprehensive">Comprehensive</SelectItem>
+                  <SelectItem value="third_party">Third party</SelectItem>
+                  <SelectItem value="third_party_fire_theft">TPFT</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <RiskDetailsFields
+              productClass={form.product_class}
+              details={form.risk_details}
+              onChange={(d) => set("risk_details", d)}
+            />
+          )}
           <div className="space-y-1.5 min-w-0">
             <Label>Policy term</Label>
             <Select value={form.policy_term ?? ""} onValueChange={onTermChange}>
