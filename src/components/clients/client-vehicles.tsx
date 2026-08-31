@@ -57,17 +57,21 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
           .select("policy_id, amount_paid")
           .in("policy_id", policyIds);
 
-        // Group covers into instalment chains (linked by rop_of_policy_id) so a
-        // payment made on the first invoice shows on every cover in the chain.
+        // Group covers into instalment chains so a payment made on the first
+        // invoice shows on every cover in the chain.
+        const INSTALLMENT_TERMS = ["second_installment", "rop"];
+        const parentOf = (row: any): string | null =>
+          row?.rop_of_policy_id ?? (INSTALLMENT_TERMS.includes(String(row?.policy_term)) ? row?.previous_policy_id ?? null : null);
         const rootOf = (pid: string) => {
           let cur = pid;
           for (let i = 0; i < 6; i++) {
-            const parent = allPolicies.find((x: any) => x.id === cur)?.rop_of_policy_id;
+            const parent = parentOf(allPolicies.find((x: any) => x.id === cur));
             if (!parent || parent === cur || !allPolicies.some((x: any) => x.id === parent)) break;
             cur = parent;
           }
           return cur;
         };
+
         const paidByRoot: Record<string, number> = {};
         for (const i of invs ?? []) {
           if (!i.policy_id) continue;
