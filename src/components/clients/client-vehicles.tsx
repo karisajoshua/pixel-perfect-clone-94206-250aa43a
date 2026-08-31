@@ -213,6 +213,13 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
                         </div>
                         <D label="Paid" value={bal.unknown ? null : formatKES(bal.paid)} />
                       </dl>
+                      {!bal.unknown && (
+                        <div className={`text-xs font-medium ${bal.outstanding ? "text-destructive" : "text-emerald-600"}`}>
+                          {bal.outstanding
+                            ? `Paid ${formatKES(bal.paid)} of ${formatKES(bal.annual)} · balance ${formatKES(bal.balance)}`
+                            : `Paid in full · ${formatKES(bal.annual)}`}
+                        </div>
+                      )}
                       {cancelled && (
                         <div className="text-sm text-destructive">
                           Cancelled {p.cancelled_at ? new Date(p.cancelled_at).toLocaleDateString() : ""}
