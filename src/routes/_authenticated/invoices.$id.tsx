@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { downloadInvoicePdf } from "@/lib/invoice-pdf";
 import { downloadReceiptPdf } from "@/lib/receipt-pdf";
 import { PaymentStatement } from "@/components/payments/payment-statement";
+import { invalidatePaymentViews } from "@/lib/invalidate";
 
 
 export const Route = createFileRoute("/_authenticated/invoices/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: InvoiceDetail });
@@ -142,7 +143,7 @@ function InvoiceDetail() {
       </div>
 
       <InvoiceFormDialog open={edit} onOpenChange={setEdit} initial={{ ...inv, items: inv.invoice_items }} onSaved={() => qc.invalidateQueries({ queryKey: ["invoice", id] })} />
-      <PaymentDialog open={pay} onOpenChange={setPay} invoiceId={id} max={balance} currentPaid={Number(inv.amount_paid)} total={Number(inv.total)} policyId={inv.policy_id} onSaved={() => { qc.invalidateQueries({ queryKey: ["invoice", id] }); qc.invalidateQueries({ queryKey: ["invoices"] }); qc.invalidateQueries({ queryKey: ["dashboard"] }); }} />
+      <PaymentDialog open={pay} onOpenChange={setPay} invoiceId={id} max={balance} currentPaid={Number(inv.amount_paid)} total={Number(inv.total)} policyId={inv.policy_id} onSaved={() => invalidatePaymentViews(qc, id)} />
       <AlertDialog open={!!deletePayment} onOpenChange={(o) => { if (!o) setDeletePayment(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -169,9 +170,7 @@ function InvoiceDetail() {
                 await syncPolicyFromInvoice(inv.policy_id);
                 toast.success("Receipt deleted");
                 setDeletePayment(null);
-                qc.invalidateQueries({ queryKey: ["invoice", id] });
-                qc.invalidateQueries({ queryKey: ["invoices"] });
-                qc.invalidateQueries({ queryKey: ["dashboard"] });
+                invalidatePaymentViews(qc, id);
               } catch (err: any) {
                 toast.error(err?.message ?? "Delete failed");
               } finally {
