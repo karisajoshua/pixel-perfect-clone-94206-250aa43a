@@ -147,9 +147,11 @@ function ClientDetail() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="kyc">KYC</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
+
         <TabsContent value="overview">
           <Card>
             <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
