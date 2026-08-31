@@ -137,6 +137,9 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
     if (form.payment_status === "partial" && !form.premium_gross) {
       return toast.error("Enter the gross premium before marking a policy partially paid.");
     }
+    if (form.payment_status === "paid" && Number(form.balance_due ?? 0) > 0) {
+      toast.warning("This cover still has a balance due — it will be cleared because the cover is marked Paid.");
+    }
     if (!isValidDateRange(form.start_date, form.end_date)) {
       return toast.error("Policy end date cannot be earlier than the start date.");
     }
@@ -152,6 +155,9 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
     ];
     const payload: any = {};
     for (const k of allowed) if (form[k] !== undefined) payload[k] = form[k];
+    // A cover marked paid must not keep a stale balance — the field is hidden
+    // in the form when "Paid" is selected, so clear it explicitly here.
+    if (payload.payment_status === "paid") payload.balance_due = 0;
     const motor = isMotorClass(form.product_class);
     if (!motor) {
       payload.vehicle_id = null;
@@ -335,6 +341,13 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
               </SelectContent>
             </Select>
           </div>
+          {form.payment_status === "paid" && Number(form.balance_due ?? 0) > 0 && (
+            <div className="sm:col-span-2 -mt-1">
+              <p className="text-xs text-amber-600">
+                This cover has a balance of KES {Number(form.balance_due).toLocaleString()} — saving it as Paid will clear the balance. If money is still owed, use Partial instead.
+              </p>
+            </div>
+          )}
           {form.payment_status !== "paid" && (
             <div className="space-y-1.5 min-w-0">
               <F label="Balance due (KES)" type="number" value={form.balance_due ?? ""} onChange={(v) => set("balance_due", v === "" ? null : Number(v))} />

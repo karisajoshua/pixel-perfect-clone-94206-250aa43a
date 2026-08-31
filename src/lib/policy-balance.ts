@@ -1,8 +1,8 @@
 /**
  * Single source of truth for "how much is still owed on this cover".
- * Stored `balance_due` wins; otherwise it is derived from the premium minus
- * what has actually been paid. When neither is known the caller is told so it
- * can prompt staff instead of silently rendering a dash.
+ * The figures win over the stored status label: a cover only counts as
+ * paid in full when the computed balance is zero, even if a stale
+ * `payment_status = 'paid'` says otherwise (manual edits, imports).
  */
 
 export type PolicyBalanceInput = {
@@ -18,6 +18,8 @@ export type PolicyBalance = {
   /** true when there is no premium and no stored balance to work from */
   unknown: boolean;
   outstanding: boolean;
+  /** true when the stored payment_status label disagrees with the figures */
+  mismatch: boolean;
 };
 
 const num = (v: unknown) => {
@@ -32,10 +34,6 @@ export function policyBalance(policy: PolicyBalanceInput, paid?: number | null):
   const paidKnown = paid !== null && paid !== undefined;
   const paidAmount = paidKnown ? Math.max(0, num(paid)) : 0;
 
-  if (policy.payment_status === "paid") {
-    return { annual, paid: paidKnown ? paidAmount : annual, balance: 0, unknown: false, outstanding: false };
-  }
-
   let balance: number;
   let unknown = false;
   if (hasStored) {
@@ -47,8 +45,16 @@ export function policyBalance(policy: PolicyBalanceInput, paid?: number | null):
     unknown = true;
   }
 
+  const outstanding = balance > 0.01;
   const resolvedPaid = paidKnown ? paidAmount : Math.max(0, round2(annual - balance));
-  return { annual, paid: resolvedPaid, balance, unknown, outstanding: balance > 0.01 };
+
+  const status = String(policy.payment_status ?? "");
+  const mismatch =
+    !unknown &&
+    ((status === "paid" && outstanding) ||
+      (status !== "" && status !== "paid" && !outstanding && (annual > 0 || hasStored)));
+
+  return { annual, paid: resolvedPaid, balance, unknown, outstanding, mismatch };
 }
 
 export const formatKES = (n: number) => `KES ${Number(n).toLocaleString()}`;

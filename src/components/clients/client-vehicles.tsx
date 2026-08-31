@@ -139,19 +139,44 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="rounded-md border bg-muted/30 p-3">
-                {shown ? (
-                  <>
-                    <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                      {active ? "Active cover" : "Latest cover (not active)"}
-                    </div>
-                    <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2 text-sm">
-                      <D label="Policy no." value={shown.policy_no} mono />
-                      <D label="Certificate no." value={shown.certificate_no} mono />
-                      <D label="Commencing" value={shown.start_date} />
-                      <D label="Expiry" value={shown.end_date} />
-                    </dl>
-                  </>
-                ) : (
+                {shown ? (() => {
+                  const shownBal = policyBalance(shown, paidByPolicy[shown.id] ?? null);
+                  return (
+                    <>
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                          {active ? "Active cover" : "Latest cover (not active)"}
+                        </div>
+                        {!shownBal.unknown && shownBal.outstanding && (
+                          <Badge variant="outline" className="border-amber-500 text-amber-600">
+                            Installment balance {formatKES(shownBal.balance)}
+                          </Badge>
+                        )}
+                      </div>
+                      <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2 text-sm">
+                        <D label="Policy no." value={shown.policy_no} mono />
+                        <D label="Certificate no." value={shown.certificate_no} mono />
+                        <D label="Commencing" value={shown.start_date} />
+                        <D label="Expiry" value={shown.end_date} />
+                        <D label="Premium" value={money(shown.premium_gross)} />
+                        <D label="Paid" value={shownBal.unknown ? null : formatKES(shownBal.paid)} />
+                        <div>
+                          <dt className="text-xs uppercase tracking-wider text-muted-foreground">Balance due</dt>
+                          <dd className={`mt-0.5 ${shownBal.outstanding ? "text-destructive font-medium" : ""} ${shownBal.unknown ? "text-muted-foreground" : ""}`}>
+                            {balanceLabel(shownBal)}
+                          </dd>
+                        </div>
+                      </dl>
+                      {!shownBal.unknown && (
+                        <div className={`mt-2 text-xs font-medium ${shownBal.outstanding ? "text-destructive" : "text-emerald-600"}`}>
+                          {shownBal.outstanding
+                            ? `Paid ${formatKES(shownBal.paid)} of ${formatKES(shownBal.annual)} · balance ${formatKES(shownBal.balance)}`
+                            : `Paid in full · ${formatKES(shownBal.annual)}`}
+                        </div>
+                      )}
+                    </>
+                  );
+                })() : (
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-sm text-muted-foreground">No active cover on record.</span>
                     <Button size="sm" variant="outline" onClick={() => { setEdit(v); setOpen(true); }}>Add cover</Button>
@@ -204,7 +229,15 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
                         <D label="Expiry" value={p.end_date} />
                         <D label="Term" value={termLabel(p.policy_term)} />
                         <D label="Premium" value={money(p.premium_gross)} />
-                        <D label="Payment" value={p.payment_status} />
+                        <div>
+                          <dt className="text-xs uppercase tracking-wider text-muted-foreground">Payment</dt>
+                          <dd className="mt-0.5 flex flex-wrap items-center gap-1">
+                            {p.payment_status || <span className="text-muted-foreground">—</span>}
+                            {bal.mismatch && (
+                              <span className="text-xs text-amber-600" title="Stored payment status disagrees with the figures — record or reconcile the payment">(status out of sync)</span>
+                            )}
+                          </dd>
+                        </div>
                         <div>
                           <dt className="text-xs uppercase tracking-wider text-muted-foreground">Balance due</dt>
                           <dd className={`mt-0.5 ${bal.outstanding ? "text-destructive font-medium" : ""} ${bal.unknown ? "text-muted-foreground" : ""}`}>
