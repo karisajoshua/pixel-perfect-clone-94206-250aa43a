@@ -11,6 +11,7 @@ import { sendTransactionalEmail, clientDisplayName, formatKES } from "@/lib/emai
 import { ProductClassFields } from "@/components/product-class-fields";
 import { RiskDetailsFields } from "@/components/risk-details-fields";
 import { isMotorClass, buildRiskLabel } from "@/lib/product-classes";
+import { addDaysToDateISO, annualEndDateISO, isValidDateRange } from "@/lib/date-only";
 
 type Props = {
   open: boolean;
@@ -32,23 +33,15 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
   const [saving, setSaving] = useState(false);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
-  const addDaysISO = (start: string, days: number) => {
-    const d = new Date(start); d.setDate(d.getDate() + days);
-    return d.toISOString().slice(0, 10);
-  };
-  const addYearsISO = (start: string, years: number) => {
-    const d = new Date(start); d.setFullYear(d.getFullYear() + years);
-    return d.toISOString().slice(0, 10);
-  };
   const endDateForTerm = (start: string, term: string) => {
     if (!start) return undefined;
     switch (term) {
-      case "tor": return addDaysISO(start, 30);
-      case "one_month_extendable": return addDaysISO(start, 30);
-      case "second_installment": return addDaysISO(start, 30);
-      case "rop": { const d = new Date(start); d.setFullYear(d.getFullYear() + 1); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); }
-      case "six_months": return addDaysISO(start, 180);
-      case "annual": return addYearsISO(start, 1);
+      case "tor": return addDaysToDateISO(start, 29);
+      case "one_month_extendable": return addDaysToDateISO(start, 29);
+      case "second_installment": return addDaysToDateISO(start, 29);
+      case "rop": return annualEndDateISO(start);
+      case "six_months": return addDaysToDateISO(start, 179);
+      case "annual": return annualEndDateISO(start);
       default: return undefined;
     }
   };
@@ -145,6 +138,9 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
   const submit = async () => {
     if (form.payment_status === "partial" && !form.premium_gross) {
       return toast.error("Enter the gross premium before marking a policy partially paid.");
+    }
+    if (!isValidDateRange(form.start_date, form.end_date)) {
+      return toast.error("Policy end date cannot be earlier than the start date.");
     }
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
