@@ -79,16 +79,18 @@ function PolicyDetail() {
     },
   });
 
-  const { data: paymentsAgg } = useQuery({
-    queryKey: ["policy-payments-agg", id],
-    queryFn: async () => {
-      const { data: invs } = await supabase.from("invoices").select("id").eq("policy_id", id);
-      const ids = (invs ?? []).map((i: any) => i.id);
-      if (ids.length === 0) return 0;
-      const { data } = await supabase.from("payments").select("amount").in("invoice_id", ids);
-      return (data ?? []).reduce((s: number, r: any) => s + Number(r.amount ?? 0), 0);
-    },
+  // Payments follow the whole instalment chain: the money is usually invoiced
+  // once, on the first cover, but it settles every cover in the chain.
+  const { data: chainInvoices } = useQuery({
+    queryKey: ["policy-chain-invoices", id],
+    queryFn: () => fetchChainInvoices(id),
   });
+  const chainStats = chainTotals(chainInvoices ?? []);
+  const paymentsAgg = chainStats.paid;
+  const chainPayments = (chainInvoices ?? []).flatMap((i) =>
+    i.payments.map((p) => ({ ...p, invoice_no: i.invoice_no })),
+  );
+
 
   // Walk back the installment chain so the ROP always ends on the original anniversary.
   const { data: chainStart } = useQuery({
