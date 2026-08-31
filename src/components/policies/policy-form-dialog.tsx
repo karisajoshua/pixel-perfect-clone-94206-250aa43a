@@ -137,6 +137,9 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
     if (form.payment_status === "partial" && !form.premium_gross) {
       return toast.error("Enter the gross premium before marking a policy partially paid.");
     }
+    if (form.payment_status === "paid" && Number(form.balance_due ?? 0) > 0) {
+      toast.warning("This cover still has a balance due — it will be cleared because the cover is marked Paid.");
+    }
     if (!isValidDateRange(form.start_date, form.end_date)) {
       return toast.error("Policy end date cannot be earlier than the start date.");
     }
