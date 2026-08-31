@@ -423,6 +423,22 @@ function PolicyDetail() {
       )}
 
       <Card>
+        <CardHeader><CardTitle>Payment history</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Every transaction billed against this cover and the instalment covers linked to it, with the balance after each payment.
+          </p>
+          <PaymentStatement
+            payments={chainPayments}
+            total={chainStats.billed || gross}
+            showInvoice
+            emptyText="No payments recorded against this cover yet."
+          />
+        </CardContent>
+      </Card>
+
+
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="flex items-center gap-2">
             Payment extensions
