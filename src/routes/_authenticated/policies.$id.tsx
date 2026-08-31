@@ -18,6 +18,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { policyTermLabel } from "@/lib/utils";
 import { policyBalance, balanceLabel, formatKES, isCoverActive } from "@/lib/policy-balance";
+import { fetchChainInvoices, chainTotals } from "@/lib/policy-chain";
+import { PaymentStatement } from "@/components/payments/payment-statement";
+
 import {
   isInstallmentTerm, computeInstallmentSummary, buildNextCoverPayload,
   INSTALLMENT_PLAN_LABELS, type InstallmentPlan,
