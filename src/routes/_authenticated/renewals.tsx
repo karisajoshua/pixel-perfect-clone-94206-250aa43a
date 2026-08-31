@@ -20,25 +20,34 @@ function RenewalsPage() {
       const today = new Date();
       const in60 = new Date(); in60.setDate(today.getDate() + 60);
       const cutoff = `${in60.getFullYear()}-${String(in60.getMonth() + 1).padStart(2, "0")}-${String(in60.getDate()).padStart(2, "0")}`;
-      const { data, error } = await supabase
-        .from("policies")
-        .select("id, policy_no, end_date, status, premium_gross, client_id, vehicle_id, product_class, previous_policy_id, clients(full_name, company_name, client_type), insurers(name), vehicles(registration_no)")
-        .in("status", ["active", "pending", "expired"])
-        .lte("end_date", cutoff)
-        .order("end_date", { ascending: true })
-        .limit(5000);
-      if (error) throw error;
+      const [candidateResult, linkResult] = await Promise.all([
+        supabase
+          .from("policies")
+          .select("id, policy_no, end_date, status, premium_gross, client_id, vehicle_id, product_class, previous_policy_id, clients(full_name, company_name, client_type), insurers(name), vehicles(registration_no)")
+          .in("status", ["active", "pending", "expired"])
+          .lte("end_date", cutoff)
+          .order("end_date", { ascending: true })
+          .limit(5000),
+        supabase
+          .from("policies")
+          .select("previous_policy_id")
+          .in("status", ["active", "pending", "expired", "renewed"])
+          .not("previous_policy_id", "is", null)
+          .limit(5000),
+      ]);
+      if (candidateResult.error) throw candidateResult.error;
+      if (linkResult.error) throw linkResult.error;
 
       // A policy is superseded only when another policy explicitly links to it.
       // Do not group by vehicle or client/class: clients can legitimately hold
       // multiple independent covers for the same vehicle or non-motor class.
-      const rows = (data ?? []).filter((p: any) => {
+      const rows = (candidateResult.data ?? []).filter((p: any) => {
         const d = parseLocalDate(p.end_date);
         return !!d && d.getFullYear() > 1900;
       });
       const superseded = new Set<string>();
-      for (const p of rows) {
-        if ((p as any).previous_policy_id) superseded.add((p as any).previous_policy_id);
+      for (const p of linkResult.data ?? []) {
+        if (p.previous_policy_id) superseded.add(p.previous_policy_id);
       }
       return rows
         .filter((p: any) => !superseded.has(p.id))
