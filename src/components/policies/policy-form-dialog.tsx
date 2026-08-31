@@ -155,6 +155,9 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
     ];
     const payload: any = {};
     for (const k of allowed) if (form[k] !== undefined) payload[k] = form[k];
+    // A cover marked paid must not keep a stale balance — the field is hidden
+    // in the form when "Paid" is selected, so clear it explicitly here.
+    if (payload.payment_status === "paid") payload.balance_due = 0;
     const motor = isMotorClass(form.product_class);
     if (!motor) {
       payload.vehicle_id = null;
