@@ -21,10 +21,6 @@ const toDate = (iso: string) => {
   const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
   return new Date(y!, (m ?? 1) - 1, d ?? 1);
 };
-const toISO = (d: Date) => {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-};
 
 export const addDaysISO = addDaysToDateISO;
 

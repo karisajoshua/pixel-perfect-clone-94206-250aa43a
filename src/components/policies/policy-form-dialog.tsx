@@ -62,16 +62,14 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
     if (!open) return;
     if (initial) setForm(initial);
     else if (renewFrom) {
-      const oldEnd = new Date(renewFrom.end_date);
-      const newStart = new Date(oldEnd); newStart.setDate(newStart.getDate() + 1);
-      const newEnd = new Date(newStart); newEnd.setFullYear(newEnd.getFullYear() + 1);
+      const newStart = addDaysToDateISO(renewFrom.end_date, 1);
       setForm({
         ...renewFrom,
         id: undefined,
         policy_no: "",
         previous_policy_id: renewFrom.id,
-        start_date: newStart.toISOString().slice(0, 10),
-        end_date: newEnd.toISOString().slice(0, 10),
+        start_date: newStart,
+        end_date: annualEndDateISO(newStart),
         status: "active",
         payment_status: "unpaid",
         document_url: null,
