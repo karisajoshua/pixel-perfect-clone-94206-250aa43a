@@ -12,6 +12,8 @@ import { ClientFormDialog, CredentialsDialog, type PortalCreds } from "@/compone
 import { ClientDocuments } from "@/components/clients/client-documents";
 import { ClientKycPanel } from "@/components/clients/client-kyc-panel";
 import { ClientVehicles } from "@/components/clients/client-vehicles";
+import { ClientBilling } from "@/components/clients/client-billing";
+
 import { useServerFn } from "@tanstack/react-start";
 import { createClientPortalAccount } from "@/lib/admin-users.functions";
 import { updateClientBranch, deleteClient } from "@/lib/clients.functions";
