@@ -20,36 +20,37 @@ function RenewalsPage() {
       const today = new Date();
       const in60 = new Date(); in60.setDate(today.getDate() + 60);
       const cutoff = `${in60.getFullYear()}-${String(in60.getMonth() + 1).padStart(2, "0")}-${String(in60.getDate()).padStart(2, "0")}`;
-      const { data, error } = await supabase
-        .from("policies")
-        .select("id, policy_no, end_date, status, premium_gross, client_id, vehicle_id, product_class, previous_policy_id, clients(full_name, company_name, client_type), insurers(name), vehicles(registration_no)")
-        .in("status", ["active", "pending", "expired"])
-        .order("end_date", { ascending: true })
-        .limit(2000);
-      if (error) throw error;
+      const [candidateResult, linkResult] = await Promise.all([
+        supabase
+          .from("policies")
+          .select("id, policy_no, end_date, status, premium_gross, client_id, vehicle_id, product_class, previous_policy_id, clients(full_name, company_name, client_type), insurers(name), vehicles(registration_no)")
+          .in("status", ["active", "pending", "expired"])
+          .lte("end_date", cutoff)
+          .order("end_date", { ascending: true })
+          .limit(5000),
+        supabase
+          .from("policies")
+          .select("previous_policy_id")
+          .in("status", ["active", "pending", "expired", "renewed"])
+          .not("previous_policy_id", "is", null)
+          .limit(5000),
+      ]);
+      if (candidateResult.error) throw candidateResult.error;
+      if (linkResult.error) throw linkResult.error;
 
-      // Keep only the current cover per risk: hide policies that have already
-      // been renewed (same vehicle / client+class with a later end date, or
-      // referenced as the previous policy of a newer one).
-      const rows = (data ?? []).filter((p: any) => {
+      // A policy is superseded only when another policy explicitly links to it.
+      // Do not group by vehicle or client/class: clients can legitimately hold
+      // multiple independent covers for the same vehicle or non-motor class.
+      const rows = (candidateResult.data ?? []).filter((p: any) => {
         const d = parseLocalDate(p.end_date);
         return !!d && d.getFullYear() > 1900;
       });
       const superseded = new Set<string>();
-      for (const p of rows) {
-        if ((p as any).previous_policy_id) superseded.add((p as any).previous_policy_id);
+      for (const p of linkResult.data ?? []) {
+        if (p.previous_policy_id) superseded.add(p.previous_policy_id);
       }
-      const latestByRisk = new Map<string, any>();
-      for (const p of rows as any[]) {
-        const key = p.vehicle_id
-          ? `v:${p.vehicle_id}`
-          : `c:${p.client_id}:${p.product_class ?? ""}`;
-        const prev = latestByRisk.get(key);
-        if (!prev || String(p.end_date) > String(prev.end_date)) latestByRisk.set(key, p);
-      }
-      const current = [...latestByRisk.values()].filter((p) => !superseded.has(p.id));
-      return current
-        .filter((p) => String(p.end_date) <= cutoff)
+      return rows
+        .filter((p: any) => !superseded.has(p.id))
         .sort((a, b) => String(a.end_date).localeCompare(String(b.end_date)));
     },
   });

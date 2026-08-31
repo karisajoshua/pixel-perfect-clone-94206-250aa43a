@@ -223,7 +223,14 @@ function PolicyDetail() {
     if (!summary.cleared && !confirm(`There is still a balance of KES ${summary.balance.toLocaleString()}. Issue the next cover anyway?`)) return;
     setIssuing(true);
     const { data: u } = await supabase.auth.getUser();
-    const { term, payload } = buildNextCoverPayload({ ...p, installment_origin_start: chainStart ?? p.start_date }, summary);
+    let nextCover: ReturnType<typeof buildNextCoverPayload>;
+    try {
+      nextCover = buildNextCoverPayload({ ...p, installment_origin_start: chainStart ?? p.start_date }, summary);
+    } catch (error) {
+      setIssuing(false);
+      return toast.error(error instanceof Error ? error.message : "Could not calculate the next cover dates");
+    }
+    const { term, payload } = nextCover;
     const suffix = term === "rop" ? "ROP" : "I2";
     let data: { id: string } | null = null;
     let error: any = null;

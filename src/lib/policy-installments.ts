@@ -3,6 +3,8 @@
  *   1 mo extendable  ->  (optional 2nd installment)  ->  Rest of Period (ROP)
  */
 
+import { addDaysToDateISO, annualEndDateISO } from "@/lib/date-only";
+
 export const INSTALLMENT_TERMS = ["one_month_extendable", "second_installment"] as const;
 
 export type InstallmentPlan = "clear_balance" | "two_installments";
@@ -19,21 +21,12 @@ const toDate = (iso: string) => {
   const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
   return new Date(y!, (m ?? 1) - 1, d ?? 1);
 };
-const toISO = (d: Date) => {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-};
 
-export const addDaysISO = (iso: string, days: number) => {
-  const d = toDate(iso); d.setDate(d.getDate() + days); return toISO(d);
-};
+export const addDaysISO = addDaysToDateISO;
 
 /** Last day of the annual cover that began on `originalStart` (start + 12 months - 1 day). */
 export const anniversaryEndISO = (originalStart: string) => {
-  const d = toDate(originalStart);
-  d.setFullYear(d.getFullYear() + 1);
-  d.setDate(d.getDate() - 1);
-  return toISO(d);
+  return annualEndDateISO(originalStart);
 };
 
 export const monthsBetween = (fromISO: string, toISOStr: string) => {
@@ -88,6 +81,9 @@ export function buildNextCoverPayload(policy: any, summary: InstallmentSummary) 
   const start = addDaysISO(policy.end_date, 1);
   const anniversary = anniversaryEndISO(chainStart);
   const end = term === "second_installment" ? addDaysISO(start, 29) : anniversary;
+  if (!start || !end || end < start) {
+    throw new Error("This installment chain has no valid remaining cover period. Check the original policy dates.");
+  }
   return {
     term,
     payload: {
@@ -106,7 +102,7 @@ export function buildNextCoverPayload(policy: any, summary: InstallmentSummary) 
       policy_term: term,
       installment_plan: term === "second_installment" ? policy.installment_plan : null,
       start_date: start,
-      end_date: end < start ? start : end,
+      end_date: end,
       status: "active",
       payment_status: "unpaid",
       balance_due: summary.balance || null,

@@ -12,3 +12,30 @@ export function parseLocalDate(value: any): Date | null {
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : d;
 }
+
+export function formatLocalDate(value: Date): string {
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+}
+
+export function addDaysToDateISO(value: string, days: number): string {
+  const date = parseLocalDate(value);
+  if (!date) return "";
+  date.setDate(date.getDate() + days);
+  return formatLocalDate(date);
+}
+
+/** Inclusive final day of an annual cover beginning on `value`. */
+export function annualEndDateISO(value: string): string {
+  const date = parseLocalDate(value);
+  if (!date) return "";
+  date.setFullYear(date.getFullYear() + 1);
+  date.setDate(date.getDate() - 1);
+  return formatLocalDate(date);
+}
+
+export function isValidDateRange(start?: string | null, end?: string | null): boolean {
+  const parsedStart = parseLocalDate(start);
+  const parsedEnd = parseLocalDate(end);
+  return !!parsedStart && !!parsedEnd && parsedEnd.getTime() >= parsedStart.getTime();
+}
