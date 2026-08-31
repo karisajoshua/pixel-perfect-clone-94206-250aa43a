@@ -13,7 +13,8 @@ export const listIpenClaims = createServerFn({ method: "GET" })
       path: "/api/Claim/user-claims",
       method: "GET",
     });
-    if (!res.ok) throw new Error(res.error ?? "Failed to load claims");
+    if (!res.ok)
+      return { error: res.error ?? "Failed to load claims", upstreamOutage: res.upstreamOutage ?? res.status >= 500, status: res.status } as any;
     return res.data;
   });
 
@@ -26,7 +27,8 @@ export const getIpenClaim = createServerFn({ method: "GET" })
       path: `/api/Claim/claim-details/${encodeURIComponent(String(data.claimId))}`,
       method: "GET",
     });
-    if (!res.ok) throw new Error(res.error ?? "Failed to load claim");
+    if (!res.ok)
+      return { error: res.error ?? "Failed to load claim", upstreamOutage: res.upstreamOutage ?? res.status >= 500, status: res.status } as any;
     return res.data;
   });
 

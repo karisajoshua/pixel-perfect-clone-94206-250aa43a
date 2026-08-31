@@ -10,6 +10,7 @@ export const getIpenPortalDashboard = createServerFn({ method: "GET" })
       path: "/api/Portal/dashboard",
       method: "GET",
     });
-    if (!res.ok) throw new Error(res.error ?? "Failed to load IPEN portal");
+    if (!res.ok)
+      return { error: res.error ?? "Failed to load IPEN portal", upstreamOutage: res.upstreamOutage ?? res.status >= 500, status: res.status } as any;
     return res.data;
   });
