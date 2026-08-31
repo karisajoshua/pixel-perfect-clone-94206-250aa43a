@@ -176,6 +176,10 @@ function ClientDetail() {
         <TabsContent value="vehicles">
           <ClientVehicles clientId={id} />
         </TabsContent>
+        <TabsContent value="billing">
+          <ClientBilling clientId={id} />
+        </TabsContent>
+
         <TabsContent value="kyc">
           <ClientKycPanel clientId={id} />
         </TabsContent>
