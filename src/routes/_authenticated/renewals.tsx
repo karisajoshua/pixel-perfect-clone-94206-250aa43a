@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { parseLocalDate } from "@/lib/date-only";
 
 export const Route = createFileRoute("/_authenticated/renewals")({ component: RenewalsPage });
 
@@ -18,15 +19,38 @@ function RenewalsPage() {
     queryFn: async () => {
       const today = new Date();
       const in60 = new Date(); in60.setDate(today.getDate() + 60);
+      const cutoff = `${in60.getFullYear()}-${String(in60.getMonth() + 1).padStart(2, "0")}-${String(in60.getDate()).padStart(2, "0")}`;
       const { data, error } = await supabase
         .from("policies")
-        .select("id, policy_no, end_date, status, premium_gross, client_id, clients(full_name, company_name, client_type), insurers(name), vehicles(registration_no)")
-        .lte("end_date", in60.toISOString().slice(0, 10))
+        .select("id, policy_no, end_date, status, premium_gross, client_id, vehicle_id, product_class, previous_policy_id, clients(full_name, company_name, client_type), insurers(name), vehicles(registration_no)")
         .in("status", ["active", "pending", "expired"])
         .order("end_date", { ascending: true })
-        .limit(200);
+        .limit(2000);
       if (error) throw error;
-      return data;
+
+      // Keep only the current cover per risk: hide policies that have already
+      // been renewed (same vehicle / client+class with a later end date, or
+      // referenced as the previous policy of a newer one).
+      const rows = (data ?? []).filter((p: any) => {
+        const d = parseLocalDate(p.end_date);
+        return !!d && d.getFullYear() > 1900;
+      });
+      const superseded = new Set<string>();
+      for (const p of rows) {
+        if ((p as any).previous_policy_id) superseded.add((p as any).previous_policy_id);
+      }
+      const latestByRisk = new Map<string, any>();
+      for (const p of rows as any[]) {
+        const key = p.vehicle_id
+          ? `v:${p.vehicle_id}`
+          : `c:${p.client_id}:${p.product_class ?? ""}`;
+        const prev = latestByRisk.get(key);
+        if (!prev || String(p.end_date) > String(prev.end_date)) latestByRisk.set(key, p);
+      }
+      const current = [...latestByRisk.values()].filter((p) => !superseded.has(p.id));
+      return current
+        .filter((p) => String(p.end_date) <= cutoff)
+        .sort((a, b) => String(a.end_date).localeCompare(String(b.end_date)));
     },
   });
 
@@ -49,14 +73,16 @@ function RenewalsPage() {
       .filter(Boolean)
       .some((v: string) => String(v).toLowerCase().includes(q));
   });
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   for (const p of rows) {
-    const end = new Date(p.end_date);
-    const days = Math.ceil((end.getTime() - today.getTime()) / 86400000);
+    const end = parseLocalDate(p.end_date)!;
+    const days = Math.round((end.getTime() - startOfToday.getTime()) / 86400000);
     if (days < 0) buckets.overdue.push({ ...p, days });
     else if (days <= 7) buckets.in7.push({ ...p, days });
     else if (days <= 30) buckets.in30.push({ ...p, days });
     else buckets.later.push({ ...p, days });
   }
+
 
   return (
     <div className="p-8 space-y-6">
