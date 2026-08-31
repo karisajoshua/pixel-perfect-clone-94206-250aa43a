@@ -229,7 +229,15 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
                         <D label="Expiry" value={p.end_date} />
                         <D label="Term" value={termLabel(p.policy_term)} />
                         <D label="Premium" value={money(p.premium_gross)} />
-                        <D label="Payment" value={p.payment_status} />
+                        <div>
+                          <dt className="text-xs uppercase tracking-wider text-muted-foreground">Payment</dt>
+                          <dd className="mt-0.5 flex flex-wrap items-center gap-1">
+                            {p.payment_status || <span className="text-muted-foreground">—</span>}
+                            {bal.mismatch && (
+                              <span className="text-xs text-amber-600" title="Stored payment status disagrees with the figures — record or reconcile the payment">(status out of sync)</span>
+                            )}
+                          </dd>
+                        </div>
                         <div>
                           <dt className="text-xs uppercase tracking-wider text-muted-foreground">Balance due</dt>
                           <dd className={`mt-0.5 ${bal.outstanding ? "text-destructive font-medium" : ""} ${bal.unknown ? "text-muted-foreground" : ""}`}>
