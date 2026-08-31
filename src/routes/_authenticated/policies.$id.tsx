@@ -18,6 +18,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { policyTermLabel } from "@/lib/utils";
 import { policyBalance, balanceLabel, formatKES, isCoverActive } from "@/lib/policy-balance";
+import { fetchChainInvoices, chainTotals } from "@/lib/policy-chain";
+import { PaymentStatement } from "@/components/payments/payment-statement";
+
 import {
   isInstallmentTerm, computeInstallmentSummary, buildNextCoverPayload,
   INSTALLMENT_PLAN_LABELS, type InstallmentPlan,
@@ -79,16 +82,18 @@ function PolicyDetail() {
     },
   });
 
-  const { data: paymentsAgg } = useQuery({
-    queryKey: ["policy-payments-agg", id],
-    queryFn: async () => {
-      const { data: invs } = await supabase.from("invoices").select("id").eq("policy_id", id);
-      const ids = (invs ?? []).map((i: any) => i.id);
-      if (ids.length === 0) return 0;
-      const { data } = await supabase.from("payments").select("amount").in("invoice_id", ids);
-      return (data ?? []).reduce((s: number, r: any) => s + Number(r.amount ?? 0), 0);
-    },
+  // Payments follow the whole instalment chain: the money is usually invoiced
+  // once, on the first cover, but it settles every cover in the chain.
+  const { data: chainInvoices } = useQuery({
+    queryKey: ["policy-chain-invoices", id],
+    queryFn: () => fetchChainInvoices(id),
   });
+  const chainStats = chainTotals(chainInvoices ?? []);
+  const paymentsAgg = chainStats.paid;
+  const chainPayments = (chainInvoices ?? []).flatMap((i) =>
+    i.payments.map((p) => ({ ...p, invoice_no: i.invoice_no })),
+  );
+
 
   // Walk back the installment chain so the ROP always ends on the original anniversary.
   const { data: chainStart } = useQuery({
@@ -416,6 +421,22 @@ function PolicyDetail() {
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader><CardTitle>Payment history</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Every transaction billed against this cover and the instalment covers linked to it, with the balance after each payment.
+          </p>
+          <PaymentStatement
+            payments={chainPayments}
+            total={chainStats.billed || gross}
+            showInvoice
+            emptyText="No payments recorded against this cover yet."
+          />
+        </CardContent>
+      </Card>
+
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">

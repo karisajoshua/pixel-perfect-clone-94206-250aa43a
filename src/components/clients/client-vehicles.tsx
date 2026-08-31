@@ -37,11 +37,12 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
     queryFn: async () => {
       const { data: vehicles, error } = await supabase
         .from("vehicles")
-        .select("*, policies(id, policy_no, certificate_no, start_date, end_date, status, payment_status, policy_term, balance_due, cancelled_at, cancellation_reason, premium_gross, insurers(name))")
+        .select("*, policies(id, policy_no, certificate_no, start_date, end_date, status, payment_status, policy_term, balance_due, cancelled_at, cancellation_reason, premium_gross, rop_of_policy_id, previous_policy_id, insurers(name))")
         .eq("client_id", clientId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      const policyIds = (vehicles ?? []).flatMap((v: any) => (v.policies ?? []).map((p: any) => p.id));
+      const allPolicies = (vehicles ?? []).flatMap((v: any) => (v.policies ?? []));
+      const policyIds = allPolicies.map((p: any) => p.id);
       let extensions: any[] = [];
       const paidByPolicy: Record<string, number> = {};
       if (policyIds.length) {
@@ -55,12 +56,34 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
           .from("invoices")
           .select("policy_id, amount_paid")
           .in("policy_id", policyIds);
+
+        // Group covers into instalment chains so a payment made on the first
+        // invoice shows on every cover in the chain.
+        const INSTALLMENT_TERMS = ["second_installment", "rop"];
+        const parentOf = (row: any): string | null =>
+          row?.rop_of_policy_id ?? (INSTALLMENT_TERMS.includes(String(row?.policy_term)) ? row?.previous_policy_id ?? null : null);
+        const rootOf = (pid: string) => {
+          let cur = pid;
+          for (let i = 0; i < 6; i++) {
+            const parent = parentOf(allPolicies.find((x: any) => x.id === cur));
+            if (!parent || parent === cur || !allPolicies.some((x: any) => x.id === parent)) break;
+            cur = parent;
+          }
+          return cur;
+        };
+
+        const paidByRoot: Record<string, number> = {};
         for (const i of invs ?? []) {
           if (!i.policy_id) continue;
-          paidByPolicy[i.policy_id] = (paidByPolicy[i.policy_id] ?? 0) + Number(i.amount_paid ?? 0);
+          const root = rootOf(i.policy_id);
+          paidByRoot[root] = (paidByRoot[root] ?? 0) + Number(i.amount_paid ?? 0);
+        }
+        for (const p of allPolicies) {
+          paidByPolicy[p.id] = paidByRoot[rootOf(p.id)] ?? 0;
         }
       }
       return { vehicles: vehicles ?? [], extensions, paidByPolicy };
+
     },
   });
 

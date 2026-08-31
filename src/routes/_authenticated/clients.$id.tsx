@@ -12,6 +12,8 @@ import { ClientFormDialog, CredentialsDialog, type PortalCreds } from "@/compone
 import { ClientDocuments } from "@/components/clients/client-documents";
 import { ClientKycPanel } from "@/components/clients/client-kyc-panel";
 import { ClientVehicles } from "@/components/clients/client-vehicles";
+import { ClientBilling } from "@/components/clients/client-billing";
+
 import { useServerFn } from "@tanstack/react-start";
 import { createClientPortalAccount } from "@/lib/admin-users.functions";
 import { updateClientBranch, deleteClient } from "@/lib/clients.functions";
@@ -147,9 +149,11 @@ function ClientDetail() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="kyc">KYC</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
+
         <TabsContent value="overview">
           <Card>
             <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
@@ -174,6 +178,10 @@ function ClientDetail() {
         <TabsContent value="vehicles">
           <ClientVehicles clientId={id} />
         </TabsContent>
+        <TabsContent value="billing">
+          <ClientBilling clientId={id} />
+        </TabsContent>
+
         <TabsContent value="kyc">
           <ClientKycPanel clientId={id} />
         </TabsContent>

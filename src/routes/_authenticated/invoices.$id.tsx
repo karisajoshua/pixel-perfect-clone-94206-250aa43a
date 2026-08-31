@@ -19,6 +19,8 @@ import { InvoiceFormDialog } from "@/components/invoices/invoice-form-dialog";
 import { toast } from "sonner";
 import { downloadInvoicePdf } from "@/lib/invoice-pdf";
 import { downloadReceiptPdf } from "@/lib/receipt-pdf";
+import { PaymentStatement } from "@/components/payments/payment-statement";
+
 
 export const Route = createFileRoute("/_authenticated/invoices/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: InvoiceDetail });
 
@@ -110,17 +112,13 @@ function InvoiceDetail() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Payments</CardTitle></CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {inv.payments?.length === 0 && <div className="text-muted-foreground">No payments recorded.</div>}
-            {inv.payments?.map((p: any) => (
-              <div key={p.id} className="border-b pb-2 last:border-0">
-                <div className="flex justify-between font-medium">
-                  <span>KES {Number(p.amount).toLocaleString()}</span>
-                  <span className="text-xs text-muted-foreground">{p.paid_date}</span>
-                </div>
-                <div className="text-xs text-muted-foreground">{p.method ?? "—"} {p.reference ? `• ${p.reference}` : ""}</div>
-                <div className="pt-1">
+          <CardHeader><CardTitle>Payment history</CardTitle></CardHeader>
+          <CardContent className="text-sm">
+            <PaymentStatement
+              payments={inv.payments ?? []}
+              total={Number(inv.total ?? 0)}
+              renderActions={(p: any) => (
+                <div className="flex justify-end gap-1">
                   <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={async () => {
                     const t = toast.loading("Preparing receipt…");
                     try {
@@ -131,16 +129,16 @@ function InvoiceDetail() {
                     }
                   }}><Download className="h-3.5 w-3.5 mr-1" /> Receipt</Button>
                   {canDelete && (
-                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive"
-                      onClick={() => setDeletePayment(p)}>
-                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive" onClick={() => setDeletePayment(p)}>
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   )}
                 </div>
-              </div>
-            ))}
+              )}
+            />
           </CardContent>
         </Card>
+
       </div>
 
       <InvoiceFormDialog open={edit} onOpenChange={setEdit} initial={{ ...inv, items: inv.invoice_items }} onSaved={() => qc.invalidateQueries({ queryKey: ["invoice", id] })} />
