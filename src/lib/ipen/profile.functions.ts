@@ -11,7 +11,8 @@ export const getIpenProfile = createServerFn({ method: "GET" })
       path: "/api/Profile/profile",
       method: "GET",
     });
-    if (!res.ok) throw new Error(res.error ?? "Failed to load profile");
+    if (!res.ok)
+      return { error: res.error ?? "Failed to load profile", upstreamOutage: res.upstreamOutage ?? res.status >= 500, status: res.status } as any;
     return res.data;
   });
 

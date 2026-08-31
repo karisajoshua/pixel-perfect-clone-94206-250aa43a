@@ -661,8 +661,8 @@ function JsonPanel({ fn, cacheKey, label }: { fn: any; cacheKey: string; label: 
           {(data as any).error}
         </div>
       )}
-      {!isLoading && !error && <SmartRender data={data} emptyLabel={`No ${label}.`} />}
-      {!isLoading && data != null && <RawJson data={data} />}
+      {!isLoading && !error && !(data as any)?.error && <SmartRender data={data} emptyLabel={`No ${label}.`} />}
+      {!isLoading && data != null && !(data as any)?.error && <RawJson data={data} />}
     </div>
   );
 }

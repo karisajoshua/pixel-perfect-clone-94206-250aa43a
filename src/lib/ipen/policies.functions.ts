@@ -86,7 +86,8 @@ export const listPolicies = createServerFn({ method: "GET" })
       path: "/api/Policy/policies",
       method: "GET",
     });
-    if (!res.ok) throw new Error(res.error ?? "Failed to load policies");
+    if (!res.ok)
+      return { error: res.error ?? "Failed to load policies", upstreamOutage: res.upstreamOutage ?? res.status >= 500, status: res.status } as any;
     return res.data;
   });
 
@@ -99,7 +100,8 @@ export const getPolicy = createServerFn({ method: "GET" })
       path: `/api/Policy/policy/${encodeURIComponent(String(data.policyId))}`,
       method: "GET",
     });
-    if (!res.ok) throw new Error(res.error ?? "Failed to load policy");
+    if (!res.ok)
+      return { error: res.error ?? "Failed to load policy", upstreamOutage: res.upstreamOutage ?? res.status >= 500, status: res.status } as any;
     return res.data;
   });
 
@@ -112,7 +114,8 @@ export const listLifeProducts = createServerFn({ method: "GET" })
       path: "/api/Policy/life-products",
       method: "GET",
     });
-    if (!res.ok) throw new Error(res.error ?? "Failed to load life products");
+    if (!res.ok)
+      return { error: res.error ?? "Failed to load life products", upstreamOutage: res.upstreamOutage ?? res.status >= 500, status: res.status } as any;
     return res.data;
   });
 
@@ -125,7 +128,8 @@ export const listLifeProductFrequencies = createServerFn({ method: "GET" })
       path: `/api/Policy/life-product-frequencies/${encodeURIComponent(String(data.productId))}`,
       method: "GET",
     });
-    if (!res.ok) throw new Error(res.error ?? "Failed to load frequencies");
+    if (!res.ok)
+      return { error: res.error ?? "Failed to load frequencies", upstreamOutage: res.upstreamOutage ?? res.status >= 500, status: res.status } as any;
     return res.data;
   });
 
@@ -173,6 +177,7 @@ export const getLifeBenefitsSchedule = createServerFn({ method: "POST" })
       method: "POST",
       body,
     });
-    if (!res.ok) throw new Error(res.error ?? "Failed to load benefits schedule");
+    if (!res.ok)
+      return { error: res.error ?? "Failed to load benefits schedule", upstreamOutage: res.upstreamOutage ?? res.status >= 500, status: res.status } as any;
     return res.data;
   });
