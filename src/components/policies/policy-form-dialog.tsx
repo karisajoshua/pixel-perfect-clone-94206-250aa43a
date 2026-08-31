@@ -341,6 +341,13 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
               </SelectContent>
             </Select>
           </div>
+          {form.payment_status === "paid" && Number(form.balance_due ?? 0) > 0 && (
+            <div className="sm:col-span-2 -mt-1">
+              <p className="text-xs text-amber-600">
+                This cover has a balance of KES {Number(form.balance_due).toLocaleString()} — saving it as Paid will clear the balance. If money is still owed, use Partial instead.
+              </p>
+            </div>
+          )}
           {form.payment_status !== "paid" && (
             <div className="space-y-1.5 min-w-0">
               <F label="Balance due (KES)" type="number" value={form.balance_due ?? ""} onChange={(v) => set("balance_due", v === "" ? null : Number(v))} />
