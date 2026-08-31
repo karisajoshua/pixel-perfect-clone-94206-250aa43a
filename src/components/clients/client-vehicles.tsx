@@ -37,7 +37,7 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
     queryFn: async () => {
       const { data: vehicles, error } = await supabase
         .from("vehicles")
-        .select("*, policies(id, policy_no, certificate_no, start_date, end_date, status, payment_status, policy_term, balance_due, cancelled_at, cancellation_reason, premium_gross, rop_of_policy_id, insurers(name))")
+        .select("*, policies(id, policy_no, certificate_no, start_date, end_date, status, payment_status, policy_term, balance_due, cancelled_at, cancellation_reason, premium_gross, rop_of_policy_id, previous_policy_id, insurers(name))")
         .eq("client_id", clientId)
         .order("created_at", { ascending: false });
       if (error) throw error;
