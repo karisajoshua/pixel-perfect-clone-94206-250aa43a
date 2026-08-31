@@ -19,6 +19,8 @@ import { InvoiceFormDialog } from "@/components/invoices/invoice-form-dialog";
 import { toast } from "sonner";
 import { downloadInvoicePdf } from "@/lib/invoice-pdf";
 import { downloadReceiptPdf } from "@/lib/receipt-pdf";
+import { PaymentStatement } from "@/components/payments/payment-statement";
+
 
 export const Route = createFileRoute("/_authenticated/invoices/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: InvoiceDetail });
 
