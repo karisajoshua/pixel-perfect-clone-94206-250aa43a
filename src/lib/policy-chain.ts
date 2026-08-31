@@ -9,18 +9,27 @@ import { supabase } from "@/integrations/supabase/client";
  * Renewals use `previous_policy_id` and are deliberately NOT followed here:
  * a renewal is a new period with its own money.
  */
+const INSTALLMENT_TERMS = ["second_installment", "rop"];
+
 export async function fetchPolicyChainIds(policyId: string): Promise<string[]> {
   if (!policyId) return [];
 
-  // Walk up to the root of the instalment chain.
+  // Walk up to the root of the instalment chain. Covers created by the
+  // instalment helper carry `rop_of_policy_id`; ones added by hand only carry
+  // `previous_policy_id`, which we follow when the cover itself is an
+  // instalment or ROP (never for an ordinary renewal).
   let rootId = policyId;
   for (let i = 0; i < 6; i++) {
     const { data } = await supabase
       .from("policies")
-      .select("rop_of_policy_id")
+      .select("rop_of_policy_id, previous_policy_id, policy_term")
       .eq("id", rootId)
       .maybeSingle();
-    const parent = (data as any)?.rop_of_policy_id as string | null | undefined;
+    const row: any = data;
+    if (!row) break;
+    const parent: string | null =
+      row.rop_of_policy_id ??
+      (INSTALLMENT_TERMS.includes(String(row.policy_term)) ? row.previous_policy_id ?? null : null);
     if (!parent || parent === rootId) break;
     rootId = parent;
   }
@@ -29,16 +38,19 @@ export async function fetchPolicyChainIds(policyId: string): Promise<string[]> {
   const ids = new Set<string>([rootId, policyId]);
   let frontier = [rootId];
   for (let i = 0; i < 6 && frontier.length; i++) {
-    const { data } = await supabase
-      .from("policies")
-      .select("id")
-      .in("rop_of_policy_id", frontier);
-    const next = (data ?? []).map((r: any) => r.id).filter((cid: string) => !ids.has(cid));
+    const [byRop, byPrev] = await Promise.all([
+      supabase.from("policies").select("id").in("rop_of_policy_id", frontier),
+      supabase.from("policies").select("id").in("previous_policy_id", frontier).in("policy_term", INSTALLMENT_TERMS),
+    ]);
+    const next = [...(byRop.data ?? []), ...(byPrev.data ?? [])]
+      .map((r: any) => r.id)
+      .filter((cid: string) => !ids.has(cid));
     next.forEach((cid: string) => ids.add(cid));
-    frontier = next;
+    frontier = [...new Set(next)];
   }
   return [...ids];
 }
+
 
 export type ChainInvoice = {
   id: string;
