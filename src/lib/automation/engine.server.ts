@@ -251,7 +251,7 @@ type Outcome = "completed" | "waiting" | "failed" | "retried";
 async function executeJob(admin: Admin, job: any): Promise<Outcome> {
   const { data: run, error } = await admin
     .from("workflow_runs")
-    .select("*, workflow_versions(graph), workflows(name)")
+    .select("*, workflow_versions(graph), workflows(name, dry_run)")
     .eq("id", job.run_id)
     .single();
   if (error || !run) throw new Error(error?.message ?? "Run not found");
@@ -422,6 +422,14 @@ async function runNode(
       const c = node.config as SendEmailConfig;
       const to = interpolate(c.to ?? "", ctx).trim();
       const data = (resolveData(c.data ?? {}, ctx) ?? {}) as Record<string, unknown>;
+      // Dry-run (parallel-run testing): record exactly what WOULD be sent, send nothing.
+      if (run.workflows?.dry_run) {
+        return {
+          kind: "next",
+          status: "skipped",
+          output: { dry_run: true, would_send: { to, template: c.template, data }, reason: "dry_run", next: nextNodeId(graph, node.id) },
+        };
+      }
       // Idempotency across retries: the same run+node always yields the same queue key.
       const res = await sendTemplatedEmail(admin, {
         template: c.template,

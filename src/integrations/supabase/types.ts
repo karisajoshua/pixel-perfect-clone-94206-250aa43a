@@ -2192,6 +2192,7 @@ export type Database = {
           created_by: string | null
           current_version_id: string | null
           description: string | null
+          dry_run: boolean
           id: string
           is_template: boolean
           name: string
@@ -2206,6 +2207,7 @@ export type Database = {
           created_by?: string | null
           current_version_id?: string | null
           description?: string | null
+          dry_run?: boolean
           id?: string
           is_template?: boolean
           name: string
@@ -2220,6 +2222,7 @@ export type Database = {
           created_by?: string | null
           current_version_id?: string | null
           description?: string | null
+          dry_run?: boolean
           id?: string
           is_template?: boolean
           name?: string
