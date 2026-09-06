@@ -403,7 +403,7 @@ export const seedRenewalReminderWorkflow = createServerFn({ method: "POST" })
         { from: "email", to: "end" },
       ],
     };
-    return createWorkflow({
+    const wf: any = await createWorkflow({
       data: {
         name: "Renewal reminder (engine POC)",
         description: "Mirrors the existing daily renewal reminder: policy expiring → email if the client has an address.",
@@ -411,4 +411,163 @@ export const seedRenewalReminderWorkflow = createServerFn({ method: "POST" })
         trigger: { event_type: "policy.expiring" },
       },
     } as any);
+    // POC workflows start in dry-run so they can never double-send alongside the existing reminder.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await (supabaseAdmin as any).from("workflows").update({ dry_run: true }).eq("id", wf.id);
+    return { ...wf, dry_run: true };
+  });
+
+/** Toggle dry-run: when on, action nodes log what they WOULD do instead of executing. */
+export const setWorkflowDryRun = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid(), dry_run: z.boolean() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertManager(supabase, userId);
+    const wf = await loadOwnWorkflow(supabase, data.id);
+    const { error } = await supabase.from("workflows").update({ dry_run: data.dry_run }).eq("id", wf.id);
+    if (error) throw new Error(error.message);
+    await auditAs(supabase, wf.tenant_id, userId, data.dry_run ? "workflow.dry_run_enabled" : "workflow.dry_run_disabled", wf.id, {});
+    return { ok: true, dry_run: data.dry_run };
+  });
+
+// ---------- parallel-run comparison: existing renewal reminder vs engine ----------
+
+const LEGACY_WINDOWS = [60, 30, 14, 7, 1];
+const ENGINE_WINDOWS = [30, 14, 7, 1];
+
+function isoDatePlus(base: Date, days: number) {
+  const d = new Date(base);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Side-by-side report for the caller's agency: which policies each system selects today,
+ * what each did (or would do, in dry-run), plus duplicates and failures. Read-only.
+ */
+export const compareRenewalReminders = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ policy_prefix: z.string().optional() }).parse(d ?? {}))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertManager(supabase, userId);
+    const tenantId = await currentTenant(supabase);
+
+    // Existing reminder uses the UTC calendar date; the engine scanner uses Africa/Nairobi.
+    const nowUtc = new Date();
+    const nairobiToday = new Date(new Date().toLocaleString("en-US", { timeZone: "Africa/Nairobi" }));
+    const nairobiBase = new Date(Date.UTC(nairobiToday.getFullYear(), nairobiToday.getMonth(), nairobiToday.getDate()));
+    const legacyDates = new Map(LEGACY_WINDOWS.map((d) => [isoDatePlus(nowUtc, d), d]));
+    const engineDates = new Map(ENGINE_WINDOWS.map((d) => [isoDatePlus(nairobiBase, d), d]));
+    const allDates = Array.from(new Set([...legacyDates.keys(), ...engineDates.keys()]));
+
+    let pq = supabase.from("policies")
+      .select("id, policy_no, end_date, status, client_id, clients(full_name, company_name, client_type, email, phone)")
+      .in("end_date", allDates)
+      .in("status", ["active", "pending"]);
+    if (data.policy_prefix) pq = pq.ilike("policy_no", `${data.policy_prefix}%`);
+    const { data: policies, error } = await pq;
+    if (error) throw new Error(error.message);
+    const ids = (policies ?? []).map((p: any) => p.id);
+
+    const [{ data: notifs }, { data: events }, { data: workflows }] = await Promise.all([
+      ids.length
+        ? supabase.from("notifications").select("id, entity_id, kind, channel, status, subject, created_at, sent_at, error")
+            .eq("entity_type", "policy").in("entity_id", ids).like("kind", "renewal_reminder_%")
+        : Promise.resolve({ data: [] }),
+      ids.length
+        ? supabase.from("automation_events").select("id, entity_id, occurred_at, processed_at, error, payload")
+            .eq("event_type", "policy.expiring").in("entity_id", ids)
+        : Promise.resolve({ data: [] }),
+      supabase.from("workflows").select("id, name, status, dry_run, current_version_id, workflow_versions!workflows_current_version_fk(trigger)")
+        .eq("tenant_id", tenantId),
+    ]);
+    const renewalWorkflows = (workflows ?? []).filter((w: any) => w.workflow_versions?.trigger?.event_type === "policy.expiring");
+    const eventIds = (events ?? []).map((e: any) => e.id);
+    const { data: runs } = eventIds.length
+      ? await supabase.from("workflow_runs").select("id, event_id, workflow_id, status, error, created_at, finished_at, workflows(name)")
+          .in("event_id", eventIds)
+      : { data: [] as any[] };
+    const runIds = (runs ?? []).map((r: any) => r.id);
+    const { data: steps } = runIds.length
+      ? await supabase.from("workflow_step_executions").select("run_id, node_id, node_type, attempt, status, output, error, finished_at")
+          .in("run_id", runIds).eq("node_type", "send-email")
+      : { data: [] as any[] };
+
+    const rows = (policies ?? []).map((p: any) => {
+      const cl = p.clients ?? {};
+      const name = cl.client_type === "corporate" ? cl.company_name ?? cl.full_name : cl.full_name;
+      const legacyDays = legacyDates.get(p.end_date);
+      const engineDays = engineDates.get(p.end_date);
+      const legacySelected = legacyDays !== undefined && !!(cl.email || cl.phone);
+      const engineSelected = engineDays !== undefined && !!cl.email; // POC branch requires an email
+
+      const pn = (notifs ?? []).filter((n: any) => n.entity_id === p.id);
+      const legacyEmail = pn.filter((n: any) => n.channel === "email");
+      const pe = (events ?? []).filter((e: any) => e.entity_id === p.id);
+      const pr = (runs ?? []).filter((r: any) => pe.some((e: any) => e.id === r.event_id));
+      const ps = (steps ?? []).filter((s: any) => pr.some((r: any) => r.id === s.run_id));
+      const byKind = new Map<string, number>();
+      for (const n of pn) byKind.set(n.kind, (byKind.get(n.kind) ?? 0) + 1);
+      const legacyDuplicates = Array.from(byKind.values()).filter((c) => c > 1).length;
+      const byEvWf = new Map<string, number>();
+      for (const r of pr) { const k = `${r.event_id}:${r.workflow_id}`; byEvWf.set(k, (byEvWf.get(k) ?? 0) + 1); }
+      const engineDuplicates = Array.from(byEvWf.values()).filter((c) => c > 1).length;
+      const lastStep = ps.sort((a: any, b: any) => (a.finished_at ?? "").localeCompare(b.finished_at ?? "")).at(-1);
+
+      return {
+        policy_id: p.id,
+        policy_no: p.policy_no,
+        end_date: p.end_date,
+        client_name: name,
+        client_email: cl.email ?? null,
+        client_phone: cl.phone ?? null,
+        legacy: {
+          selected: legacySelected,
+          window_days: legacyDays ?? null,
+          reason: legacyDays === undefined ? "outside 60/30/14/7/1 (UTC)" : !(cl.email || cl.phone) ? "no email or phone" : null,
+          content: legacySelected ? `Policy ${p.policy_no} renews in ${legacyDays} day${legacyDays === 1 ? "" : "s"}` : null,
+          notifications: pn.length,
+          email_status: legacyEmail[0]?.status ?? null,
+          sent_at: legacyEmail[0]?.sent_at ?? null,
+          duplicates: legacyDuplicates,
+          failures: pn.filter((n: any) => n.status === "failed").length,
+          error: pn.find((n: any) => n.error)?.error ?? null,
+        },
+        engine: {
+          selected: engineSelected,
+          window_days: engineDays ?? null,
+          reason: engineDays === undefined ? "outside 30/14/7/1 (Nairobi)" : !cl.email ? "no email (condition false)" : null,
+          content: engineSelected ? `renewal-reminder template · ${engineDays} days` : null,
+          event_at: pe[0]?.occurred_at ?? null,
+          event_error: pe[0]?.error ?? null,
+          runs: pr.map((r: any) => ({ id: r.id, workflow: r.workflows?.name, status: r.status, error: r.error, finished_at: r.finished_at })),
+          step_status: lastStep?.status ?? null,
+          dry_run: !!lastStep?.output?.dry_run,
+          would_send_to: lastStep?.output?.would_send?.to ?? lastStep?.output?.to ?? null,
+          message_id: lastStep?.output?.message_id ?? null,
+          duplicates: engineDuplicates,
+          failures: pr.filter((r: any) => r.status === "failed").length + ps.filter((s: any) => s.status === "failed").length,
+        },
+      };
+    });
+
+    const agree = rows.filter((r) => r.legacy.selected === r.engine.selected).length;
+    return {
+      generated_at: nowUtc.toISOString(),
+      dates: { legacy_utc_today: nowUtc.toISOString().slice(0, 10), engine_nairobi_today: nairobiBase.toISOString().slice(0, 10) },
+      workflows: renewalWorkflows.map((w: any) => ({ id: w.id, name: w.name, status: w.status, dry_run: w.dry_run, published: !!w.current_version_id })),
+      summary: {
+        policies: rows.length,
+        legacy_selected: rows.filter((r) => r.legacy.selected).length,
+        engine_selected: rows.filter((r) => r.engine.selected).length,
+        agreement: rows.length ? Math.round((agree / rows.length) * 100) : 100,
+        legacy_duplicates: rows.reduce((a, r) => a + r.legacy.duplicates, 0),
+        engine_duplicates: rows.reduce((a, r) => a + r.engine.duplicates, 0),
+        legacy_failures: rows.reduce((a, r) => a + r.legacy.failures, 0),
+        engine_failures: rows.reduce((a, r) => a + r.engine.failures, 0),
+      },
+      rows,
+    };
   });
