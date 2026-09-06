@@ -45,6 +45,7 @@ const adminNav = [
   { to: "/admin/notifications", label: "Notifications", icon: BellRing },
   { to: "/admin/emails", label: "Email log", icon: Mail },
   { to: "/admin/audit", label: "Audit log", icon: Settings },
+  { to: "/admin/automation", label: "Automation (beta)", icon: Clock },
   { to: "/admin/security", label: "Account security", icon: KeyRound },
   { to: "/admin/docs", label: "Documentation", icon: BookOpen },
   { to: "/admin/ipen", label: "IPEN integration", icon: Plug },
