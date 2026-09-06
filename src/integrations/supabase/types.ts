@@ -55,6 +55,107 @@ export type Database = {
           },
         ]
       }
+      automation_events: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          dedupe_key: string | null
+          entity_id: string | null
+          entity_type: string | null
+          error: string | null
+          event_type: string
+          id: string
+          locked_at: string | null
+          occurred_at: string
+          payload: Json
+          processed_at: string | null
+          processing_attempts: number
+          tenant_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error?: string | null
+          event_type: string
+          id?: string
+          locked_at?: string | null
+          occurred_at?: string
+          payload?: Json
+          processed_at?: string | null
+          processing_attempts?: number
+          tenant_id: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error?: string | null
+          event_type?: string
+          id?: string
+          locked_at?: string | null
+          occurred_at?: string
+          payload?: Json
+          processed_at?: string | null
+          processing_attempts?: number
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      automation_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          error: string | null
+          id: string
+          lock_token: string | null
+          locked_at: string | null
+          run_at: string
+          run_id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          lock_token?: string | null
+          locked_at?: string | null
+          run_at?: string
+          run_id: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          lock_token?: string | null
+          locked_at?: string | null
+          run_at?: string
+          run_id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_jobs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branches: {
         Row: {
           address: string | null
@@ -1897,11 +1998,322 @@ export type Database = {
           },
         ]
       }
+      workflow_runs: {
+        Row: {
+          client_id: string | null
+          context: Json
+          created_at: string
+          current_node_id: string | null
+          entity_id: string | null
+          entity_type: string | null
+          error: string | null
+          event_id: string | null
+          finished_at: string | null
+          id: string
+          next_run_at: string | null
+          started_at: string | null
+          status: string
+          tenant_id: string
+          triggered_by: string | null
+          updated_at: string
+          version_id: string
+          workflow_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          context?: Json
+          created_at?: string
+          current_node_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error?: string | null
+          event_id?: string | null
+          finished_at?: string | null
+          id?: string
+          next_run_at?: string | null
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+          triggered_by?: string | null
+          updated_at?: string
+          version_id: string
+          workflow_id: string
+        }
+        Update: {
+          client_id?: string | null
+          context?: Json
+          created_at?: string
+          current_node_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error?: string | null
+          event_id?: string | null
+          finished_at?: string | null
+          id?: string
+          next_run_at?: string | null
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+          triggered_by?: string | null
+          updated_at?: string
+          version_id?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_runs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "automation_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_runs_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_runs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_step_executions: {
+        Row: {
+          attempt: number
+          error: string | null
+          finished_at: string | null
+          id: string
+          idempotency_key: string
+          input: Json | null
+          node_id: string
+          node_type: string
+          output: Json | null
+          run_id: string
+          started_at: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          attempt?: number
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          idempotency_key: string
+          input?: Json | null
+          node_id: string
+          node_type: string
+          output?: Json | null
+          run_id: string
+          started_at?: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          attempt?: number
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          idempotency_key?: string
+          input?: Json | null
+          node_id?: string
+          node_type?: string
+          output?: Json | null
+          run_id?: string
+          started_at?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_step_executions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_versions: {
+        Row: {
+          change_note: string | null
+          created_at: string
+          graph: Json
+          id: string
+          published_at: string | null
+          published_by: string | null
+          tenant_id: string | null
+          trigger: Json
+          version_no: number
+          workflow_id: string
+        }
+        Insert: {
+          change_note?: string | null
+          created_at?: string
+          graph?: Json
+          id?: string
+          published_at?: string | null
+          published_by?: string | null
+          tenant_id?: string | null
+          trigger?: Json
+          version_no: number
+          workflow_id: string
+        }
+        Update: {
+          change_note?: string | null
+          created_at?: string
+          graph?: Json
+          id?: string
+          published_at?: string | null
+          published_by?: string | null
+          tenant_id?: string | null
+          trigger?: Json
+          version_no?: number
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_versions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflows: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          current_version_id: string | null
+          description: string | null
+          id: string
+          is_template: boolean
+          name: string
+          source_template_id: string | null
+          status: string
+          template_key: string | null
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          current_version_id?: string | null
+          description?: string | null
+          id?: string
+          is_template?: boolean
+          name: string
+          source_template_id?: string | null
+          status?: string
+          template_key?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          current_version_id?: string | null
+          description?: string | null
+          id?: string
+          is_template?: boolean
+          name?: string
+          source_template_id?: string | null
+          status?: string
+          template_key?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflows_current_version_fk"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflows_source_template_id_fkey"
+            columns: ["source_template_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      automation_claim_events: {
+        Args: { p_limit?: number }
+        Returns: {
+          client_id: string | null
+          created_at: string
+          dedupe_key: string | null
+          entity_id: string | null
+          entity_type: string | null
+          error: string | null
+          event_type: string
+          id: string
+          locked_at: string | null
+          occurred_at: string
+          payload: Json
+          processed_at: string | null
+          processing_attempts: number
+          tenant_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "automation_events"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      automation_claim_jobs: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          error: string | null
+          id: string
+          lock_token: string | null
+          locked_at: string | null
+          run_at: string
+          run_id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "automation_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      automation_emit_event: {
+        Args: {
+          p_client_id?: string
+          p_dedupe_key?: string
+          p_entity_id: string
+          p_entity_type: string
+          p_event_type: string
+          p_payload?: Json
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      automation_scan_scheduled_events: {
+        Args: { p_limit?: number }
+        Returns: number
+      }
       current_client_id: { Args: never; Returns: string }
       current_client_tenant_id: { Args: never; Returns: string }
       current_tenant_id: { Args: never; Returns: string }

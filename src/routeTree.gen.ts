@@ -56,6 +56,7 @@ import { Route as AuthenticatedAdminImportRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminEmailsRouteImport } from './routes/_authenticated/admin.emails'
 import { Route as AuthenticatedAdminDocsRouteImport } from './routes/_authenticated/admin.docs'
 import { Route as AuthenticatedAdminBranchesRouteImport } from './routes/_authenticated/admin.branches'
+import { Route as AuthenticatedAdminAutomationRouteImport } from './routes/_authenticated/admin.automation'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -65,6 +66,7 @@ import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/em
 import { Route as ApiPublicIpenProcessExpressCallbackRouteImport } from './routes/api/public/ipen/process-express-callback'
 import { Route as ApiPublicIpenMpesaCallbackRouteImport } from './routes/api/public/ipen/mpesa-callback'
 import { Route as ApiPublicHooksRenewalRemindersRouteImport } from './routes/api/public/hooks/renewal-reminders'
+import { Route as ApiPublicAutomationTickRouteImport } from './routes/api/public/automation/tick'
 import { Route as PortalPortalPoliciesIdRouteImport } from './routes/_portal/portal/policies.$id'
 import { Route as PortalPortalInvoicesIdRouteImport } from './routes/_portal/portal/invoices.$id'
 import { Route as PlatformPlatformAgenciesIdRouteImport } from './routes/_platform/platform/agencies.$id'
@@ -312,6 +314,12 @@ const AuthenticatedAdminBranchesRoute =
     path: '/admin/branches',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminAutomationRoute =
+  AuthenticatedAdminAutomationRouteImport.update({
+    id: '/admin/automation',
+    path: '/admin/automation',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
   id: '/admin/audit',
   path: '/admin/audit',
@@ -363,6 +371,11 @@ const ApiPublicHooksRenewalRemindersRoute =
     path: '/api/public/hooks/renewal-reminders',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicAutomationTickRoute = ApiPublicAutomationTickRouteImport.update({
+  id: '/api/public/automation/tick',
+  path: '/api/public/automation/tick',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PortalPortalPoliciesIdRoute = PortalPortalPoliciesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -397,6 +410,7 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/admin/branches': typeof AuthenticatedAdminBranchesRoute
   '/admin/docs': typeof AuthenticatedAdminDocsRoute
   '/admin/emails': typeof AuthenticatedAdminEmailsRoute
@@ -429,6 +443,7 @@ export interface FileRoutesByFullPath {
   '/platform/agencies/$id': typeof PlatformPlatformAgenciesIdRoute
   '/portal/invoices/$id': typeof PortalPortalInvoicesIdRoute
   '/portal/policies/$id': typeof PortalPortalPoliciesIdRoute
+  '/api/public/automation/tick': typeof ApiPublicAutomationTickRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
   '/api/public/ipen/mpesa-callback': typeof ApiPublicIpenMpesaCallbackRoute
   '/api/public/ipen/process-express-callback': typeof ApiPublicIpenProcessExpressCallbackRoute
@@ -455,6 +470,7 @@ export interface FileRoutesByTo {
   '/api/chat': typeof ApiChatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/admin/branches': typeof AuthenticatedAdminBranchesRoute
   '/admin/docs': typeof AuthenticatedAdminDocsRoute
   '/admin/emails': typeof AuthenticatedAdminEmailsRoute
@@ -487,6 +503,7 @@ export interface FileRoutesByTo {
   '/platform/agencies/$id': typeof PlatformPlatformAgenciesIdRoute
   '/portal/invoices/$id': typeof PortalPortalInvoicesIdRoute
   '/portal/policies/$id': typeof PortalPortalPoliciesIdRoute
+  '/api/public/automation/tick': typeof ApiPublicAutomationTickRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
   '/api/public/ipen/mpesa-callback': typeof ApiPublicIpenMpesaCallbackRoute
   '/api/public/ipen/process-express-callback': typeof ApiPublicIpenProcessExpressCallbackRoute
@@ -517,6 +534,7 @@ export interface FileRoutesById {
   '/api/chat': typeof ApiChatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/_authenticated/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/_authenticated/admin/branches': typeof AuthenticatedAdminBranchesRoute
   '/_authenticated/admin/docs': typeof AuthenticatedAdminDocsRoute
   '/_authenticated/admin/emails': typeof AuthenticatedAdminEmailsRoute
@@ -549,6 +567,7 @@ export interface FileRoutesById {
   '/_platform/platform/agencies/$id': typeof PlatformPlatformAgenciesIdRoute
   '/_portal/portal/invoices/$id': typeof PortalPortalInvoicesIdRoute
   '/_portal/portal/policies/$id': typeof PortalPortalPoliciesIdRoute
+  '/api/public/automation/tick': typeof ApiPublicAutomationTickRoute
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
   '/api/public/ipen/mpesa-callback': typeof ApiPublicIpenMpesaCallbackRoute
   '/api/public/ipen/process-express-callback': typeof ApiPublicIpenProcessExpressCallbackRoute
@@ -577,6 +596,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/email/unsubscribe'
     | '/admin/audit'
+    | '/admin/automation'
     | '/admin/branches'
     | '/admin/docs'
     | '/admin/emails'
@@ -609,6 +629,7 @@ export interface FileRouteTypes {
     | '/platform/agencies/$id'
     | '/portal/invoices/$id'
     | '/portal/policies/$id'
+    | '/api/public/automation/tick'
     | '/api/public/hooks/renewal-reminders'
     | '/api/public/ipen/mpesa-callback'
     | '/api/public/ipen/process-express-callback'
@@ -635,6 +656,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/email/unsubscribe'
     | '/admin/audit'
+    | '/admin/automation'
     | '/admin/branches'
     | '/admin/docs'
     | '/admin/emails'
@@ -667,6 +689,7 @@ export interface FileRouteTypes {
     | '/platform/agencies/$id'
     | '/portal/invoices/$id'
     | '/portal/policies/$id'
+    | '/api/public/automation/tick'
     | '/api/public/hooks/renewal-reminders'
     | '/api/public/ipen/mpesa-callback'
     | '/api/public/ipen/process-express-callback'
@@ -696,6 +719,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/email/unsubscribe'
     | '/_authenticated/admin/audit'
+    | '/_authenticated/admin/automation'
     | '/_authenticated/admin/branches'
     | '/_authenticated/admin/docs'
     | '/_authenticated/admin/emails'
@@ -728,6 +752,7 @@ export interface FileRouteTypes {
     | '/_platform/platform/agencies/$id'
     | '/_portal/portal/invoices/$id'
     | '/_portal/portal/policies/$id'
+    | '/api/public/automation/tick'
     | '/api/public/hooks/renewal-reminders'
     | '/api/public/ipen/mpesa-callback'
     | '/api/public/ipen/process-express-callback'
@@ -750,6 +775,7 @@ export interface RootRouteChildren {
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   VerifyInvoiceIdRoute: typeof VerifyInvoiceIdRoute
+  ApiPublicAutomationTickRoute: typeof ApiPublicAutomationTickRoute
   ApiPublicHooksRenewalRemindersRoute: typeof ApiPublicHooksRenewalRemindersRoute
   ApiPublicIpenMpesaCallbackRoute: typeof ApiPublicIpenMpesaCallbackRoute
   ApiPublicIpenProcessExpressCallbackRoute: typeof ApiPublicIpenProcessExpressCallbackRoute
@@ -1091,6 +1117,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBranchesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/automation': {
+      id: '/_authenticated/admin/automation'
+      path: '/admin/automation'
+      fullPath: '/admin/automation'
+      preLoaderRoute: typeof AuthenticatedAdminAutomationRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/audit': {
       id: '/_authenticated/admin/audit'
       path: '/admin/audit'
@@ -1152,6 +1185,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/renewal-reminders'
       fullPath: '/api/public/hooks/renewal-reminders'
       preLoaderRoute: typeof ApiPublicHooksRenewalRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/automation/tick': {
+      id: '/api/public/automation/tick'
+      path: '/api/public/automation/tick'
+      fullPath: '/api/public/automation/tick'
+      preLoaderRoute: typeof ApiPublicAutomationTickRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_portal/portal/policies/$id': {
@@ -1228,6 +1268,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRenewalsRoute: typeof AuthenticatedRenewalsRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
+  AuthenticatedAdminAutomationRoute: typeof AuthenticatedAdminAutomationRoute
   AuthenticatedAdminBranchesRoute: typeof AuthenticatedAdminBranchesRoute
   AuthenticatedAdminDocsRoute: typeof AuthenticatedAdminDocsRoute
   AuthenticatedAdminEmailsRoute: typeof AuthenticatedAdminEmailsRoute
@@ -1253,6 +1294,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRenewalsRoute: AuthenticatedRenewalsRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
+  AuthenticatedAdminAutomationRoute: AuthenticatedAdminAutomationRoute,
   AuthenticatedAdminBranchesRoute: AuthenticatedAdminBranchesRoute,
   AuthenticatedAdminDocsRoute: AuthenticatedAdminDocsRoute,
   AuthenticatedAdminEmailsRoute: AuthenticatedAdminEmailsRoute,
@@ -1360,6 +1402,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   VerifyInvoiceIdRoute: VerifyInvoiceIdRoute,
+  ApiPublicAutomationTickRoute: ApiPublicAutomationTickRoute,
   ApiPublicHooksRenewalRemindersRoute: ApiPublicHooksRenewalRemindersRoute,
   ApiPublicIpenMpesaCallbackRoute: ApiPublicIpenMpesaCallbackRoute,
   ApiPublicIpenProcessExpressCallbackRoute:
