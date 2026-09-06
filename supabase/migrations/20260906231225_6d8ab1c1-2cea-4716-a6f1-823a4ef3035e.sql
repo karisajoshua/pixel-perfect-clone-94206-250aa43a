@@ -1,0 +1,2 @@
+ALTER TABLE public.workflows ADD COLUMN IF NOT EXISTS dry_run boolean NOT NULL DEFAULT false;
+COMMENT ON COLUMN public.workflows.dry_run IS 'When true, action nodes (send-email) log what they WOULD do instead of executing. Used for parallel-run testing.';
