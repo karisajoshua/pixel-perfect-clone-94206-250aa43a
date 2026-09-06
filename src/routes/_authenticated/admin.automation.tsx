@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   listWorkflows, publishWorkflow, activateWorkflow, pauseWorkflow, deleteWorkflow, executeWorkflow,
   getWorkflowRuns, getWorkflowRun, retryWorkflowStep, cancelWorkflowRun, runAutomationTickNow,
-  listAutomationEvents, seedRenewalReminderWorkflow,
+  listAutomationEvents, seedRenewalReminderWorkflow, setWorkflowDryRun, compareRenewalReminders,
 } from "@/lib/automation/workflows.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/automation")({
@@ -50,7 +50,8 @@ function AutomationAdmin() {
   const execute = act(useServerFn(executeWorkflow), "Manual run started");
   const retry = act(useServerFn(retryWorkflowStep), "Run re-queued");
   const cancel = act(useServerFn(cancelWorkflowRun), "Run cancelled");
-  const seed = act(useServerFn(seedRenewalReminderWorkflow), "Sample workflow created (draft)");
+  const seed = act(useServerFn(seedRenewalReminderWorkflow), "Sample workflow created (draft, dry-run)");
+  const dryRun = act(useServerFn(setWorkflowDryRun), "Dry-run setting saved");
   const tickFn = useServerFn(runAutomationTickNow);
   const tick = useMutation({
     mutationFn: () => tickFn(),
@@ -83,7 +84,12 @@ function AutomationAdmin() {
                 <tr key={w.id} className="border-b last:border-0 align-top">
                   <td className="px-4 py-2"><div className="font-medium">{w.name}</div><div className="text-xs text-muted-foreground">{w.description}</div></td>
                   <td className="px-4 py-2 font-mono text-xs">{cur?.trigger?.event_type ?? "—"}</td>
-                  <td className="px-4 py-2"><Badge variant={statusVariant(w.status)}>{w.status}</Badge></td>
+                  <td className="px-4 py-2">
+                    <div className="flex flex-wrap gap-1">
+                      <Badge variant={statusVariant(w.status)}>{w.status}</Badge>
+                      {w.dry_run && <Badge variant="outline">dry-run</Badge>}
+                    </div>
+                  </td>
                   <td className="px-4 py-2 text-xs">{cur ? `v${cur.version_no}` : "unpublished"}</td>
                   <td className="px-4 py-2">
                     <div className="flex flex-wrap justify-end gap-1">
@@ -92,6 +98,10 @@ function AutomationAdmin() {
                         ? <Button size="sm" variant="outline" onClick={() => activate.mutate({ id: w.id })} disabled={!w.current_version_id}>Activate</Button>
                         : <Button size="sm" variant="outline" onClick={() => pause.mutate({ id: w.id })}>Pause</Button>}
                       <Button size="sm" variant="outline" disabled={!w.current_version_id} onClick={() => execute.mutate({ id: w.id, run_now: true, payload: { manual_test: true } })}>Run manually</Button>
+                      <Button size="sm" variant={w.dry_run ? "secondary" : "outline"} onClick={() => {
+                        if (w.dry_run && !confirm("Turn dry-run OFF? This workflow will start sending real emails.")) return;
+                        dryRun.mutate({ id: w.id, dry_run: !w.dry_run });
+                      }}>{w.dry_run ? "Dry-run: on" : "Dry-run: off"}</Button>
                       <Button size="sm" variant="ghost" onClick={() => { if (confirm("Remove this workflow?")) remove.mutate({ id: w.id }); }}>Remove</Button>
                     </div>
                   </td>
@@ -129,6 +139,8 @@ function AutomationAdmin() {
         {openRun && <RunSteps id={openRun} />}
       </Card>
 
+      <ParallelRun />
+
       <Card className="overflow-x-auto">
         <div className="px-4 py-3 border-b font-medium">Recent events</div>
         <table className="w-full text-sm">
@@ -146,6 +158,82 @@ function AutomationAdmin() {
         </table>
       </Card>
     </div>
+  );
+}
+
+function ParallelRun() {
+  const compare = useServerFn(compareRenewalReminders);
+  const [prefix, setPrefix] = useState("");
+  const q = useQuery({
+    queryKey: ["automation", "parallel-run", prefix],
+    queryFn: () => compare({ data: prefix ? { policy_prefix: prefix } : {} }),
+    refetchInterval: 15_000,
+  });
+  const d: any = q.data;
+  const mark = (ok: boolean | null | undefined, label?: string) =>
+    ok == null ? <span className="text-muted-foreground">—</span> : <Badge variant={ok ? "default" : "secondary"}>{label ?? (ok ? "yes" : "no")}</Badge>;
+  return (
+    <Card className="overflow-x-auto">
+      <div className="px-4 py-3 border-b flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div className="font-medium">Parallel run — existing renewal reminder vs automation engine</div>
+          <div className="text-xs text-muted-foreground">
+            Read-only comparison of today's reminder windows. The engine workflow must stay in dry-run unless you are deliberately testing live sends.
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <input className="h-8 rounded-md border bg-background px-2 text-xs" placeholder="Policy no. prefix (e.g. TEST-)" value={prefix} onChange={(e) => setPrefix(e.target.value)} />
+          <Button size="sm" variant="outline" onClick={() => q.refetch()} disabled={q.isFetching}>Refresh</Button>
+        </div>
+      </div>
+      {d && (
+        <div className="px-4 py-3 border-b grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <div><div className="text-muted-foreground">Policies in window</div><div className="text-lg font-semibold">{d.summary.policies}</div></div>
+          <div><div className="text-muted-foreground">Existing selects / Engine selects</div><div className="text-lg font-semibold">{d.summary.legacy_selected} / {d.summary.engine_selected}</div></div>
+          <div><div className="text-muted-foreground">Agreement</div><div className="text-lg font-semibold">{d.summary.agreement}%</div></div>
+          <div><div className="text-muted-foreground">Duplicates / failures (existing · engine)</div><div className="text-lg font-semibold">{d.summary.legacy_duplicates}·{d.summary.engine_duplicates} / {d.summary.legacy_failures}·{d.summary.engine_failures}</div></div>
+          <div className="col-span-2 md:col-span-4 text-muted-foreground">
+            Existing reminder date (UTC): <span className="font-mono">{d.dates.legacy_utc_today}</span> · Engine date (Nairobi): <span className="font-mono">{d.dates.engine_nairobi_today}</span> ·
+            Engine workflows: {d.workflows.length === 0 ? "none" : d.workflows.map((w: any) => `${w.name} [${w.status}${w.dry_run ? ", dry-run" : ", LIVE"}]`).join(", ")}
+          </div>
+        </div>
+      )}
+      <table className="w-full text-xs">
+        <thead className="border-b bg-muted/40 text-left">
+          <tr>
+            <th className="px-4 py-2">Policy / client</th>
+            <th className="px-4 py-2">Expires</th>
+            <th className="px-4 py-2">Existing: selected</th>
+            <th className="px-4 py-2">Existing: result</th>
+            <th className="px-4 py-2">Engine: selected</th>
+            <th className="px-4 py-2">Engine: result</th>
+            <th className="px-4 py-2">Dupes / fails</th>
+          </tr>
+        </thead>
+        <tbody>
+          {d?.rows.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No policies fall in a reminder window today.</td></tr>}
+          {d?.rows.map((r: any) => (
+            <tr key={r.policy_id} className={`border-b last:border-0 align-top ${r.legacy.selected !== r.engine.selected ? "bg-destructive/5" : ""}`}>
+              <td className="px-4 py-2"><div className="font-mono">{r.policy_no}</div><div className="text-muted-foreground">{r.client_name} · {r.client_email ?? "no email"}{r.client_phone ? ` · ${r.client_phone}` : ""}</div></td>
+              <td className="px-4 py-2 whitespace-nowrap">{r.end_date}</td>
+              <td className="px-4 py-2">{mark(r.legacy.selected, r.legacy.selected ? `${r.legacy.window_days}d` : undefined)}{r.legacy.reason && <div className="text-muted-foreground">{r.legacy.reason}</div>}</td>
+              <td className="px-4 py-2">
+                {r.legacy.notifications > 0 ? <>{r.legacy.notifications} notif · email {r.legacy.email_status ?? "n/a"}{r.legacy.sent_at && <div className="text-muted-foreground">{format(new Date(r.legacy.sent_at), "PP p")}</div>}</> : <span className="text-muted-foreground">not run yet</span>}
+                {r.legacy.content && <div className="text-muted-foreground italic truncate max-w-[16rem]" title={r.legacy.content}>{r.legacy.content}</div>}
+              </td>
+              <td className="px-4 py-2">{mark(r.engine.selected, r.engine.selected ? `${r.engine.window_days}d` : undefined)}{r.engine.reason && <div className="text-muted-foreground">{r.engine.reason}</div>}</td>
+              <td className="px-4 py-2">
+                {!r.engine.event_at && <span className="text-muted-foreground">no event yet</span>}
+                {r.engine.event_at && <div>event {format(new Date(r.engine.event_at), "PP p")}</div>}
+                {r.engine.runs.map((run: any) => <div key={run.id}>{run.workflow}: <Badge variant={statusVariant(run.status)}>{run.status}</Badge></div>)}
+                {r.engine.step_status && <div className="text-muted-foreground">{r.engine.dry_run ? "DRY-RUN would send to" : "email"} {r.engine.would_send_to ?? "—"}{r.engine.message_id ? ` · sent` : ""}</div>}
+              </td>
+              <td className="px-4 py-2 whitespace-nowrap">{r.legacy.duplicates + r.engine.duplicates} / {r.legacy.failures + r.engine.failures}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Card>
   );
 }
 
