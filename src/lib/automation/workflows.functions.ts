@@ -495,7 +495,7 @@ export const compareRenewalReminders = createServerFn({ method: "GET" })
           .in("run_id", runIds).eq("node_type", "send-email")
       : { data: [] as any[] };
 
-    const rows = (policies ?? []).map((p: any) => {
+    const rows: any[] = (policies ?? []).map((p: any) => {
       const cl = p.clients ?? {};
       const name = cl.client_type === "corporate" ? cl.company_name ?? cl.full_name : cl.full_name;
       const legacyDays = legacyDates.get(p.end_date);
@@ -553,20 +553,20 @@ export const compareRenewalReminders = createServerFn({ method: "GET" })
       };
     });
 
-    const agree = rows.filter((r) => r.legacy.selected === r.engine.selected).length;
+    const agree = rows.filter((r: any) => r.legacy.selected === r.engine.selected).length;
     return {
       generated_at: nowUtc.toISOString(),
       dates: { legacy_utc_today: nowUtc.toISOString().slice(0, 10), engine_nairobi_today: nairobiBase.toISOString().slice(0, 10) },
       workflows: renewalWorkflows.map((w: any) => ({ id: w.id, name: w.name, status: w.status, dry_run: w.dry_run, published: !!w.current_version_id })),
       summary: {
         policies: rows.length,
-        legacy_selected: rows.filter((r) => r.legacy.selected).length,
-        engine_selected: rows.filter((r) => r.engine.selected).length,
+        legacy_selected: rows.filter((r: any) => r.legacy.selected).length,
+        engine_selected: rows.filter((r: any) => r.engine.selected).length,
         agreement: rows.length ? Math.round((agree / rows.length) * 100) : 100,
-        legacy_duplicates: rows.reduce((a, r) => a + r.legacy.duplicates, 0),
-        engine_duplicates: rows.reduce((a, r) => a + r.engine.duplicates, 0),
-        legacy_failures: rows.reduce((a, r) => a + r.legacy.failures, 0),
-        engine_failures: rows.reduce((a, r) => a + r.engine.failures, 0),
+        legacy_duplicates: rows.reduce((a: number, r: any) => a + r.legacy.duplicates, 0),
+        engine_duplicates: rows.reduce((a: number, r: any) => a + r.engine.duplicates, 0),
+        legacy_failures: rows.reduce((a: number, r: any) => a + r.legacy.failures, 0),
+        engine_failures: rows.reduce((a: number, r: any) => a + r.engine.failures, 0),
       },
       rows,
     };
