@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
 import { render } from "@react-email/components";
 import { TEMPLATES } from "@/lib/email-templates/registry";
+import { addDaysToDate, businessDate } from "@/lib/business-time";
+
 
 const SITE_NAME = "Zest Insurance";
 const SENDER_DOMAIN = "notify.zestinsurance.co.ke";
@@ -58,15 +60,16 @@ export const Route = createFileRoute("/api/public/hooks/renewal-reminders")({
         }
 
         const windows = [60, 30, 14, 7, 1];
-        const today = new Date();
+        // Business dates are evaluated in Africa/Nairobi so a reminder never
+        // slips a day when the job runs either side of UTC midnight.
+        const businessToday = businessDate();
         let queued = 0;
         let dispatched = 0;
         const errors: string[] = [];
 
         for (const days of windows) {
-          const target = new Date(today);
-          target.setDate(today.getDate() + days);
-          const dateStr = target.toISOString().slice(0, 10);
+          const dateStr = addDaysToDate(businessToday, days);
+
           const { data: policies, error } = await supabaseAdmin
             .from("policies")
             .select(

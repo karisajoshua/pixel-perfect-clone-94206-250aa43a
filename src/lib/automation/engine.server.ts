@@ -12,17 +12,21 @@
  *  - Every node execution is recorded in workflow_step_executions with a unique
  *    idempotency key run_id:node_id:attempt. A completed step is never re-executed.
  */
+import { businessParts } from "@/lib/business-time";
 import { evaluateCondition, interpolate, resolveData } from "./conditions";
+import { resolveCustomerContact, type Channel } from "./contacts";
 import { sendTemplatedEmail } from "./email.server";
 import {
   NODE_MAX_ATTEMPTS,
   type Condition,
   type DelayConfig,
   type SendEmailConfig,
+  type SendMessageConfig,
   type TriggerConfig,
   type WorkflowGraph,
   type WorkflowNode,
 } from "./types";
+
 
 export const EVENT_BATCH = 25;
 export const JOB_BATCH = 25;
@@ -94,11 +98,12 @@ export function validateGraph(graph: WorkflowGraph): string[] {
     if (ids.has(n.id)) errors.push(`Duplicate node id ${n.id}`);
     ids.add(n.id);
     if (!(n.type in NODE_MAX_ATTEMPTS)) errors.push(`Unsupported node type '${n.type}' on ${n.id}`);
-    if (n.type === "send-email") {
+    if (n.type === "send-email" || n.type === "send-message") {
       const c = n.config as SendEmailConfig | undefined;
-      if (!c?.template) errors.push(`send-email node ${n.id} needs a template`);
-      if (!c?.to) errors.push(`send-email node ${n.id} needs a recipient`);
+      if (!c?.template) errors.push(`${n.type} node ${n.id} needs a template`);
+      if (!c?.to && n.type === "send-email") errors.push(`send-email node ${n.id} needs a recipient`);
     }
+
     if (n.type === "delay") {
       const c = n.config as DelayConfig | undefined;
       if (!c || !(c.amount > 0) || !["minutes", "hours", "days"].includes(c.unit))
@@ -128,8 +133,18 @@ async function buildContext(admin: Admin, ev: any) {
       };
     }
   }
+  const now = new Date();
+  const parts = businessParts(now);
+  const contact = resolveCustomerContact(client as any);
   return {
     tenant_id: ev.tenant_id,
+    // Business-time snapshot: dates are evaluated in Africa/Nairobi, timestamps stay UTC.
+    now: {
+      utc: now.toISOString(),
+      business_date: parts.date,
+      business_hour: parts.hour,
+      timezone: parts.timezone,
+    },
     event: {
       id: ev.id,
       type: ev.event_type,
@@ -139,9 +154,11 @@ async function buildContext(admin: Admin, ev: any) {
       payload: ev.payload ?? {},
     },
     client,
+    contact,
     vars: {} as Record<string, unknown>,
   };
 }
+
 
 // ---------- 1. events → runs ----------
 
@@ -418,16 +435,51 @@ async function runNode(
       const until = new Date(Date.now() + Math.max(1, Number(c.amount)) * mult).toISOString();
       return { kind: "wait", status: "completed", until, output: { until, next: nextNodeId(graph, node.id) } };
     }
-    case "send-email": {
-      const c = node.config as SendEmailConfig;
-      const to = interpolate(c.to ?? "", ctx).trim();
+    case "send-email":
+    case "send-message": {
+      const c = node.config as SendMessageConfig;
+      const next = nextNodeId(graph, node.id);
+      const contact = resolveCustomerContact(ctx?.client ?? null, c.channels as Channel[] | undefined);
       const data = (resolveData(c.data ?? {}, ctx) ?? {}) as Record<string, unknown>;
+      const to = (interpolate(c.to ?? "", ctx).trim() || contact.email) ?? "";
+
+      // Channel-aware: a customer we can only reach by phone is NOT an email failure.
+      if (node.type === "send-message" && !contact.executable.includes("email")) {
+        return {
+          kind: "next",
+          status: "skipped",
+          output: {
+            reason: contact.contactable_via === "none" ? "no_contact_details" : "pending_channel",
+            contactable_via: contact.contactable_via,
+            requires_channel: contact.pending,
+            recorded_intent: contact.pending.length
+              ? { channels: contact.pending, phone: contact.phone, template: c.template, data }
+              : null,
+            next,
+          },
+        };
+      }
+      if (!to || !to.includes("@")) {
+        return {
+          kind: "next",
+          status: "skipped",
+          output: { reason: "no_email_address", contactable_via: contact.contactable_via, requires_channel: contact.pending, next },
+        };
+      }
+
       // Dry-run (parallel-run testing): record exactly what WOULD be sent, send nothing.
       if (run.workflows?.dry_run) {
         return {
           kind: "next",
           status: "skipped",
-          output: { dry_run: true, would_send: { to, template: c.template, data }, reason: "dry_run", next: nextNodeId(graph, node.id) },
+          output: {
+            dry_run: true,
+            channel: "email",
+            would_send: { to, template: c.template, data },
+            also_requires_channel: contact.pending,
+            reason: "dry_run",
+            next,
+          },
         };
       }
       // Idempotency across retries: the same run+node always yields the same queue key.
@@ -440,11 +492,12 @@ async function runNode(
       });
       if (!res.ok) throw new StepError(res.error, res.retryable);
       if ("skipped" in res && res.skipped) {
-        return { kind: "next", status: "skipped", output: { to, reason: res.reason, next: nextNodeId(graph, node.id) } };
+        return { kind: "next", status: "skipped", output: { to, reason: res.reason, next } };
       }
       void idem;
-      return { kind: "next", status: "completed", output: { to, message_id: res.message_id, template: c.template, next: nextNodeId(graph, node.id) } };
+      return { kind: "next", status: "completed", output: { to, channel: "email", message_id: res.message_id, template: c.template, next } };
     }
+
     default:
       throw new StepError(`Unsupported node type ${(node as any).type}`, false);
   }

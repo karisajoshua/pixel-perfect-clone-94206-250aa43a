@@ -67,6 +67,13 @@ export function evaluateLeaf(leaf: ConditionLeaf, ctx: unknown): boolean {
       if (typeof actual === "string") return actual.toLowerCase().includes(String(expected ?? "").toLowerCase());
       return false;
     }
+    case "in":
+    case "not_in": {
+      const list = Array.isArray(expected) ? expected : [expected];
+      const hit = list.some((v) => toComparable(v) === toComparable(actual) || v === actual);
+      return leaf.op === "in" ? hit : !hit;
+    }
+
     case "greater_than":
     case "less_than":
     case "greater_than_or_equal":

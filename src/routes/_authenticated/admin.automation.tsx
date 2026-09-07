@@ -190,10 +190,11 @@ function ParallelRun() {
         <div className="px-4 py-3 border-b grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
           <div><div className="text-muted-foreground">Policies in window</div><div className="text-lg font-semibold">{d.summary.policies}</div></div>
           <div><div className="text-muted-foreground">Existing selects / Engine selects</div><div className="text-lg font-semibold">{d.summary.legacy_selected} / {d.summary.engine_selected}</div></div>
-          <div><div className="text-muted-foreground">Agreement</div><div className="text-lg font-semibold">{d.summary.agreement}%</div></div>
+          <div><div className="text-muted-foreground">Match / mismatch</div><div className="text-lg font-semibold">{d.summary.matches} / {d.summary.mismatches} <span className="text-muted-foreground">({d.summary.agreement}%)</span></div></div>
           <div><div className="text-muted-foreground">Duplicates / failures (existing · engine)</div><div className="text-lg font-semibold">{d.summary.legacy_duplicates}·{d.summary.engine_duplicates} / {d.summary.legacy_failures}·{d.summary.engine_failures}</div></div>
           <div className="col-span-2 md:col-span-4 text-muted-foreground">
-            Existing reminder date (UTC): <span className="font-mono">{d.dates.legacy_utc_today}</span> · Engine date (Nairobi): <span className="font-mono">{d.dates.engine_nairobi_today}</span> ·
+            Business date ({d.dates.timezone}): <span className="font-mono">{d.dates.business_today}</span> · windows existing <span className="font-mono">{d.dates.legacy_windows.join("/")}</span> · engine <span className="font-mono">{d.dates.engine_windows.join("/")}</span> ·
+            phone-only {d.summary.phone_only} · no contact {d.summary.no_contact} ·
             Engine workflows: {d.workflows.length === 0 ? "none" : d.workflows.map((w: any) => `${w.name} [${w.status}${w.dry_run ? ", dry-run" : ", LIVE"}]`).join(", ")}
           </div>
         </div>
@@ -203,36 +204,46 @@ function ParallelRun() {
           <tr>
             <th className="px-4 py-2">Policy / client</th>
             <th className="px-4 py-2">Expires</th>
+            <th className="px-4 py-2">Channel</th>
             <th className="px-4 py-2">Existing: selected</th>
             <th className="px-4 py-2">Existing: result</th>
             <th className="px-4 py-2">Engine: selected</th>
             <th className="px-4 py-2">Engine: result</th>
-            <th className="px-4 py-2">Dupes / fails</th>
+            <th className="px-4 py-2">Verdict</th>
           </tr>
         </thead>
         <tbody>
-          {d?.rows.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No policies fall in a reminder window today.</td></tr>}
+          {d?.rows.length === 0 && <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No policies fall in a reminder window today.</td></tr>}
           {d?.rows.map((r: any) => (
-            <tr key={r.policy_id} className={`border-b last:border-0 align-top ${r.legacy.selected !== r.engine.selected ? "bg-destructive/5" : ""}`}>
-              <td className="px-4 py-2"><div className="font-mono">{r.policy_no}</div><div className="text-muted-foreground">{r.client_name} · {r.client_email ?? "no email"}{r.client_phone ? ` · ${r.client_phone}` : ""}</div></td>
+            <tr key={r.policy_id} className={`border-b last:border-0 align-top ${r.verdict === "MISMATCH" ? "bg-destructive/5" : ""}`}>
+              <td className="px-4 py-2"><div className="font-mono">{r.policy_no}</div><div className="text-muted-foreground">{r.client_name}</div></td>
               <td className="px-4 py-2 whitespace-nowrap">{r.end_date}</td>
+              <td className="px-4 py-2">
+                <Badge variant="outline">{r.contactable_via}</Badge>
+                <div className="text-muted-foreground">expects {r.expected_action}</div>
+                {r.requires_channel?.length > 0 && <div className="text-muted-foreground">needs {r.requires_channel.join("/")}</div>}
+              </td>
               <td className="px-4 py-2">{mark(r.legacy.selected, r.legacy.selected ? `${r.legacy.window_days}d` : undefined)}{r.legacy.reason && <div className="text-muted-foreground">{r.legacy.reason}</div>}</td>
               <td className="px-4 py-2">
-                {r.legacy.notifications > 0 ? <>{r.legacy.notifications} notif · email {r.legacy.email_status ?? "n/a"}{r.legacy.sent_at && <div className="text-muted-foreground">{format(new Date(r.legacy.sent_at), "PP p")}</div>}</> : <span className="text-muted-foreground">not run yet</span>}
-                {r.legacy.content && <div className="text-muted-foreground italic truncate max-w-[16rem]" title={r.legacy.content}>{r.legacy.content}</div>}
+                {r.legacy.notifications > 0 ? <>{r.legacy.notifications} notif · {r.legacy.action}{r.legacy.sent_at && <div className="text-muted-foreground">{format(new Date(r.legacy.sent_at), "PP p")}</div>}</> : <span className="text-muted-foreground">not run yet</span>}
               </td>
               <td className="px-4 py-2">{mark(r.engine.selected, r.engine.selected ? `${r.engine.window_days}d` : undefined)}{r.engine.reason && <div className="text-muted-foreground">{r.engine.reason}</div>}</td>
               <td className="px-4 py-2">
                 {!r.engine.event_at && <span className="text-muted-foreground">no event yet</span>}
                 {r.engine.event_at && <div>event {format(new Date(r.engine.event_at), "PP p")}</div>}
                 {r.engine.runs.map((run: any) => <div key={run.id}>{run.workflow}: <Badge variant={statusVariant(run.status)}>{run.status}</Badge></div>)}
-                {r.engine.step_status && <div className="text-muted-foreground">{r.engine.dry_run ? "DRY-RUN would send to" : "email"} {r.engine.would_send_to ?? "—"}{r.engine.message_id ? ` · sent` : ""}</div>}
+                {r.engine.step_status && <div className="text-muted-foreground">{r.engine.action}{r.engine.dry_run ? ` (dry-run → ${r.engine.would_send_to ?? "—"})` : ""}{r.engine.step_reason ? ` · ${r.engine.step_reason}` : ""}</div>}
               </td>
-              <td className="px-4 py-2 whitespace-nowrap">{r.legacy.duplicates + r.engine.duplicates} / {r.legacy.failures + r.engine.failures}</td>
+              <td className="px-4 py-2 whitespace-nowrap">
+                <Badge variant={r.verdict === "MATCH" ? "default" : "destructive"}>{r.verdict}</Badge>
+                {r.mismatch_reason && <div className="text-muted-foreground max-w-[14rem]">{r.mismatch_reason}</div>}
+                <div className="text-muted-foreground">dupes {r.legacy.duplicates + r.engine.duplicates} · fails {r.legacy.failures + r.engine.failures}</div>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+
     </Card>
   );
 }
