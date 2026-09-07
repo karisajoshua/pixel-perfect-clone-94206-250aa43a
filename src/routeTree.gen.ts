@@ -31,6 +31,7 @@ import { Route as PortalPortalIndexRouteImport } from './routes/_portal/portal/i
 import { Route as PlatformPlatformIndexRouteImport } from './routes/_platform/platform/index'
 import { Route as VerifyInvoiceIdRouteImport } from './routes/verify.invoice.$id'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as ApiPublicOpenapiDotjsonRouteImport } from './routes/api/public/openapi[.]json'
 import { Route as PortalPortalVehiclesRouteImport } from './routes/_portal/portal/vehicles'
 import { Route as PortalPortalProfileRouteImport } from './routes/_portal/portal/profile'
 import { Route as PortalPortalPoliciesRouteImport } from './routes/_portal/portal/policies'
@@ -176,6 +177,11 @@ const VerifyInvoiceIdRoute = VerifyInvoiceIdRouteImport.update({
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
   path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicOpenapiDotjsonRoute = ApiPublicOpenapiDotjsonRouteImport.update({
+  id: '/api/public/openapi.json',
+  path: '/api/public/openapi.json',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PortalPortalVehiclesRoute = PortalPortalVehiclesRouteImport.update({
@@ -436,6 +442,7 @@ export interface FileRoutesByFullPath {
   '/portal/policies': typeof PortalPortalPoliciesRouteWithChildren
   '/portal/profile': typeof PortalPortalProfileRoute
   '/portal/vehicles': typeof PortalPortalVehiclesRoute
+  '/api/public/openapi.json': typeof ApiPublicOpenapiDotjsonRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/verify/invoice/$id': typeof VerifyInvoiceIdRoute
   '/platform/': typeof PlatformPlatformIndexRoute
@@ -496,6 +503,7 @@ export interface FileRoutesByTo {
   '/portal/policies': typeof PortalPortalPoliciesRouteWithChildren
   '/portal/profile': typeof PortalPortalProfileRoute
   '/portal/vehicles': typeof PortalPortalVehiclesRoute
+  '/api/public/openapi.json': typeof ApiPublicOpenapiDotjsonRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/verify/invoice/$id': typeof VerifyInvoiceIdRoute
   '/platform': typeof PlatformPlatformIndexRoute
@@ -560,6 +568,7 @@ export interface FileRoutesById {
   '/_portal/portal/policies': typeof PortalPortalPoliciesRouteWithChildren
   '/_portal/portal/profile': typeof PortalPortalProfileRoute
   '/_portal/portal/vehicles': typeof PortalPortalVehiclesRoute
+  '/api/public/openapi.json': typeof ApiPublicOpenapiDotjsonRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/verify/invoice/$id': typeof VerifyInvoiceIdRoute
   '/_platform/platform/': typeof PlatformPlatformIndexRoute
@@ -622,6 +631,7 @@ export interface FileRouteTypes {
     | '/portal/policies'
     | '/portal/profile'
     | '/portal/vehicles'
+    | '/api/public/openapi.json'
     | '/lovable/email/suppression'
     | '/verify/invoice/$id'
     | '/platform/'
@@ -682,6 +692,7 @@ export interface FileRouteTypes {
     | '/portal/policies'
     | '/portal/profile'
     | '/portal/vehicles'
+    | '/api/public/openapi.json'
     | '/lovable/email/suppression'
     | '/verify/invoice/$id'
     | '/platform'
@@ -745,6 +756,7 @@ export interface FileRouteTypes {
     | '/_portal/portal/policies'
     | '/_portal/portal/profile'
     | '/_portal/portal/vehicles'
+    | '/api/public/openapi.json'
     | '/lovable/email/suppression'
     | '/verify/invoice/$id'
     | '/_platform/platform/'
@@ -773,6 +785,7 @@ export interface RootRouteChildren {
   UnsubscribeRoute: typeof UnsubscribeRoute
   ApiChatRoute: typeof ApiChatRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
+  ApiPublicOpenapiDotjsonRoute: typeof ApiPublicOpenapiDotjsonRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   VerifyInvoiceIdRoute: typeof VerifyInvoiceIdRoute
   ApiPublicAutomationTickRoute: typeof ApiPublicAutomationTickRoute
@@ -940,6 +953,13 @@ declare module '@tanstack/react-router' {
       path: '/lovable/email/suppression'
       fullPath: '/lovable/email/suppression'
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/openapi.json': {
+      id: '/api/public/openapi.json'
+      path: '/api/public/openapi.json'
+      fullPath: '/api/public/openapi.json'
+      preLoaderRoute: typeof ApiPublicOpenapiDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_portal/portal/vehicles': {
@@ -1400,6 +1420,7 @@ const rootRouteChildren: RootRouteChildren = {
   UnsubscribeRoute: UnsubscribeRoute,
   ApiChatRoute: ApiChatRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
+  ApiPublicOpenapiDotjsonRoute: ApiPublicOpenapiDotjsonRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   VerifyInvoiceIdRoute: VerifyInvoiceIdRoute,
   ApiPublicAutomationTickRoute: ApiPublicAutomationTickRoute,
