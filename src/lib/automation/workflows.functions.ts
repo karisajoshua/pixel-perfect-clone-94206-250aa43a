@@ -370,21 +370,34 @@ export const listAutomationEvents = createServerFn({ method: "GET" })
     return rows ?? [];
   });
 
+export const RENEWAL_OFFSETS = [60, 30, 14, 7, 1];
+
 /** Proof-of-concept: the existing renewal reminder expressed as an engine workflow (created as a draft). */
 export const seedRenewalReminderWorkflow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
+    const trigger: TriggerConfig = {
+      event_type: "policy.expiring",
+      // Reusable relative-date rule: fire N days before the policy end date.
+      relative_date: { date_field: "end_date", offsets: RENEWAL_OFFSETS },
+    };
     const graph: WorkflowGraph = {
       nodes: [
-        { id: "trigger", type: "trigger", label: "Policy expiring", config: { event_type: "policy.expiring" } },
+        { id: "trigger", type: "trigger", label: "Policy expiring", config: trigger },
         {
-          id: "has_email", type: "condition", label: "Client has email & ≤ 30 days",
-          config: { and: [{ path: "client.email", op: "exists" }, { path: "event.payload.days_to_expiry", op: "less_than_or_equal", value: 30 }] },
+          id: "in_window", type: "condition", label: "Reminder window (60/30/14/7/1)",
+          config: { and: [{ path: "event.payload.days_to_expiry", op: "in", value: RENEWAL_OFFSETS }] },
         },
         {
-          id: "email", type: "send-email", label: "Send renewal reminder",
+          id: "contactable", type: "condition", label: "Client has any contact detail",
+          config: { path: "contact.contactable_via", op: "not_equals", value: "none" },
+        },
+        {
+          id: "notify", type: "send-message", label: "Send renewal reminder",
           config: {
             template: "renewal-reminder",
+            // Channel order: email is executed today; phone channels are recorded for Phase 2.
+            channels: ["email", "whatsapp", "sms"],
             to: "{{client.email}}",
             data: {
               clientName: "{{client.display_name}}",
@@ -397,18 +410,20 @@ export const seedRenewalReminderWorkflow = createServerFn({ method: "POST" })
         { id: "end", type: "end", label: "Done" },
       ],
       edges: [
-        { from: "trigger", to: "has_email" },
-        { from: "has_email", to: "email", label: "true" },
-        { from: "has_email", to: "end", label: "false" },
-        { from: "email", to: "end" },
+        { from: "trigger", to: "in_window" },
+        { from: "in_window", to: "contactable", label: "true" },
+        { from: "in_window", to: "end", label: "false" },
+        { from: "contactable", to: "notify", label: "true" },
+        { from: "contactable", to: "end", label: "false" },
+        { from: "notify", to: "end" },
       ],
     };
     const wf: any = await createWorkflow({
       data: {
         name: "Renewal reminder (engine POC)",
-        description: "Mirrors the existing daily renewal reminder: policy expiring → email if the client has an address.",
+        description: "Mirrors the existing daily renewal reminder: 60/30/14/7/1 days before expiry (Nairobi dates), channel-aware.",
         graph,
-        trigger: { event_type: "policy.expiring" },
+        trigger,
       },
     } as any);
     // POC workflows start in dry-run so they can never double-send alongside the existing reminder.
@@ -416,6 +431,7 @@ export const seedRenewalReminderWorkflow = createServerFn({ method: "POST" })
     await (supabaseAdmin as any).from("workflows").update({ dry_run: true }).eq("id", wf.id);
     return { ...wf, dry_run: true };
   });
+
 
 /** Toggle dry-run: when on, action nodes log what they WOULD do instead of executing. */
 export const setWorkflowDryRun = createServerFn({ method: "POST" })
@@ -433,18 +449,10 @@ export const setWorkflowDryRun = createServerFn({ method: "POST" })
 
 // ---------- parallel-run comparison: existing renewal reminder vs engine ----------
 
-const LEGACY_WINDOWS = [60, 30, 14, 7, 1];
-const ENGINE_WINDOWS = [30, 14, 7, 1];
-
-function isoDatePlus(base: Date, days: number) {
-  const d = new Date(base);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
 /**
- * Side-by-side report for the caller's agency: which policies each system selects today,
- * what each did (or would do, in dry-run), plus duplicates and failures. Read-only.
+ * Side-by-side parity report for the caller's agency. Both systems are evaluated on the
+ * SAME Africa/Nairobi business date and the SAME relative-date windows, so any row that
+ * comes back MISMATCH is a real behavioural difference. Read-only.
  */
 export const compareRenewalReminders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -453,13 +461,25 @@ export const compareRenewalReminders = createServerFn({ method: "GET" })
     const { supabase, userId } = context as any;
     await assertManager(supabase, userId);
     const tenantId = await currentTenant(supabase);
+    const { businessDate, addDaysToDate } = await import("@/lib/business-time");
+    const { resolveCustomerContact } = await import("./contacts");
 
-    // Existing reminder uses the UTC calendar date; the engine scanner uses Africa/Nairobi.
     const nowUtc = new Date();
-    const nairobiToday = new Date(new Date().toLocaleString("en-US", { timeZone: "Africa/Nairobi" }));
-    const nairobiBase = new Date(Date.UTC(nairobiToday.getFullYear(), nairobiToday.getMonth(), nairobiToday.getDate()));
-    const legacyDates = new Map(LEGACY_WINDOWS.map((d) => [isoDatePlus(nowUtc, d), d]));
-    const engineDates = new Map(ENGINE_WINDOWS.map((d) => [isoDatePlus(nairobiBase, d), d]));
+    const today = businessDate(nowUtc);
+
+    const { data: workflows } = await supabase
+      .from("workflows")
+      .select("id, name, status, dry_run, current_version_id, workflow_versions!workflows_current_version_fk(trigger)")
+      .eq("tenant_id", tenantId);
+    const renewalWorkflows = (workflows ?? []).filter((w: any) => w.workflow_versions?.trigger?.event_type === "policy.expiring");
+    const configured = renewalWorkflows
+      .filter((w: any) => w.status === "active")
+      .flatMap((w: any) => (w.workflow_versions?.trigger?.relative_date?.offsets ?? []) as number[]);
+    const engineWindows = Array.from(new Set([...configured, ...RENEWAL_OFFSETS])).sort((a, b) => b - a);
+    const legacyWindows = RENEWAL_OFFSETS;
+
+    const legacyDates = new Map(legacyWindows.map((d) => [addDaysToDate(today, d), d]));
+    const engineDates = new Map(engineWindows.map((d) => [addDaysToDate(today, d), d]));
     const allDates = Array.from(new Set([...legacyDates.keys(), ...engineDates.keys()]));
 
     let pq = supabase.from("policies")
@@ -471,7 +491,7 @@ export const compareRenewalReminders = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     const ids = (policies ?? []).map((p: any) => p.id);
 
-    const [{ data: notifs }, { data: events }, { data: workflows }] = await Promise.all([
+    const [{ data: notifs }, { data: events }] = await Promise.all([
       ids.length
         ? supabase.from("notifications").select("id, entity_id, kind, channel, status, subject, created_at, sent_at, error")
             .eq("entity_type", "policy").in("entity_id", ids).like("kind", "renewal_reminder_%")
@@ -480,10 +500,7 @@ export const compareRenewalReminders = createServerFn({ method: "GET" })
         ? supabase.from("automation_events").select("id, entity_id, occurred_at, processed_at, error, payload")
             .eq("event_type", "policy.expiring").in("entity_id", ids)
         : Promise.resolve({ data: [] }),
-      supabase.from("workflows").select("id, name, status, dry_run, current_version_id, workflow_versions!workflows_current_version_fk(trigger)")
-        .eq("tenant_id", tenantId),
     ]);
-    const renewalWorkflows = (workflows ?? []).filter((w: any) => w.workflow_versions?.trigger?.event_type === "policy.expiring");
     const eventIds = (events ?? []).map((e: any) => e.id);
     const { data: runs } = eventIds.length
       ? await supabase.from("workflow_runs").select("id, event_id, workflow_id, status, error, created_at, finished_at, workflows(name)")
@@ -492,19 +509,29 @@ export const compareRenewalReminders = createServerFn({ method: "GET" })
     const runIds = (runs ?? []).map((r: any) => r.id);
     const { data: steps } = runIds.length
       ? await supabase.from("workflow_step_executions").select("run_id, node_id, node_type, attempt, status, output, error, finished_at")
-          .in("run_id", runIds).eq("node_type", "send-email")
+          .in("run_id", runIds).in("node_type", ["send-email", "send-message"])
       : { data: [] as any[] };
 
     const rows: any[] = (policies ?? []).map((p: any) => {
       const cl = p.clients ?? {};
       const name = cl.client_type === "corporate" ? cl.company_name ?? cl.full_name : cl.full_name;
+      const contact = resolveCustomerContact(cl);
       const legacyDays = legacyDates.get(p.end_date);
       const engineDays = engineDates.get(p.end_date);
-      const legacySelected = legacyDays !== undefined && !!(cl.email || cl.phone);
-      const engineSelected = engineDays !== undefined && !!cl.email; // POC branch requires an email
+      const legacySelected = legacyDays !== undefined && contact.contactable_via !== "none";
+      const engineSelected = engineDays !== undefined && contact.contactable_via !== "none";
+
+      // Expected action per system, given the contact channels available.
+      const expectedAction =
+        contact.contactable_via === "none"
+          ? "skip:no_contact"
+          : contact.has_email
+            ? "email"
+            : "record_phone_channel";
 
       const pn = (notifs ?? []).filter((n: any) => n.entity_id === p.id);
       const legacyEmail = pn.filter((n: any) => n.channel === "email");
+      const legacyPhone = pn.filter((n: any) => n.channel === "sms" || n.channel === "whatsapp");
       const pe = (events ?? []).filter((e: any) => e.entity_id === p.id);
       const pr = (runs ?? []).filter((r: any) => pe.some((e: any) => e.id === r.event_id));
       const ps = (steps ?? []).filter((s: any) => pr.some((r: any) => r.id === s.run_id));
@@ -516,20 +543,49 @@ export const compareRenewalReminders = createServerFn({ method: "GET" })
       const engineDuplicates = Array.from(byEvWf.values()).filter((c) => c > 1).length;
       const lastStep = ps.sort((a: any, b: any) => (a.finished_at ?? "").localeCompare(b.finished_at ?? "")).at(-1);
 
+      const legacyAction = !legacySelected
+        ? "skip:not_selected"
+        : legacyEmail.length ? "email" : legacyPhone.length ? "record_phone_channel" : "pending";
+      const engineAction = !engineSelected
+        ? "skip:not_selected"
+        : lastStep
+          ? lastStep.output?.dry_run || lastStep.output?.would_send
+            ? "email"
+            : lastStep.output?.reason === "pending_channel"
+              ? "record_phone_channel"
+              : lastStep.output?.reason === "no_contact_details"
+                ? "skip:no_contact"
+                : lastStep.status === "completed" ? "email" : `skip:${lastStep.output?.reason ?? lastStep.status}`
+          : "pending";
+
+      const selectionMatch = legacySelected === engineSelected && (legacyDays ?? null) === (engineDays ?? null);
+      const actionMatch =
+        legacyAction === "pending" || engineAction === "pending" ? true : legacyAction === engineAction;
+
       return {
         policy_id: p.id,
         policy_no: p.policy_no,
-        end_date: p.end_date,
+        client_id: p.client_id,
         client_name: name,
-        client_email: cl.email ?? null,
-        client_phone: cl.phone ?? null,
+        end_date: p.end_date,
+        business_date: today,
+        window_days: engineDays ?? legacyDays ?? null,
+        contactable_via: contact.contactable_via,
+        requires_channel: contact.pending,
+        expected_action: expectedAction,
+        verdict: selectionMatch && actionMatch ? "MATCH" : "MISMATCH",
+        mismatch_reason: selectionMatch
+          ? actionMatch ? null : `action differs: legacy=${legacyAction} engine=${engineAction}`
+          : `selection differs: legacy=${legacySelected}/${legacyDays ?? "—"} engine=${engineSelected}/${engineDays ?? "—"}`,
         legacy: {
           selected: legacySelected,
           window_days: legacyDays ?? null,
-          reason: legacyDays === undefined ? "outside 60/30/14/7/1 (UTC)" : !(cl.email || cl.phone) ? "no email or phone" : null,
+          action: legacyAction,
+          reason: legacyDays === undefined ? `outside ${legacyWindows.join("/")} (Nairobi)` : contact.reason,
           content: legacySelected ? `Policy ${p.policy_no} renews in ${legacyDays} day${legacyDays === 1 ? "" : "s"}` : null,
           notifications: pn.length,
           email_status: legacyEmail[0]?.status ?? null,
+          phone_records: legacyPhone.length,
           sent_at: legacyEmail[0]?.sent_at ?? null,
           duplicates: legacyDuplicates,
           failures: pn.filter((n: any) => n.status === "failed").length,
@@ -538,12 +594,14 @@ export const compareRenewalReminders = createServerFn({ method: "GET" })
         engine: {
           selected: engineSelected,
           window_days: engineDays ?? null,
-          reason: engineDays === undefined ? "outside 30/14/7/1 (Nairobi)" : !cl.email ? "no email (condition false)" : null,
+          action: engineAction,
+          reason: engineDays === undefined ? `outside ${engineWindows.join("/")} (Nairobi)` : contact.reason,
           content: engineSelected ? `renewal-reminder template · ${engineDays} days` : null,
           event_at: pe[0]?.occurred_at ?? null,
           event_error: pe[0]?.error ?? null,
           runs: pr.map((r: any) => ({ id: r.id, workflow: r.workflows?.name, status: r.status, error: r.error, finished_at: r.finished_at })),
           step_status: lastStep?.status ?? null,
+          step_reason: lastStep?.output?.reason ?? null,
           dry_run: !!lastStep?.output?.dry_run,
           would_send_to: lastStep?.output?.would_send?.to ?? lastStep?.output?.to ?? null,
           message_id: lastStep?.output?.message_id ?? null,
@@ -553,16 +611,23 @@ export const compareRenewalReminders = createServerFn({ method: "GET" })
       };
     });
 
-    const agree = rows.filter((r: any) => r.legacy.selected === r.engine.selected).length;
+    const matches = rows.filter((r: any) => r.verdict === "MATCH").length;
     return {
       generated_at: nowUtc.toISOString(),
-      dates: { legacy_utc_today: nowUtc.toISOString().slice(0, 10), engine_nairobi_today: nairobiBase.toISOString().slice(0, 10) },
-      workflows: renewalWorkflows.map((w: any) => ({ id: w.id, name: w.name, status: w.status, dry_run: w.dry_run, published: !!w.current_version_id })),
+      dates: { business_today: today, timezone: "Africa/Nairobi", legacy_windows: legacyWindows, engine_windows: engineWindows },
+      workflows: renewalWorkflows.map((w: any) => ({
+        id: w.id, name: w.name, status: w.status, dry_run: w.dry_run, published: !!w.current_version_id,
+        offsets: w.workflow_versions?.trigger?.relative_date?.offsets ?? null,
+      })),
       summary: {
         policies: rows.length,
         legacy_selected: rows.filter((r: any) => r.legacy.selected).length,
         engine_selected: rows.filter((r: any) => r.engine.selected).length,
-        agreement: rows.length ? Math.round((agree / rows.length) * 100) : 100,
+        matches,
+        mismatches: rows.length - matches,
+        agreement: rows.length ? Math.round((matches / rows.length) * 100) : 100,
+        phone_only: rows.filter((r: any) => r.contactable_via === "phone").length,
+        no_contact: rows.filter((r: any) => r.contactable_via === "none").length,
         legacy_duplicates: rows.reduce((a: number, r: any) => a + r.legacy.duplicates, 0),
         engine_duplicates: rows.reduce((a: number, r: any) => a + r.engine.duplicates, 0),
         legacy_failures: rows.reduce((a: number, r: any) => a + r.legacy.failures, 0),
@@ -571,3 +636,4 @@ export const compareRenewalReminders = createServerFn({ method: "GET" })
       rows,
     };
   });
+

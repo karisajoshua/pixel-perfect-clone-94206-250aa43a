@@ -3,7 +3,7 @@
  * A workflow version stores an immutable `graph` + `trigger`.
  */
 
-export type NodeType = "trigger" | "condition" | "delay" | "send-email" | "end";
+export type NodeType = "trigger" | "condition" | "delay" | "send-email" | "send-message" | "end";
 
 export type Comparator =
   | "equals"
@@ -13,7 +13,10 @@ export type Comparator =
   | "greater_than_or_equal"
   | "less_than_or_equal"
   | "contains"
+  | "in"
+  | "not_in"
   | "exists";
+
 
 /** A single comparison against a dotted path in the run context, e.g. "event.payload.status". */
 export interface ConditionLeaf {
@@ -33,6 +36,17 @@ export interface TriggerConfig {
   event_type: string;
   /** Optional filter evaluated against the run context before a run is created. */
   filter?: Condition;
+  /**
+   * Reusable relative-date configuration for scheduled triggers:
+   * "fire when <date_field> is <offset> days away". Offsets are days BEFORE the
+   * date (e.g. [60, 30, 14, 7, 1] for renewal reminders); negative = after.
+   * The scheduler reads these from published versions, so windows are data,
+   * never hard-coded in the engine.
+   */
+  relative_date?: {
+    date_field?: string;
+    offsets: number[];
+  };
 }
 
 export interface DelayConfig {
@@ -48,6 +62,19 @@ export interface SendEmailConfig {
   /** Template props; string values may use {{path}} placeholders. */
   data?: Record<string, unknown>;
 }
+
+/**
+ * Channel-aware send. The engine picks the first channel the customer is
+ * reachable on, executes it when the channel is supported (email today) and
+ * records a `pending_channel` step for channels that are not built yet
+ * (whatsapp / sms) instead of failing the run.
+ */
+export interface SendMessageConfig extends SendEmailConfig {
+  channels?: ("email" | "whatsapp" | "sms")[];
+  /** Optional plain-text body used for the recorded phone-channel intent. */
+  message?: string;
+}
+
 
 export interface WorkflowNode {
   id: string;
@@ -100,5 +127,7 @@ export const NODE_MAX_ATTEMPTS: Record<NodeType, number> = {
   condition: 2,
   delay: 2,
   "send-email": 4,
+  "send-message": 4,
   end: 1,
 };
+
