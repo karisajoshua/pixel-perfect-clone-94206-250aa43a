@@ -64,6 +64,12 @@ const ZOD_PRIMITIVES: Record<string, any> = {
   object: { type: "object", additionalProperties: true },
 };
 
+/** OpenAPI 3.1 nullability: a type union, not the 3.0 `nullable` keyword. */
+function nullableOf(schema: any): any {
+  if (!schema || typeof schema.type !== "string") return { anyOf: [schema ?? {}, { type: "null" }] };
+  return { ...schema, type: [schema.type, "null"] };
+}
+
 function zodFieldSchema(expr: string): any {
   const base = /z\.(\w+)\(/.exec(expr)?.[1] ?? "any";
   let schema: any = { ...(ZOD_PRIMITIVES[base] ?? {}) };
@@ -82,7 +88,7 @@ function zodFieldSchema(expr: string): any {
   if (/\.email\(/.test(expr)) schema.format = "email";
   if (/\.int\(/.test(expr)) schema.type = "integer";
   if (/\.array\(\)|z\.array\(/.test(expr) && schema.type !== "array") schema = { type: "array", items: schema };
-  if (/\.nullable\(\)/.test(expr)) schema.nullable = true;
+  if (/\.nullable\(\)/.test(expr)) schema = nullableOf(schema);
   return schema;
 }
 
@@ -307,11 +313,12 @@ function collectTableSchemas(): Record<string, any> {
       const bare = type.replace(/\s*\|\s*null$/, "").replace(/\[\]$/, "");
       let schema: any = TS_TO_SCHEMA[bare] ? { ...TS_TO_SCHEMA[bare] } : { type: "string" };
       if (/\[\]$/.test(type.replace(/\s*\|\s*null$/, ""))) schema = { type: "array", items: schema };
-      if (nullable) schema.nullable = true;
+      if (nullable) schema = nullableOf(schema);
       else required.push(col);
-      if (/(^|_)id$/.test(col) && schema.type === "string") schema.format = "uuid";
-      if (/_at$/.test(col) && schema.type === "string") schema.format = "date-time";
-      if (/_date$/.test(col) && schema.type === "string") schema.format = "date";
+      const isText = schema.type === "string" || (Array.isArray(schema.type) && schema.type.includes("string"));
+      if (/(^|_)id$/.test(col) && isText) schema.format = "uuid";
+      if (/_at$/.test(col) && isText) schema.format = "date-time";
+      if (/_date$/.test(col) && isText) schema.format = "date";
       properties[col] = schema;
     }
     if (Object.keys(properties).length)

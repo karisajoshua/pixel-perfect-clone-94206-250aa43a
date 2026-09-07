@@ -736,8 +736,10 @@
                         "type": "string"
                       },
                       "description": {
-                        "type": "string",
-                        "nullable": true
+                        "type": [
+                          "string",
+                          "null"
+                        ]
                       },
                       "graph": {},
                       "trigger": {},
@@ -1687,9 +1689,11 @@
                         "format": "uuid"
                       },
                       "branchId": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "uuid"
                       }
                     },
                     "required": [
@@ -4552,9 +4556,11 @@
                         "type": "string"
                       },
                       "vehicle_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "uuid"
                       }
                     },
                     "required": [
@@ -4627,9 +4633,11 @@
                         "type": "string"
                       },
                       "vehicle_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "uuid"
                       }
                     },
                     "required": [
@@ -4705,9 +4713,11 @@
                         "type": "string"
                       },
                       "vehicle_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "uuid"
                       }
                     },
                     "required": [
@@ -4777,9 +4787,11 @@
                         "enum": []
                       },
                       "vehicle_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "uuid"
                       }
                     },
                     "required": [
@@ -5025,9 +5037,11 @@
                         "type": "string"
                       },
                       "vehicle_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "uuid"
                       }
                     },
                     "required": [
@@ -5611,9 +5625,11 @@
                         ]
                       },
                       "tenant_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "uuid"
                       }
                     },
                     "required": [
@@ -5744,13 +5760,17 @@
                     "type": "object",
                     "properties": {
                       "tenant_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "uuid"
                       },
                       "action": {
-                        "type": "string",
-                        "nullable": true
+                        "type": [
+                          "string",
+                          "null"
+                        ]
                       },
                       "limit": {
                         "type": "number"
@@ -6129,28 +6149,36 @@
                     "type": "object",
                     "properties": {
                       "policy_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "uuid"
                       },
                       "vehicle_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "uuid"
                       },
                       "incident_date": {
                         "type": "string"
                       },
                       "incident_location": {
-                        "type": "string",
-                        "nullable": true
+                        "type": [
+                          "string",
+                          "null"
+                        ]
                       },
                       "description": {
                         "type": "string"
                       },
                       "claim_amount": {
-                        "type": "number",
-                        "nullable": true
+                        "type": [
+                          "number",
+                          "null"
+                        ]
                       }
                     },
                     "required": [
@@ -7550,9 +7578,11 @@
                         "format": "uuid"
                       },
                       "vehicle_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "uuid"
                       }
                     },
                     "required": [
@@ -7991,6 +8021,39 @@
           }
         }
       }
+    },
+    "/api/public/openapi.json": {
+      "get": {
+        "tags": [
+          "Public HTTP endpoints"
+        ],
+        "operationId": "get_api_public_openapi_json",
+        "summary": "Openapi.Json",
+        "description": "Defined in `src/routes/api/public/openapi[.]json.ts`.\n\nPublic endpoint — verify the caller inside the handler.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in or missing credentials"
+          },
+          "403": {
+            "description": "Not allowed for this user, role or agency"
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8034,28 +8097,39 @@
             "format": "date-time"
           },
           "entity_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "entity_type": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "string",
             "format": "uuid"
           },
           "metadata": {
-            "nullable": true
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ]
           },
           "tenant_id": {
             "type": "string",
             "format": "uuid"
           },
           "user_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           }
         },
@@ -8072,8 +8146,10 @@
         "description": "Row shape of the `public.automation_events` table. Reachable through the data API with row-level security applied to the signed-in user.",
         "properties": {
           "client_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "created_at": {
@@ -8081,21 +8157,29 @@
             "format": "date-time"
           },
           "dedupe_key": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "entity_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "entity_type": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "error": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "event_type": {
             "type": "string"
@@ -8105,8 +8189,10 @@
             "format": "uuid"
           },
           "locked_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "occurred_at": {
@@ -8115,8 +8201,10 @@
           },
           "payload": {},
           "processed_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "processing_attempts": {
@@ -8150,20 +8238,26 @@
             "format": "date-time"
           },
           "error": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "string",
             "format": "uuid"
           },
           "lock_token": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "locked_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "run_at": {
@@ -8203,20 +8297,26 @@
         "description": "Row shape of the `public.branches` table. Reachable through the data API with row-level security applied to the signed-in user.",
         "properties": {
           "address": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "code": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "created_at": {
             "type": "string",
             "format": "date-time"
           },
           "email": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "string",
@@ -8229,8 +8329,10 @@
             "type": "string"
           },
           "phone": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "tenant_id": {
             "type": "string",
@@ -8256,21 +8358,29 @@
         "description": "Row shape of the `public.claims` table. Reachable through the data API with row-level security applied to the signed-in user.",
         "properties": {
           "accident_statement": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "assigned_to": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "branch_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "claim_amount": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "claim_no": {
             "type": "string"
@@ -8284,47 +8394,65 @@
             "format": "date-time"
           },
           "created_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "description": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "string",
             "format": "uuid"
           },
           "incident_date": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date"
           },
           "incident_location": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "ipen_claim_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "notes": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "policy_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "settled_amount": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "settled_date": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date"
           },
           "status": {
@@ -8340,8 +8468,10 @@
             "format": "date-time"
           },
           "vehicle_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           }
         },
@@ -8362,8 +8492,10 @@
         "description": "Row shape of the `public.client_communications` table. Reachable through the data API with row-level security applied to the signed-in user.",
         "properties": {
           "body": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "channel": {
             "type": "string"
@@ -8377,8 +8509,10 @@
             "format": "date-time"
           },
           "created_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "direction": {
             "type": "string"
@@ -8388,8 +8522,10 @@
             "format": "uuid"
           },
           "subject": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "tenant_id": {
             "type": "string",
@@ -8422,21 +8558,27 @@
             "type": "string"
           },
           "expires_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "file_name": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "string",
             "format": "uuid"
           },
           "rejection_reason": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "status": {
             "type": "string"
@@ -8453,18 +8595,24 @@
             "format": "date-time"
           },
           "vehicle_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "verified_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "verified_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -8484,53 +8632,73 @@
         "description": "Row shape of the `public.clients` table. Reachable through the data API with row-level security applied to the signed-in user.",
         "properties": {
           "address": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "alt_phone": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "assigned_agent": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "auth_user_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "branch_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "city": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "client_type": {
             "type": "string"
           },
           "company_name": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "created_at": {
             "type": "string",
             "format": "date-time"
           },
           "created_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "date_of_birth": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "email": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "full_name": {
             "type": "string"
@@ -8540,44 +8708,62 @@
             "format": "uuid"
           },
           "id_number": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "kra_id_type": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "kra_pin": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "kra_verification_status": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "kra_verified_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "kra_verified_name": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "kyc_status": {
             "type": "string"
           },
           "notes": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "occupation": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "phone": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "tenant_id": {
             "type": "string",
@@ -8608,20 +8794,29 @@
             "format": "date-time"
           },
           "error_message": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "string",
             "format": "uuid"
           },
           "message_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "metadata": {
-            "nullable": true
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ]
           },
           "recipient_email": {
             "type": "string"
@@ -8656,8 +8851,10 @@
             "type": "number"
           },
           "retry_after_until": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "send_delay_ms": {
             "type": "number"
@@ -8699,8 +8896,10 @@
             "type": "string"
           },
           "used_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           }
         },
@@ -8720,12 +8919,16 @@
             "type": "boolean"
           },
           "contact_email": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "contact_phone": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "created_at": {
             "type": "string",
@@ -8736,19 +8939,25 @@
             "format": "uuid"
           },
           "logo_url": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "name": {
             "type": "string"
           },
           "notes": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "short_code": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "updated_at": {
             "type": "string",
@@ -8817,8 +9026,10 @@
             "type": "number"
           },
           "branch_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "client_id": {
@@ -8830,8 +9041,10 @@
             "format": "date-time"
           },
           "created_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "due_date": {
             "type": "string",
@@ -8849,12 +9062,16 @@
             "format": "date"
           },
           "notes": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "policy_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "status": {
@@ -8900,12 +9117,16 @@
         "description": "Row shape of the `public.ipen_agency_credentials` table. Reachable through the data API with row-level security applied to the signed-in user.",
         "properties": {
           "access_token": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "connected_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "created_at": {
             "type": "string",
@@ -8915,28 +9136,36 @@
             "type": "string"
           },
           "last_login_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "mfa_required": {
             "type": "boolean"
           },
           "mfa_token": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "refresh_token": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "tenant_id": {
             "type": "string",
             "format": "uuid"
           },
           "token_expires_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "updated_at": {
@@ -8958,8 +9187,10 @@
         "description": "Row shape of the `public.ipen_credentials` table. Reachable through the data API with row-level security applied to the signed-in user.",
         "properties": {
           "access_token": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "created_at": {
             "type": "string",
@@ -8969,24 +9200,32 @@
             "type": "string"
           },
           "last_login_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "mfa_required": {
             "type": "boolean"
           },
           "mfa_token": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "refresh_token": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "token_expires_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "updated_at": {
@@ -9012,15 +9251,19 @@
         "description": "Row shape of the `public.notifications` table. Reachable through the data API with row-level security applied to the signed-in user.",
         "properties": {
           "body": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "channel": {
             "type": "string"
           },
           "client_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "created_at": {
@@ -9028,17 +9271,23 @@
             "format": "date-time"
           },
           "entity_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "entity_type": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "error": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "string",
@@ -9049,24 +9298,32 @@
           },
           "payload": {},
           "recipient_email": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "recipient_phone": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "sent_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "status": {
             "type": "string"
           },
           "subject": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "tenant_id": {
             "type": "string",
@@ -9109,33 +9366,45 @@
             "format": "uuid"
           },
           "ipen_checkout_request_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "ipen_transaction_ref": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "method": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "notes": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "paid_date": {
             "type": "string",
             "format": "date"
           },
           "recorded_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "reference": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "tenant_id": {
             "type": "string",
@@ -9191,8 +9460,10 @@
             "format": "date-time"
           },
           "created_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "string",
@@ -9202,8 +9473,10 @@
             "type": "string"
           },
           "tenant_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "title": {
@@ -9230,38 +9503,52 @@
         "description": "Row shape of the `public.policies` table. Reachable through the data API with row-level security applied to the signed-in user.",
         "properties": {
           "balance_due": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "branch_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "cancellation_reason": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "cancelled_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "cancelled_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "certificate_no": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "client_id": {
             "type": "string",
             "format": "uuid"
           },
           "commission": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "cover_type": {
             "type": "string"
@@ -9271,12 +9558,16 @@
             "format": "date-time"
           },
           "created_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "document_url": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "end_date": {
             "type": "string",
@@ -9287,22 +9578,30 @@
             "format": "uuid"
           },
           "installment_plan": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "insurer_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "ipen_policy_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "notes": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "payment_status": {
             "type": "string"
@@ -9311,37 +9610,51 @@
             "type": "string"
           },
           "policy_term": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "premium_gross": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "premium_net": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "previous_policy_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "product_class": {
             "type": "string"
           },
           "product_subclass": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "risk_details": {},
           "risk_label": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "rop_of_policy_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "start_date": {
@@ -9352,28 +9665,36 @@
             "type": "string"
           },
           "sum_insured": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "taxes": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "tenant_id": {
             "type": "string",
             "format": "uuid"
           },
           "tonnage": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "updated_at": {
             "type": "string",
             "format": "date-time"
           },
           "vehicle_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           }
         },
@@ -9402,8 +9723,10 @@
             "type": "number"
           },
           "branch_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "created_at": {
@@ -9411,8 +9734,10 @@
             "format": "date-time"
           },
           "created_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "due_date": {
             "type": "string",
@@ -9423,8 +9748,10 @@
             "format": "uuid"
           },
           "paid_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "policy_id": {
@@ -9432,15 +9759,19 @@
             "format": "uuid"
           },
           "reason": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "status": {
             "type": "string"
           },
           "tenant_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "updated_at": {
@@ -9464,12 +9795,16 @@
         "description": "Row shape of the `public.profiles` table. Reachable through the data API with row-level security applied to the signed-in user.",
         "properties": {
           "avatar_url": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "branch_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "created_at": {
@@ -9477,12 +9812,16 @@
             "format": "date-time"
           },
           "email": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "full_name": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "string",
@@ -9492,12 +9831,16 @@
             "type": "boolean"
           },
           "phone": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "tenant_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "updated_at": {
@@ -9521,17 +9864,23 @@
             "type": "boolean"
           },
           "approved_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "approved_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "branch_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "client_id": {
@@ -9539,8 +9888,10 @@
             "format": "uuid"
           },
           "converted_policy_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "cover_type": {
@@ -9551,96 +9902,131 @@
             "format": "date-time"
           },
           "created_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "string",
             "format": "uuid"
           },
           "insurer_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "ipen_proposal_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "ipen_quote_payload": {
-            "nullable": true
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ]
           },
           "line_items": {},
           "notes": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "parent_quote_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "policy_term": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "premium_gross": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "premium_net": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "product_class": {
             "type": "string"
           },
           "product_subclass": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "quote_no": {
             "type": "string"
           },
           "rejection_reason": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "revision": {
             "type": "number"
           },
           "risk_details": {},
           "risk_label": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "status": {
             "type": "string"
           },
           "sum_insured": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "tenant_id": {
             "type": "string",
             "format": "uuid"
           },
           "tonnage": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "updated_at": {
             "type": "string",
             "format": "date-time"
           },
           "valid_until": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "vehicle_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           }
         },
@@ -9666,8 +10052,10 @@
         "description": "Row shape of the `public.service_requests` table. Reachable through the data API with row-level security applied to the signed-in user.",
         "properties": {
           "branch_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "client_id": {
@@ -9683,28 +10071,36 @@
             "format": "uuid"
           },
           "policy_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "preferred_contact": {
             "type": "string"
           },
           "reason": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "request_type": {
             "type": "string"
           },
           "resolved_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "resolved_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "status": {
             "type": "string"
@@ -9746,7 +10142,12 @@
             "format": "uuid"
           },
           "metadata": {
-            "nullable": true
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ]
           },
           "reason": {
             "type": "string"
@@ -9826,122 +10227,170 @@
         "description": "Row shape of the `public.tenants` table. Reachable through the data API with row-level security applied to the signed-in user.",
         "properties": {
           "address": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "bank_account_name": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "bank_account_no": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "bank_branch": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "bank_name": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "brand_accent": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "brand_primary": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "brand_secondary": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "city": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "contact_email": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "contact_phone": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "country": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "created_at": {
             "type": "string",
             "format": "date-time"
           },
           "doc_footer_note": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "string",
             "format": "uuid"
           },
           "logo_url": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "mpesa_paybill": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "mpesa_till": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "name": {
             "type": "string"
           },
           "onboarded_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "paybill_account": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "plan": {
             "type": "string"
           },
           "signatory_name": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "signatory_title": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "slug": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "stamp_url": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "status": {
             "type": "string"
           },
           "tagline": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "updated_at": {
             "type": "string",
             "format": "date-time"
           },
           "website": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -9991,8 +10440,10 @@
             "format": "date-time"
           },
           "ended_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "id": {
@@ -10012,8 +10463,10 @@
             "format": "uuid"
           },
           "user_agent": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "user_id": {
             "type": "string",
@@ -10035,8 +10488,10 @@
         "description": "Row shape of the `public.user_tour_progress` table. Reachable through the data API with row-level security applied to the signed-in user.",
         "properties": {
           "completed_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "created_at": {
@@ -10080,85 +10535,117 @@
             "type": "boolean"
           },
           "body_type": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "branch_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "chassis_no": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "client_id": {
             "type": "string",
             "format": "uuid"
           },
           "color": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "created_at": {
             "type": "string",
             "format": "date-time"
           },
           "created_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "cubic_capacity": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "engine_no": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "estimated_value": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "fuel_type": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "string",
             "format": "uuid"
           },
           "inspection_due": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "logbook_url": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "make": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "model": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "next_inspection_date": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date"
           },
           "notes": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "registration_no": {
             "type": "string"
           },
           "seating_capacity": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "tenant_id": {
             "type": "string",
@@ -10169,12 +10656,16 @@
             "format": "date-time"
           },
           "usage_type": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "year": {
-            "type": "number",
-            "nullable": true
+            "type": [
+              "number",
+              "null"
+            ]
           }
         },
         "required": [
@@ -10193,8 +10684,10 @@
         "description": "Row shape of the `public.workflow_runs` table. Reachable through the data API with row-level security applied to the signed-in user.",
         "properties": {
           "client_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "context": {},
@@ -10203,31 +10696,43 @@
             "format": "date-time"
           },
           "current_node_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "entity_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "entity_type": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "error": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "event_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "finished_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "id": {
@@ -10235,13 +10740,17 @@
             "format": "uuid"
           },
           "next_run_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "started_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "status": {
@@ -10252,8 +10761,10 @@
             "format": "uuid"
           },
           "triggered_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "updated_at": {
             "type": "string",
@@ -10288,12 +10799,16 @@
             "type": "number"
           },
           "error": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "finished_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "id": {
@@ -10304,7 +10819,12 @@
             "type": "string"
           },
           "input": {
-            "nullable": true
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ]
           },
           "node_id": {
             "type": "string",
@@ -10314,7 +10834,12 @@
             "type": "string"
           },
           "output": {
-            "nullable": true
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ]
           },
           "run_id": {
             "type": "string",
@@ -10350,8 +10875,10 @@
         "description": "Row shape of the `public.workflow_versions` table. Reachable through the data API with row-level security applied to the signed-in user.",
         "properties": {
           "change_note": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "created_at": {
             "type": "string",
@@ -10363,17 +10890,23 @@
             "format": "uuid"
           },
           "published_at": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "published_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "tenant_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "trigger": {},
@@ -10404,17 +10937,23 @@
             "format": "date-time"
           },
           "created_by": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "current_version_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "description": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "dry_run": {
             "type": "boolean"
@@ -10430,20 +10969,26 @@
             "type": "string"
           },
           "source_template_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "status": {
             "type": "string"
           },
           "template_key": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "tenant_id": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "updated_at": {
