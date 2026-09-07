@@ -196,7 +196,7 @@ function collectServerFunctions(): Operation[] {
   for (const file of files.sort()) {
     const rel = relative(ROOT, file).replace(/\\/g, "/");
     const src = readFileSync(file, "utf8");
-    const re = /(?:\/\*\*([\s\S]*?)\*\/\s*)?export const (\w+) = createServerFn\(\s*\{([^}]*)\}\s*\)/g;
+    const re = /(?:\/\*\*((?:(?!\*\/)[\s\S])*?)\*\/\s*)?export const (\w+) = createServerFn\(\s*\{([^}]*)\}\s*\)/g;
     let m: RegExpExecArray | null;
     const marks: Array<{ name: string; method: string; doc: string; start: number }> = [];
     while ((m = re.exec(src))) {
