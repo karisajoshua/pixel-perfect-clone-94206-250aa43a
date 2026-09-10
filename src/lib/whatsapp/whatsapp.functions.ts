@@ -306,8 +306,19 @@ export const sendWhatsAppTest = createServerFn({ method: "POST" })
     const res = data.template
       ? await sendWhatsAppTemplate(supabaseAdmin, { ...common, template: data.template, language: data.language, variables: data.variables })
       : await sendWhatsAppText(supabaseAdmin, { ...common, body: data.message ?? "" });
-    // Plain JSON so the RPC boundary stays happy.
-    return JSON.parse(JSON.stringify(res)) as Record<string, unknown>;
+    // Explicit, plainly-serializable shape for the RPC boundary.
+    return {
+      ok: res.ok,
+      status: res.status,
+      dry_run: res.dry_run ?? false,
+      test: res.test ?? false,
+      message_id: res.message_id ?? null,
+      provider_message_id: res.provider_message_id ?? null,
+      skipped_reason: res.skipped_reason ?? null,
+      error: res.error ?? null,
+      retryable: res.retryable ?? false,
+      preview: res.preview ? JSON.stringify(res.preview) : null,
+    };
   });
 
 // ---------- consent ----------
