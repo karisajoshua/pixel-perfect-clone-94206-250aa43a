@@ -46,6 +46,7 @@ const adminNav = [
   { to: "/admin/emails", label: "Email log", icon: Mail },
   { to: "/admin/audit", label: "Audit log", icon: Settings },
   { to: "/admin/automation", label: "Automation (beta)", icon: Clock },
+  { to: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle },
   { to: "/admin/security", label: "Account security", icon: KeyRound },
   { to: "/admin/docs", label: "Documentation", icon: BookOpen },
   { to: "/admin/ipen", label: "IPEN integration", icon: Plug },
