@@ -306,7 +306,8 @@ export const sendWhatsAppTest = createServerFn({ method: "POST" })
     const res = data.template
       ? await sendWhatsAppTemplate(supabaseAdmin, { ...common, template: data.template, language: data.language, variables: data.variables })
       : await sendWhatsAppText(supabaseAdmin, { ...common, body: data.message ?? "" });
-    return res;
+    // Plain JSON so the RPC boundary stays happy.
+    return JSON.parse(JSON.stringify(res)) as Record<string, unknown>;
   });
 
 // ---------- consent ----------
