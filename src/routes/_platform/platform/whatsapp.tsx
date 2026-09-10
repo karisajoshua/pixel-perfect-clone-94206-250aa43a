@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getWhatsAppPlatformHealth } from "@/lib/whatsapp/whatsapp.functions";
 
-export const Route = createFileRoute("/_platform/whatsapp")({
+export const Route = createFileRoute("/_platform/platform/whatsapp")({
   head: () => ({
     meta: [
       { title: "WhatsApp health — Platform" },
