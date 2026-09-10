@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, LayoutDashboard, LogOut, ShieldCheck, Megaphone, ScrollText, Menu } from "lucide-react";
+import { Building2, LayoutDashboard, LogOut, ShieldCheck, Megaphone, ScrollText, Menu, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
@@ -21,6 +21,7 @@ const navItems = [
   { to: "/platform", label: "Overview", icon: LayoutDashboard },
   { to: "/platform/agencies", label: "Agencies", icon: Building2 },
   { to: "/platform/notices", label: "Notices", icon: Megaphone },
+  { to: "/platform/whatsapp", label: "WhatsApp health", icon: MessageCircle },
   { to: "/platform/audit", label: "Audit log", icon: ScrollText },
 ] as const;
 

@@ -18,6 +18,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as PlatformWhatsappRouteImport } from './routes/_platform/whatsapp'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedRenewalsRouteImport } from './routes/_authenticated/renewals'
 import { Route as AuthenticatedQuotationsRouteImport } from './routes/_authenticated/quotations'
@@ -115,6 +116,11 @@ const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformWhatsappRoute = PlatformWhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
+  getParentRoute: () => PlatformRouteRoute,
 } as any)
 const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
   id: '/reports',
@@ -427,6 +433,7 @@ export interface FileRoutesByFullPath {
   '/quotations': typeof AuthenticatedQuotationsRoute
   '/renewals': typeof AuthenticatedRenewalsRoute
   '/reports': typeof AuthenticatedReportsRoute
+  '/whatsapp': typeof PlatformWhatsappRoute
   '/api/chat': typeof ApiChatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -490,6 +497,7 @@ export interface FileRoutesByTo {
   '/quotations': typeof AuthenticatedQuotationsRoute
   '/renewals': typeof AuthenticatedRenewalsRoute
   '/reports': typeof AuthenticatedReportsRoute
+  '/whatsapp': typeof PlatformWhatsappRoute
   '/api/chat': typeof ApiChatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -557,6 +565,7 @@ export interface FileRoutesById {
   '/_authenticated/quotations': typeof AuthenticatedQuotationsRoute
   '/_authenticated/renewals': typeof AuthenticatedRenewalsRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
+  '/_platform/whatsapp': typeof PlatformWhatsappRoute
   '/api/chat': typeof ApiChatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -622,6 +631,7 @@ export interface FileRouteTypes {
     | '/quotations'
     | '/renewals'
     | '/reports'
+    | '/whatsapp'
     | '/api/chat'
     | '/email/unsubscribe'
     | '/admin/audit'
@@ -685,6 +695,7 @@ export interface FileRouteTypes {
     | '/quotations'
     | '/renewals'
     | '/reports'
+    | '/whatsapp'
     | '/api/chat'
     | '/email/unsubscribe'
     | '/admin/audit'
@@ -751,6 +762,7 @@ export interface FileRouteTypes {
     | '/_authenticated/quotations'
     | '/_authenticated/renewals'
     | '/_authenticated/reports'
+    | '/_platform/whatsapp'
     | '/api/chat'
     | '/email/unsubscribe'
     | '/_authenticated/admin/audit'
@@ -890,6 +902,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_platform/whatsapp': {
+      id: '/_platform/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/whatsapp'
+      preLoaderRoute: typeof PlatformWhatsappRouteImport
+      parentRoute: typeof PlatformRouteRoute
     }
     '/_authenticated/reports': {
       id: '/_authenticated/reports'
@@ -1390,6 +1409,7 @@ const PlatformPlatformAgenciesRouteWithChildren =
   )
 
 interface PlatformRouteRouteChildren {
+  PlatformWhatsappRoute: typeof PlatformWhatsappRoute
   PlatformPlatformAgenciesRoute: typeof PlatformPlatformAgenciesRouteWithChildren
   PlatformPlatformAuditRoute: typeof PlatformPlatformAuditRoute
   PlatformPlatformNoticesRoute: typeof PlatformPlatformNoticesRoute
@@ -1397,6 +1417,7 @@ interface PlatformRouteRouteChildren {
 }
 
 const PlatformRouteRouteChildren: PlatformRouteRouteChildren = {
+  PlatformWhatsappRoute: PlatformWhatsappRoute,
   PlatformPlatformAgenciesRoute: PlatformPlatformAgenciesRouteWithChildren,
   PlatformPlatformAuditRoute: PlatformPlatformAuditRoute,
   PlatformPlatformNoticesRoute: PlatformPlatformNoticesRoute,
