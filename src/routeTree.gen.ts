@@ -45,6 +45,7 @@ import { Route as AuthenticatedPoliciesIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedInvoicesIdRouteImport } from './routes/_authenticated/invoices.$id'
 import { Route as AuthenticatedClientsKraCheckerRouteImport } from './routes/_authenticated/clients.kra-checker'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
+import { Route as AuthenticatedAdminWhatsappRouteImport } from './routes/_authenticated/admin.whatsapp'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedAdminTenantRouteImport } from './routes/_authenticated/admin.tenant'
 import { Route as AuthenticatedAdminSessionsRouteImport } from './routes/_authenticated/admin.sessions'
@@ -252,6 +253,12 @@ const AuthenticatedClientsIdRoute = AuthenticatedClientsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedClientsRoute,
 } as any)
+const AuthenticatedAdminWhatsappRoute =
+  AuthenticatedAdminWhatsappRouteImport.update({
+    id: '/admin/whatsapp',
+    path: '/admin/whatsapp',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   id: '/admin/users',
   path: '/admin/users',
@@ -436,6 +443,7 @@ export interface FileRoutesByFullPath {
   '/admin/sessions': typeof AuthenticatedAdminSessionsRoute
   '/admin/tenant': typeof AuthenticatedAdminTenantRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/admin/whatsapp': typeof AuthenticatedAdminWhatsappRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/clients/kra-checker': typeof AuthenticatedClientsKraCheckerRoute
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
@@ -498,6 +506,7 @@ export interface FileRoutesByTo {
   '/admin/sessions': typeof AuthenticatedAdminSessionsRoute
   '/admin/tenant': typeof AuthenticatedAdminTenantRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/admin/whatsapp': typeof AuthenticatedAdminWhatsappRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/clients/kra-checker': typeof AuthenticatedClientsKraCheckerRoute
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
@@ -564,6 +573,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/sessions': typeof AuthenticatedAdminSessionsRoute
   '/_authenticated/admin/tenant': typeof AuthenticatedAdminTenantRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/_authenticated/admin/whatsapp': typeof AuthenticatedAdminWhatsappRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/_authenticated/clients/kra-checker': typeof AuthenticatedClientsKraCheckerRoute
   '/_authenticated/invoices/$id': typeof AuthenticatedInvoicesIdRoute
@@ -628,6 +638,7 @@ export interface FileRouteTypes {
     | '/admin/sessions'
     | '/admin/tenant'
     | '/admin/users'
+    | '/admin/whatsapp'
     | '/clients/$id'
     | '/clients/kra-checker'
     | '/invoices/$id'
@@ -690,6 +701,7 @@ export interface FileRouteTypes {
     | '/admin/sessions'
     | '/admin/tenant'
     | '/admin/users'
+    | '/admin/whatsapp'
     | '/clients/$id'
     | '/clients/kra-checker'
     | '/invoices/$id'
@@ -755,6 +767,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/sessions'
     | '/_authenticated/admin/tenant'
     | '/_authenticated/admin/users'
+    | '/_authenticated/admin/whatsapp'
     | '/_authenticated/clients/$id'
     | '/_authenticated/clients/kra-checker'
     | '/_authenticated/invoices/$id'
@@ -1067,6 +1080,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsIdRouteImport
       parentRoute: typeof AuthenticatedClientsRoute
     }
+    '/_authenticated/admin/whatsapp': {
+      id: '/_authenticated/admin/whatsapp'
+      path: '/admin/whatsapp'
+      fullPath: '/admin/whatsapp'
+      preLoaderRoute: typeof AuthenticatedAdminWhatsappRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/users': {
       id: '/_authenticated/admin/users'
       path: '/admin/users'
@@ -1322,6 +1342,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminSessionsRoute: typeof AuthenticatedAdminSessionsRoute
   AuthenticatedAdminTenantRoute: typeof AuthenticatedAdminTenantRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
+  AuthenticatedAdminWhatsappRoute: typeof AuthenticatedAdminWhatsappRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1348,6 +1369,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminSessionsRoute: AuthenticatedAdminSessionsRoute,
   AuthenticatedAdminTenantRoute: AuthenticatedAdminTenantRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
+  AuthenticatedAdminWhatsappRoute: AuthenticatedAdminWhatsappRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
