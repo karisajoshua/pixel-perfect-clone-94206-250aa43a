@@ -5,6 +5,7 @@ import {
   BarChart3, ShieldCheck, LogOut, Building2, BellRing, Settings, Mail, Upload,
   BookOpen, Menu, Inbox, KeyRound, Clock, MoreHorizontal, Sparkles,
   Plug,
+  MessageCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyProfile, useMyRoles } from "@/hooks/use-auth";
