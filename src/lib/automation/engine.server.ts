@@ -16,6 +16,8 @@ import { businessParts } from "@/lib/business-time";
 import { evaluateCondition, interpolate, resolveData } from "./conditions";
 import { resolveCustomerContact, type Channel } from "./contacts";
 import { sendTemplatedEmail } from "./email.server";
+import { sendWhatsAppTemplate, sendWhatsAppText } from "@/lib/whatsapp/gateway.server";
+import type { SendWhatsAppConfig } from "@/lib/whatsapp/types";
 import {
   NODE_MAX_ATTEMPTS,
   type Condition,
@@ -102,6 +104,12 @@ export function validateGraph(graph: WorkflowGraph): string[] {
       const c = n.config as SendEmailConfig | undefined;
       if (!c?.template) errors.push(`${n.type} node ${n.id} needs a template`);
       if (!c?.to && n.type === "send-email") errors.push(`send-email node ${n.id} needs a recipient`);
+    }
+
+    if (n.type === "send-whatsapp") {
+      const c = n.config as SendWhatsAppConfig | undefined;
+      if (!c?.template && !c?.message)
+        errors.push(`send-whatsapp node ${n.id} needs a template or a session message`);
     }
 
     if (n.type === "delay") {
@@ -434,6 +442,56 @@ async function runNode(
       const mult = c.unit === "days" ? 86_400_000 : c.unit === "hours" ? 3_600_000 : 60_000;
       const until = new Date(Date.now() + Math.max(1, Number(c.amount)) * mult).toISOString();
       return { kind: "wait", status: "completed", until, output: { until, next: nextNodeId(graph, node.id) } };
+    }
+    case "send-whatsapp": {
+      const c = (node.config ?? {}) as SendWhatsAppConfig;
+      const next = nextNodeId(graph, node.id);
+      const phone = (interpolate(c.to ?? "", ctx).trim() || (ctx?.contact?.phone as string) || (ctx?.client?.phone as string) || "").trim();
+      if (!phone) {
+        return { kind: "next", status: "skipped", output: { reason: "no_phone_number", channel: "whatsapp", next } };
+      }
+      const variables = (resolveData(c.variables ?? {}, ctx) ?? {}) as Record<string, unknown>;
+      const dryRun = !!run.workflows?.dry_run;
+      const common = {
+        tenantId: run.tenant_id as string,
+        to: phone,
+        clientId: (run.client_id as string) ?? null,
+        idempotencyKey: `automation:${run.id}:${node.id}`,
+        workflowRunId: run.id as string,
+        dryRun,
+        label: `automation:${c.template ?? "session"}`,
+      };
+      const res = c.template
+        ? await sendWhatsAppTemplate(admin, { ...common, template: c.template, language: c.language ?? "en", variables })
+        : await sendWhatsAppText(admin, { ...common, body: interpolate(c.message ?? "", ctx) });
+
+      if (!res.ok) throw new StepError(res.error ?? "WhatsApp send failed", res.retryable !== false);
+      if (res.status === "skipped") {
+        return {
+          kind: "next",
+          status: "skipped",
+          output: {
+            channel: "whatsapp",
+            dry_run: res.dry_run ?? false,
+            reason: res.dry_run ? "DRY RUN — NOT SENT" : res.skipped_reason,
+            would_send: res.preview ?? null,
+            message_id: res.message_id,
+            next,
+          },
+        };
+      }
+      return {
+        kind: "next",
+        status: "completed",
+        output: {
+          channel: "whatsapp",
+          status: res.status,
+          message_id: res.message_id,
+          provider_message_id: res.provider_message_id,
+          test: res.test ?? false,
+          next,
+        },
+      };
     }
     case "send-email":
     case "send-message": {

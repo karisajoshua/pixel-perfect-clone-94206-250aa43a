@@ -3,7 +3,14 @@
  * A workflow version stores an immutable `graph` + `trigger`.
  */
 
-export type NodeType = "trigger" | "condition" | "delay" | "send-email" | "send-message" | "end";
+export type NodeType =
+  | "trigger"
+  | "condition"
+  | "delay"
+  | "send-email"
+  | "send-message"
+  | "send-whatsapp"
+  | "end";
 
 export type Comparator =
   | "equals"
@@ -76,6 +83,9 @@ export interface SendMessageConfig extends SendEmailConfig {
 }
 
 
+/** Re-exported so workflow authors get one import for action configs. */
+export type { SendWhatsAppConfig } from "@/lib/whatsapp/types";
+
 export interface WorkflowNode {
   id: string;
   type: NodeType;
@@ -117,6 +127,7 @@ export const SUPPORTED_EVENT_TYPES = [
   "vehicle.inspection_due",
   "document.rejected",
   "document.expiring",
+  "whatsapp.message_received",
 ] as const;
 
 export type EventType = (typeof SUPPORTED_EVENT_TYPES)[number];
@@ -128,6 +139,7 @@ export const NODE_MAX_ATTEMPTS: Record<NodeType, number> = {
   delay: 2,
   "send-email": 4,
   "send-message": 4,
+  "send-whatsapp": 4,
   end: 1,
 };
 

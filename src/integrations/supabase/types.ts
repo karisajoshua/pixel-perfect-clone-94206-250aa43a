@@ -540,6 +540,300 @@ export type Database = {
           },
         ]
       }
+      contact_consents: {
+        Row: {
+          changed_at: string
+          channel: string
+          client_id: string | null
+          created_at: string
+          id: string
+          phone: string
+          source: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          changed_at?: string
+          channel?: string
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          phone: string
+          source?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          changed_at?: string
+          channel?: string
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          phone?: string
+          source?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_consents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_consents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_messages: {
+        Row: {
+          body: string | null
+          channel: string
+          client_id: string | null
+          conversation_id: string
+          created_at: string
+          delivered_at: string | null
+          direction: string
+          dry_run: boolean
+          error: string | null
+          error_code: string | null
+          failed_at: string | null
+          id: string
+          idempotency_key: string | null
+          is_test: boolean
+          language: string | null
+          media: Json | null
+          message_type: string
+          payload: Json
+          provider: string | null
+          provider_message_id: string | null
+          read_at: string | null
+          recipient: string | null
+          sender: string | null
+          sent_at: string | null
+          status: string
+          template_id: string | null
+          template_name: string | null
+          tenant_id: string
+          updated_at: string
+          variables: Json
+          workflow_run_id: string | null
+          workflow_step_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          channel?: string
+          client_id?: string | null
+          conversation_id: string
+          created_at?: string
+          delivered_at?: string | null
+          direction: string
+          dry_run?: boolean
+          error?: string | null
+          error_code?: string | null
+          failed_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          is_test?: boolean
+          language?: string | null
+          media?: Json | null
+          message_type?: string
+          payload?: Json
+          provider?: string | null
+          provider_message_id?: string | null
+          read_at?: string | null
+          recipient?: string | null
+          sender?: string | null
+          sent_at?: string | null
+          status?: string
+          template_id?: string | null
+          template_name?: string | null
+          tenant_id: string
+          updated_at?: string
+          variables?: Json
+          workflow_run_id?: string | null
+          workflow_step_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          client_id?: string | null
+          conversation_id?: string
+          created_at?: string
+          delivered_at?: string | null
+          direction?: string
+          dry_run?: boolean
+          error?: string | null
+          error_code?: string | null
+          failed_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          is_test?: boolean
+          language?: string | null
+          media?: Json | null
+          message_type?: string
+          payload?: Json
+          provider?: string | null
+          provider_message_id?: string | null
+          read_at?: string | null
+          recipient?: string | null
+          sender?: string | null
+          sent_at?: string | null
+          status?: string
+          template_id?: string | null
+          template_name?: string | null
+          tenant_id?: string
+          updated_at?: string
+          variables?: Json
+          workflow_run_id?: string | null
+          workflow_step_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_messages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_messages_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_messages_workflow_run_id_fkey"
+            columns: ["workflow_run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_messages_workflow_step_id_fkey"
+            columns: ["workflow_step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_step_executions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          ai_context: Json
+          ai_intent: string | null
+          assigned_to: string | null
+          channel: string
+          channel_id: string | null
+          client_id: string | null
+          contact_name: string | null
+          created_at: string
+          external_contact: string
+          id: string
+          identification: string
+          last_inbound_at: string | null
+          last_message_at: string | null
+          last_outbound_at: string | null
+          metadata: Json
+          status: string
+          tenant_id: string
+          updated_at: string
+          workflow_run_id: string | null
+        }
+        Insert: {
+          ai_context?: Json
+          ai_intent?: string | null
+          assigned_to?: string | null
+          channel?: string
+          channel_id?: string | null
+          client_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          external_contact: string
+          id?: string
+          identification?: string
+          last_inbound_at?: string | null
+          last_message_at?: string | null
+          last_outbound_at?: string | null
+          metadata?: Json
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          workflow_run_id?: string | null
+        }
+        Update: {
+          ai_context?: Json
+          ai_intent?: string | null
+          assigned_to?: string | null
+          channel?: string
+          channel_id?: string | null
+          client_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          external_contact?: string
+          id?: string
+          identification?: string
+          last_inbound_at?: string | null
+          last_message_at?: string | null
+          last_outbound_at?: string | null
+          metadata?: Json
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          workflow_run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "messaging_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_workflow_run_id_fkey"
+            columns: ["workflow_run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -891,6 +1185,121 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      messaging_channels: {
+        Row: {
+          channel: string
+          created_at: string
+          created_by: string | null
+          credentials_ref: string | null
+          daily_message_limit: number
+          display_name: string | null
+          display_phone_number: string | null
+          id: string
+          is_active: boolean
+          is_shared: boolean
+          last_error: string | null
+          last_verified_at: string | null
+          metadata: Json
+          mode: string
+          per_minute_limit: number
+          phone_number_id: string | null
+          provider: string
+          status: string
+          tenant_id: string
+          test_recipients: string[]
+          updated_at: string
+          waba_id: string | null
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          credentials_ref?: string | null
+          daily_message_limit?: number
+          display_name?: string | null
+          display_phone_number?: string | null
+          id?: string
+          is_active?: boolean
+          is_shared?: boolean
+          last_error?: string | null
+          last_verified_at?: string | null
+          metadata?: Json
+          mode?: string
+          per_minute_limit?: number
+          phone_number_id?: string | null
+          provider?: string
+          status?: string
+          tenant_id: string
+          test_recipients?: string[]
+          updated_at?: string
+          waba_id?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          credentials_ref?: string | null
+          daily_message_limit?: number
+          display_name?: string | null
+          display_phone_number?: string | null
+          id?: string
+          is_active?: boolean
+          is_shared?: boolean
+          last_error?: string | null
+          last_verified_at?: string | null
+          metadata?: Json
+          mode?: string
+          per_minute_limit?: number
+          phone_number_id?: string | null
+          provider?: string
+          status?: string
+          tenant_id?: string
+          test_recipients?: string[]
+          updated_at?: string
+          waba_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messaging_channels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messaging_usage: {
+        Row: {
+          channel: string
+          sent_count: number
+          tenant_id: string
+          updated_at: string
+          usage_date: string
+        }
+        Insert: {
+          channel?: string
+          sent_count?: number
+          tenant_id: string
+          updated_at?: string
+          usage_date?: string
+        }
+        Update: {
+          channel?: string
+          sent_count?: number
+          tenant_id?: string
+          updated_at?: string
+          usage_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messaging_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -1998,6 +2407,138 @@ export type Database = {
           },
         ]
       }
+      whatsapp_templates: {
+        Row: {
+          body: string
+          category: string
+          cloned_from: string | null
+          created_at: string
+          created_by: string | null
+          footer: string | null
+          header: string | null
+          id: string
+          is_active: boolean
+          language: string
+          name: string
+          owner_scope: string
+          provider_template_id: string | null
+          provider_template_name: string | null
+          status: string
+          tenant_id: string | null
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          body: string
+          category?: string
+          cloned_from?: string | null
+          created_at?: string
+          created_by?: string | null
+          footer?: string | null
+          header?: string | null
+          id?: string
+          is_active?: boolean
+          language?: string
+          name: string
+          owner_scope?: string
+          provider_template_id?: string | null
+          provider_template_name?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          body?: string
+          category?: string
+          cloned_from?: string | null
+          created_at?: string
+          created_by?: string | null
+          footer?: string | null
+          header?: string | null
+          id?: string
+          is_active?: boolean
+          language?: string
+          name?: string
+          owner_scope?: string
+          provider_template_id?: string | null
+          provider_template_name?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_templates_cloned_from_fkey"
+            columns: ["cloned_from"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_webhook_events: {
+        Row: {
+          channel_id: string | null
+          error: string | null
+          event_id: string
+          id: string
+          kind: string | null
+          payload: Json
+          processed_at: string | null
+          provider: string
+          received_at: string
+          tenant_id: string | null
+        }
+        Insert: {
+          channel_id?: string | null
+          error?: string | null
+          event_id: string
+          id?: string
+          kind?: string | null
+          payload?: Json
+          processed_at?: string | null
+          provider?: string
+          received_at?: string
+          tenant_id?: string | null
+        }
+        Update: {
+          channel_id?: string | null
+          error?: string | null
+          event_id?: string
+          id?: string
+          kind?: string | null
+          payload?: Json
+          processed_at?: string | null
+          provider?: string
+          received_at?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_webhook_events_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "messaging_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_webhook_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_runs: {
         Row: {
           client_id: string | null
@@ -2339,6 +2880,10 @@ export type Database = {
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
       is_tenant_member: {
         Args: { _tenant_id: string; _user_id?: string }
+        Returns: boolean
+      }
+      messaging_consume_quota: {
+        Args: { p_channel: string; p_limit: number; p_tenant: string }
         Returns: boolean
       }
       move_to_dlq: {
