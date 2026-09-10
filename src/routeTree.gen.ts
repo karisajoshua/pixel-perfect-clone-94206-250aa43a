@@ -38,6 +38,7 @@ import { Route as PortalPortalPoliciesRouteImport } from './routes/_portal/porta
 import { Route as PortalPortalInvoicesRouteImport } from './routes/_portal/portal/invoices'
 import { Route as PortalPortalDocumentsRouteImport } from './routes/_portal/portal/documents'
 import { Route as PortalPortalClaimsRouteImport } from './routes/_portal/portal/claims'
+import { Route as PlatformPlatformWhatsappRouteImport } from './routes/_platform/platform/whatsapp'
 import { Route as PlatformPlatformNoticesRouteImport } from './routes/_platform/platform/notices'
 import { Route as PlatformPlatformAuditRouteImport } from './routes/_platform/platform/audit'
 import { Route as PlatformPlatformAgenciesRouteImport } from './routes/_platform/platform/agencies'
@@ -45,6 +46,7 @@ import { Route as AuthenticatedPoliciesIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedInvoicesIdRouteImport } from './routes/_authenticated/invoices.$id'
 import { Route as AuthenticatedClientsKraCheckerRouteImport } from './routes/_authenticated/clients.kra-checker'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
+import { Route as AuthenticatedAdminWhatsappRouteImport } from './routes/_authenticated/admin.whatsapp'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedAdminTenantRouteImport } from './routes/_authenticated/admin.tenant'
 import { Route as AuthenticatedAdminSessionsRouteImport } from './routes/_authenticated/admin.sessions'
@@ -64,6 +66,7 @@ import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/l
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
 import { Route as ApiPublicIpenProcessExpressCallbackRouteImport } from './routes/api/public/ipen/process-express-callback'
 import { Route as ApiPublicIpenMpesaCallbackRouteImport } from './routes/api/public/ipen/mpesa-callback'
 import { Route as ApiPublicHooksRenewalRemindersRouteImport } from './routes/api/public/hooks/renewal-reminders'
@@ -214,6 +217,12 @@ const PortalPortalClaimsRoute = PortalPortalClaimsRouteImport.update({
   path: '/portal/claims',
   getParentRoute: () => PortalRouteRoute,
 } as any)
+const PlatformPlatformWhatsappRoute =
+  PlatformPlatformWhatsappRouteImport.update({
+    id: '/platform/whatsapp',
+    path: '/platform/whatsapp',
+    getParentRoute: () => PlatformRouteRoute,
+  } as any)
 const PlatformPlatformNoticesRoute = PlatformPlatformNoticesRouteImport.update({
   id: '/platform/notices',
   path: '/platform/notices',
@@ -251,6 +260,12 @@ const AuthenticatedClientsIdRoute = AuthenticatedClientsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedClientsRoute,
 } as any)
+const AuthenticatedAdminWhatsappRoute =
+  AuthenticatedAdminWhatsappRouteImport.update({
+    id: '/admin/whatsapp',
+    path: '/admin/whatsapp',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   id: '/admin/users',
   path: '/admin/users',
@@ -359,6 +374,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicWhatsappWebhookRoute =
+  ApiPublicWhatsappWebhookRouteImport.update({
+    id: '/api/public/whatsapp/webhook',
+    path: '/api/public/whatsapp/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicIpenProcessExpressCallbackRoute =
   ApiPublicIpenProcessExpressCallbackRouteImport.update({
     id: '/api/public/ipen/process-express-callback',
@@ -429,6 +450,7 @@ export interface FileRoutesByFullPath {
   '/admin/sessions': typeof AuthenticatedAdminSessionsRoute
   '/admin/tenant': typeof AuthenticatedAdminTenantRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/admin/whatsapp': typeof AuthenticatedAdminWhatsappRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/clients/kra-checker': typeof AuthenticatedClientsKraCheckerRoute
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
@@ -436,6 +458,7 @@ export interface FileRoutesByFullPath {
   '/platform/agencies': typeof PlatformPlatformAgenciesRouteWithChildren
   '/platform/audit': typeof PlatformPlatformAuditRoute
   '/platform/notices': typeof PlatformPlatformNoticesRoute
+  '/platform/whatsapp': typeof PlatformPlatformWhatsappRoute
   '/portal/claims': typeof PortalPortalClaimsRoute
   '/portal/documents': typeof PortalPortalDocumentsRoute
   '/portal/invoices': typeof PortalPortalInvoicesRouteWithChildren
@@ -454,6 +477,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
   '/api/public/ipen/mpesa-callback': typeof ApiPublicIpenMpesaCallbackRoute
   '/api/public/ipen/process-express-callback': typeof ApiPublicIpenProcessExpressCallbackRoute
+  '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -490,6 +514,7 @@ export interface FileRoutesByTo {
   '/admin/sessions': typeof AuthenticatedAdminSessionsRoute
   '/admin/tenant': typeof AuthenticatedAdminTenantRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/admin/whatsapp': typeof AuthenticatedAdminWhatsappRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/clients/kra-checker': typeof AuthenticatedClientsKraCheckerRoute
   '/invoices/$id': typeof AuthenticatedInvoicesIdRoute
@@ -497,6 +522,7 @@ export interface FileRoutesByTo {
   '/platform/agencies': typeof PlatformPlatformAgenciesRouteWithChildren
   '/platform/audit': typeof PlatformPlatformAuditRoute
   '/platform/notices': typeof PlatformPlatformNoticesRoute
+  '/platform/whatsapp': typeof PlatformPlatformWhatsappRoute
   '/portal/claims': typeof PortalPortalClaimsRoute
   '/portal/documents': typeof PortalPortalDocumentsRoute
   '/portal/invoices': typeof PortalPortalInvoicesRouteWithChildren
@@ -515,6 +541,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
   '/api/public/ipen/mpesa-callback': typeof ApiPublicIpenMpesaCallbackRoute
   '/api/public/ipen/process-express-callback': typeof ApiPublicIpenProcessExpressCallbackRoute
+  '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -555,6 +582,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/sessions': typeof AuthenticatedAdminSessionsRoute
   '/_authenticated/admin/tenant': typeof AuthenticatedAdminTenantRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/_authenticated/admin/whatsapp': typeof AuthenticatedAdminWhatsappRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/_authenticated/clients/kra-checker': typeof AuthenticatedClientsKraCheckerRoute
   '/_authenticated/invoices/$id': typeof AuthenticatedInvoicesIdRoute
@@ -562,6 +590,7 @@ export interface FileRoutesById {
   '/_platform/platform/agencies': typeof PlatformPlatformAgenciesRouteWithChildren
   '/_platform/platform/audit': typeof PlatformPlatformAuditRoute
   '/_platform/platform/notices': typeof PlatformPlatformNoticesRoute
+  '/_platform/platform/whatsapp': typeof PlatformPlatformWhatsappRoute
   '/_portal/portal/claims': typeof PortalPortalClaimsRoute
   '/_portal/portal/documents': typeof PortalPortalDocumentsRoute
   '/_portal/portal/invoices': typeof PortalPortalInvoicesRouteWithChildren
@@ -580,6 +609,7 @@ export interface FileRoutesById {
   '/api/public/hooks/renewal-reminders': typeof ApiPublicHooksRenewalRemindersRoute
   '/api/public/ipen/mpesa-callback': typeof ApiPublicIpenMpesaCallbackRoute
   '/api/public/ipen/process-express-callback': typeof ApiPublicIpenProcessExpressCallbackRoute
+  '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -618,6 +648,7 @@ export interface FileRouteTypes {
     | '/admin/sessions'
     | '/admin/tenant'
     | '/admin/users'
+    | '/admin/whatsapp'
     | '/clients/$id'
     | '/clients/kra-checker'
     | '/invoices/$id'
@@ -625,6 +656,7 @@ export interface FileRouteTypes {
     | '/platform/agencies'
     | '/platform/audit'
     | '/platform/notices'
+    | '/platform/whatsapp'
     | '/portal/claims'
     | '/portal/documents'
     | '/portal/invoices'
@@ -643,6 +675,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/renewal-reminders'
     | '/api/public/ipen/mpesa-callback'
     | '/api/public/ipen/process-express-callback'
+    | '/api/public/whatsapp/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -679,6 +712,7 @@ export interface FileRouteTypes {
     | '/admin/sessions'
     | '/admin/tenant'
     | '/admin/users'
+    | '/admin/whatsapp'
     | '/clients/$id'
     | '/clients/kra-checker'
     | '/invoices/$id'
@@ -686,6 +720,7 @@ export interface FileRouteTypes {
     | '/platform/agencies'
     | '/platform/audit'
     | '/platform/notices'
+    | '/platform/whatsapp'
     | '/portal/claims'
     | '/portal/documents'
     | '/portal/invoices'
@@ -704,6 +739,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/renewal-reminders'
     | '/api/public/ipen/mpesa-callback'
     | '/api/public/ipen/process-express-callback'
+    | '/api/public/whatsapp/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -743,6 +779,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/sessions'
     | '/_authenticated/admin/tenant'
     | '/_authenticated/admin/users'
+    | '/_authenticated/admin/whatsapp'
     | '/_authenticated/clients/$id'
     | '/_authenticated/clients/kra-checker'
     | '/_authenticated/invoices/$id'
@@ -750,6 +787,7 @@ export interface FileRouteTypes {
     | '/_platform/platform/agencies'
     | '/_platform/platform/audit'
     | '/_platform/platform/notices'
+    | '/_platform/platform/whatsapp'
     | '/_portal/portal/claims'
     | '/_portal/portal/documents'
     | '/_portal/portal/invoices'
@@ -768,6 +806,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/renewal-reminders'
     | '/api/public/ipen/mpesa-callback'
     | '/api/public/ipen/process-express-callback'
+    | '/api/public/whatsapp/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -792,6 +831,7 @@ export interface RootRouteChildren {
   ApiPublicHooksRenewalRemindersRoute: typeof ApiPublicHooksRenewalRemindersRoute
   ApiPublicIpenMpesaCallbackRoute: typeof ApiPublicIpenMpesaCallbackRoute
   ApiPublicIpenProcessExpressCallbackRoute: typeof ApiPublicIpenProcessExpressCallbackRoute
+  ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -1004,6 +1044,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalPortalClaimsRouteImport
       parentRoute: typeof PortalRouteRoute
     }
+    '/_platform/platform/whatsapp': {
+      id: '/_platform/platform/whatsapp'
+      path: '/platform/whatsapp'
+      fullPath: '/platform/whatsapp'
+      preLoaderRoute: typeof PlatformPlatformWhatsappRouteImport
+      parentRoute: typeof PlatformRouteRoute
+    }
     '/_platform/platform/notices': {
       id: '/_platform/platform/notices'
       path: '/platform/notices'
@@ -1052,6 +1099,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/clients/$id'
       preLoaderRoute: typeof AuthenticatedClientsIdRouteImport
       parentRoute: typeof AuthenticatedClientsRoute
+    }
+    '/_authenticated/admin/whatsapp': {
+      id: '/_authenticated/admin/whatsapp'
+      path: '/admin/whatsapp'
+      fullPath: '/admin/whatsapp'
+      preLoaderRoute: typeof AuthenticatedAdminWhatsappRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/users': {
       id: '/_authenticated/admin/users'
@@ -1186,6 +1240,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/whatsapp/webhook': {
+      id: '/api/public/whatsapp/webhook'
+      path: '/api/public/whatsapp/webhook'
+      fullPath: '/api/public/whatsapp/webhook'
+      preLoaderRoute: typeof ApiPublicWhatsappWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/ipen/process-express-callback': {
       id: '/api/public/ipen/process-express-callback'
       path: '/api/public/ipen/process-express-callback'
@@ -1301,6 +1362,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminSessionsRoute: typeof AuthenticatedAdminSessionsRoute
   AuthenticatedAdminTenantRoute: typeof AuthenticatedAdminTenantRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
+  AuthenticatedAdminWhatsappRoute: typeof AuthenticatedAdminWhatsappRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1327,6 +1389,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminSessionsRoute: AuthenticatedAdminSessionsRoute,
   AuthenticatedAdminTenantRoute: AuthenticatedAdminTenantRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
+  AuthenticatedAdminWhatsappRoute: AuthenticatedAdminWhatsappRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -1350,6 +1413,7 @@ interface PlatformRouteRouteChildren {
   PlatformPlatformAgenciesRoute: typeof PlatformPlatformAgenciesRouteWithChildren
   PlatformPlatformAuditRoute: typeof PlatformPlatformAuditRoute
   PlatformPlatformNoticesRoute: typeof PlatformPlatformNoticesRoute
+  PlatformPlatformWhatsappRoute: typeof PlatformPlatformWhatsappRoute
   PlatformPlatformIndexRoute: typeof PlatformPlatformIndexRoute
 }
 
@@ -1357,6 +1421,7 @@ const PlatformRouteRouteChildren: PlatformRouteRouteChildren = {
   PlatformPlatformAgenciesRoute: PlatformPlatformAgenciesRouteWithChildren,
   PlatformPlatformAuditRoute: PlatformPlatformAuditRoute,
   PlatformPlatformNoticesRoute: PlatformPlatformNoticesRoute,
+  PlatformPlatformWhatsappRoute: PlatformPlatformWhatsappRoute,
   PlatformPlatformIndexRoute: PlatformPlatformIndexRoute,
 }
 
@@ -1428,6 +1493,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicIpenMpesaCallbackRoute: ApiPublicIpenMpesaCallbackRoute,
   ApiPublicIpenProcessExpressCallbackRoute:
     ApiPublicIpenProcessExpressCallbackRoute,
+  ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
