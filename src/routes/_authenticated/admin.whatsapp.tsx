@@ -401,7 +401,7 @@ function ActivityCard({ messages, conversations }: { messages: any[]; conversati
               <tr key={m.id} className="border-b last:border-0">
                 <td className="px-3 py-2 whitespace-nowrap">{format(new Date(m.created_at), "dd MMM HH:mm")}</td>
                 <td className="px-3 py-2">{m.direction}</td>
-                <td className="px-3 py-2">{m.to_phone ?? m.from_phone ?? "—"}</td>
+                <td className="px-3 py-2">{m.recipient ?? m.sender ?? "—"}</td>
                 <td className="px-3 py-2">
                   <Badge variant={statusTone(m.status)}>{m.status}{m.dry_run ? " (dry run)" : ""}</Badge>
                 </td>
@@ -419,7 +419,7 @@ function ActivityCard({ messages, conversations }: { messages: any[]; conversati
             {conversations.length === 0 && <tr><td colSpan={3} className="p-6 text-center text-muted-foreground">No conversations yet.</td></tr>}
             {conversations.map((c) => (
               <tr key={c.id} className="border-b last:border-0">
-                <td className="px-3 py-2">{c.contact_name ?? c.contact_phone}</td>
+                <td className="px-3 py-2">{c.contact_name ?? c.external_contact}</td>
                 <td className="px-3 py-2"><Badge variant={statusTone(c.status)}>{c.status}</Badge></td>
                 <td className="px-3 py-2 whitespace-nowrap">{c.last_message_at ? format(new Date(c.last_message_at), "dd MMM HH:mm") : "—"}</td>
               </tr>
