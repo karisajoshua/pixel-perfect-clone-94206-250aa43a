@@ -2420,11 +2420,15 @@ export type Database = {
           cloned_from: string | null
           created_at: string
           created_by: string | null
+          description: string | null
+          display_name: string | null
           footer: string | null
           header: string | null
           id: string
           is_active: boolean
           language: string
+          library_group: string | null
+          meta_status: string
           name: string
           owner_scope: string
           provider_template_id: string | null
@@ -2440,11 +2444,15 @@ export type Database = {
           cloned_from?: string | null
           created_at?: string
           created_by?: string | null
+          description?: string | null
+          display_name?: string | null
           footer?: string | null
           header?: string | null
           id?: string
           is_active?: boolean
           language?: string
+          library_group?: string | null
+          meta_status?: string
           name: string
           owner_scope?: string
           provider_template_id?: string | null
@@ -2460,11 +2468,15 @@ export type Database = {
           cloned_from?: string | null
           created_at?: string
           created_by?: string | null
+          description?: string | null
+          display_name?: string | null
           footer?: string | null
           header?: string | null
           id?: string
           is_active?: boolean
           language?: string
+          library_group?: string | null
+          meta_status?: string
           name?: string
           owner_scope?: string
           provider_template_id?: string | null
