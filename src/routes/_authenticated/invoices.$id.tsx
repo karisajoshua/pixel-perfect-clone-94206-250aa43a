@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useParams, useNavigate } from "@tanstack/react-router";
 import { requireRole } from "@/lib/roles";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -217,9 +217,19 @@ function PaymentDialog({ open, onOpenChange, invoiceId, max, currentPaid, total,
   const [reference, setReference] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0,10));
 
+  useEffect(() => {
+    if (open) {
+      setAmount(Math.max(0, Number(max) || 0));
+      setReference("");
+      setDate(new Date().toISOString().slice(0, 10));
+    }
+  }, [open, max]);
+
   const submit = async () => {
+    const capped = Math.min(Math.max(0, amount), Math.max(0, Number(max) || 0));
+    if (!capped) return toast.error("Enter an amount within the outstanding balance");
     const { data: u } = await supabase.auth.getUser();
-    const { data: pay, error } = await supabase.from("payments").insert({ invoice_id: invoiceId, amount, method, reference, paid_date: date, recorded_by: u.user?.id } as any).select("id").single();
+    const { data: pay, error } = await supabase.from("payments").insert({ invoice_id: invoiceId, amount: capped, method, reference, paid_date: date, recorded_by: u.user?.id } as any).select("id").single();
     if (error) return toast.error(error.message);
     const newPaid = currentPaid + amount;
     const newStatus = newPaid >= total ? "paid" : "partial";

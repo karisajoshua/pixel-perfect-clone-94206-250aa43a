@@ -224,6 +224,10 @@ export function buildTemplateValues(template: any, variables: Record<string, unk
   let preview = String(template?.body ?? "");
   values.forEach((v, i) => {
     preview = preview.split(`{{${i + 1}}}`).join(v);
+    const name = declared[i];
+    if (name) {
+      preview = preview.split(`{{${name}}}`).join(v).split(`{{ ${name} }}`).join(v);
+    }
   });
   return { declared, values, missing, preview };
 }
