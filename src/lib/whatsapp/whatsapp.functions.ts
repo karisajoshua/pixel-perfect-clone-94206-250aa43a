@@ -44,6 +44,16 @@ export const getWhatsAppOverview = createServerFn({ method: "GET" })
     const { supabase } = context as any;
     const tenantId = await currentTenant(supabase);
 
+    // Keep the shared library in step with the shipped definitions.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { syncPlatformTemplates, templateUsage } = await import("./library.server");
+    try {
+      await syncPlatformTemplates(supabaseAdmin);
+    } catch (e) {
+      console.warn("[whatsapp] template library sync failed", e);
+    }
+    const usage = await templateUsage(supabaseAdmin, tenantId);
+
     const [{ data: channel }, { data: templates }, { data: messages }, { data: conversations }] = await Promise.all([
       supabase.from("messaging_channels").select("*").eq("tenant_id", tenantId).eq("channel", "whatsapp").maybeSingle(),
       supabase.from("whatsapp_templates").select("*").order("owner_scope").order("name"),
