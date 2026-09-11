@@ -78,7 +78,7 @@ export async function templateUsage(admin: Admin, tenantId: string) {
     for (const name of used) {
       const entry = (usage[name] ??= { total: 0, active: 0, names: [] });
       entry.total += 1;
-      if (wf.status === "published" || wf.status === "active") entry.active += 1;
+      if (wf.status === "active") entry.active += 1;
       entry.names.push(wf.name);
     }
   }
