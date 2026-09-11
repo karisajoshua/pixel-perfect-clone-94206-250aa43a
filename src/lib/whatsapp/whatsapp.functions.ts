@@ -267,7 +267,9 @@ export const cloneWhatsAppTemplate = createServerFn({ method: "POST" })
     const { data: row, error: insErr } = await supabase.from("whatsapp_templates").insert({
       tenant_id: tenantId, owner_scope: "agency", name: src.name, language: src.language, category: src.category,
       header: src.header, body: src.body, footer: src.footer, variables: src.variables,
-      provider_template_name: src.provider_template_name, status: "draft", cloned_from: src.id, created_by: userId,
+      display_name: src.display_name, description: src.description, library_group: src.library_group,
+      provider_template_name: src.provider_template_name, status: "draft", meta_status: "not_submitted",
+      cloned_from: src.id, created_by: userId,
     }).select("*").single();
     if (insErr) {
       if (insErr.code === "23505") throw new Error("Your agency already has a template with this name and language");
