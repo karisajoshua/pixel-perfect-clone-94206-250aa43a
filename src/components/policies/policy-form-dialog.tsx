@@ -69,22 +69,21 @@ export function PolicyFormDialog({ open, onOpenChange, onSaved, initial, renewFr
         policy_no: "",
         previous_policy_id: renewFrom.id,
         start_date: newStart,
-        end_date: annualEndDateISO(newStart),
+        end_date: endDateForTerm(newStart, renewFrom.policy_term ?? "annual") ?? annualEndDateISO(newStart),
         status: "active",
         payment_status: "unpaid",
         document_url: null,
       });
     } else {
-      const today = new Date();
-      const yr = new Date(today); yr.setFullYear(yr.getFullYear() + 1);
+      const todayISO = new Date().toISOString().slice(0, 10);
       setForm({
         product_class: "motor_private",
         cover_type: "comprehensive",
         policy_term: "annual",
         status: "active",
         payment_status: "unpaid",
-        start_date: today.toISOString().slice(0, 10),
-        end_date: yr.toISOString().slice(0, 10),
+        start_date: todayISO,
+        end_date: annualEndDateISO(todayISO),
       });
     }
     setClientText("");
