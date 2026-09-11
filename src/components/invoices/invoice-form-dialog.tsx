@@ -27,7 +27,7 @@ export function InvoiceFormDialog({ open, onOpenChange, onSaved, initial }: any)
     if (!open) return;
     const today = new Date(); const due = new Date(); due.setDate(today.getDate() + 14);
     setForm(initial ?? {
-      invoice_no: `INV-${Date.now()}`, status: "draft",
+      invoice_no: "", status: "draft",
       issue_date: today.toISOString().slice(0,10), due_date: due.toISOString().slice(0,10),
       tax: 0,
     });
@@ -124,7 +124,14 @@ export function InvoiceFormDialog({ open, onOpenChange, onSaved, initial }: any)
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{initial?.id ? "Edit invoice" : "New invoice"}</DialogTitle></DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5"><Label>Invoice #</Label><Input value={form.invoice_no ?? ""} onChange={(e) => set("invoice_no", e.target.value)} /></div>
+          <div className="space-y-1.5">
+            <Label>Invoice #</Label>
+            {initial?.id ? (
+              <Input value={form.invoice_no ?? ""} onChange={(e) => set("invoice_no", e.target.value)} />
+            ) : (
+              <Input value="Assigned automatically on save" readOnly disabled />
+            )}
+          </div>
           <div className="space-y-1.5">
             <Label>Status</Label>
             <Select value={form.status} onValueChange={(v) => set("status", v)}>
