@@ -217,13 +217,16 @@ export const saveWhatsAppTemplate = createServerFn({ method: "POST" })
     await assertManager(supabase, userId);
     const tenantId = await currentTenant(supabase);
 
+    const used = validateTemplateBody(data.body, data.variables ?? []);
+    if (!data.variables?.length) data.variables = used;
+
     if (data.id) {
       const { data: existing, error: exErr } = await supabase
         .from("whatsapp_templates").select("*").eq("id", data.id).maybeSingle();
       if (exErr) throw new Error(exErr.message);
       if (!existing) throw new Error("Template not found");
       if (existing.owner_scope === "platform") {
-        throw new Error("Platform templates cannot be edited — clone it to your agency first");
+        throw new Error("Ready-made templates cannot be edited — copy it to your agency first");
       }
       const { id, ...patch } = data;
       const { data: row, error } = await supabase.from("whatsapp_templates").update(patch).eq("id", id).select("*").single();
@@ -239,7 +242,10 @@ export const saveWhatsAppTemplate = createServerFn({ method: "POST" })
       .from("whatsapp_templates")
       .insert({ ...data, tenant_id: tenantId, owner_scope: "agency", created_by: userId })
       .select("*").single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      if ((error as any).code === "23505") throw new Error("Your agency already has a template with this name and language");
+      throw new Error(error.message);
+    }
     await supabase.from("audit_log").insert({
       tenant_id: tenantId, user_id: userId, action: "whatsapp.template_created",
       entity_type: "whatsapp_template", entity_id: row.id, metadata: { name: row.name },
