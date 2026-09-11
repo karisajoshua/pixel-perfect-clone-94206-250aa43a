@@ -114,7 +114,7 @@ export function InvoiceFormDialog({ open, onOpenChange, onSaved, initial }: any)
           idempotencyKey: `invoice-issued-${invoiceId}`,
           templateData: {
             clientName: clientDisplayName(c),
-            invoiceNo: form.invoice_no,
+            invoiceNo,
             amount: formatKES(total),
             issueDate: form.issue_date,
             dueDate: form.due_date,
@@ -225,7 +225,7 @@ export function InvoiceFormDialog({ open, onOpenChange, onSaved, initial }: any)
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit} disabled={saving || !form.invoice_no || !form.client_id || !form.due_date}>Save</Button>
+          <Button onClick={submit} disabled={saving || !form.client_id || !form.due_date}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
