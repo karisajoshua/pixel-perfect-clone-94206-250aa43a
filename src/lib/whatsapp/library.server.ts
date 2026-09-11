@@ -63,13 +63,14 @@ export async function syncPlatformTemplates(admin: Admin) {
 export async function templateUsage(admin: Admin, tenantId: string) {
   const { data, error } = await admin
     .from("workflows")
-    .select("id, name, status, graph")
+    .select("id, name, status, current_version_id, workflow_versions!workflows_current_version_fk(graph)")
     .eq("tenant_id", tenantId);
   if (error) return {} as Record<string, { total: number; active: number; names: string[] }>;
 
   const usage: Record<string, { total: number; active: number; names: string[] }> = {};
   for (const wf of data ?? []) {
-    const nodes = (wf.graph as any)?.nodes ?? [];
+    const version: any = Array.isArray(wf.workflow_versions) ? wf.workflow_versions[0] : wf.workflow_versions;
+    const nodes = (version?.graph as any)?.nodes ?? [];
     const used = new Set<string>();
     for (const n of nodes) {
       if (n?.type === "send-whatsapp" && n?.config?.template) used.add(String(n.config.template));
