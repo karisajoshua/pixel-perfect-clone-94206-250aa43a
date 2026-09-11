@@ -374,7 +374,7 @@ function TemplatesCard({ templates, onChanged }: { templates: any[]; onChanged: 
         <Field label="Footer" value={draft.footer} onChange={(v) => setDraft({ ...draft, footer: v })} />
         <Field label="Placeholders (comma separated)" value={draft.variables} onChange={(v) => setDraft({ ...draft, variables: v })} placeholder="client_name, days" />
         <div className="md:col-span-3 space-y-2">
-          <Label>Message body — use {"{{client_name}}"} style placeholders</Label>
+          <Label>Message body — use {"{{1}}"}, {"{{2}}"} in the order of the placeholders above (names like {"{{client_name}}"} also work)</Label>
           <Textarea rows={3} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
         </div>
         <div className="md:col-span-3 flex gap-2">
