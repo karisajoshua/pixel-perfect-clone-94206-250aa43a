@@ -285,14 +285,22 @@ export const cloneWhatsAppTemplate = createServerFn({ method: "POST" })
 export const setWhatsAppTemplateStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({ id: z.string().uuid(), status: z.enum(["draft", "pending", "approved", "rejected", "disabled"]) }).parse(d),
+    z.object({
+      id: z.string().uuid(),
+      status: z.enum(["draft", "pending", "approved", "rejected", "disabled"]).optional(),
+      meta_status: z.enum(["not_submitted", "pending", "approved", "rejected", "disabled"]).optional(),
+    }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertManager(supabase, userId);
     const tenantId = await currentTenant(supabase);
+    const patch: Record<string, string> = {};
+    if (data.status) patch.status = data.status;
+    if (data.meta_status) patch.meta_status = data.meta_status;
+    if (!Object.keys(patch).length) throw new Error("Nothing to update");
     const { data: row, error } = await supabase
-      .from("whatsapp_templates").update({ status: data.status }).eq("id", data.id).select("*").maybeSingle();
+      .from("whatsapp_templates").update(patch).eq("id", data.id).select("*").maybeSingle();
     if (error) throw new Error(error.message);
     if (!row) throw new Error("Template not found or not editable");
     await supabase.from("audit_log").insert({
