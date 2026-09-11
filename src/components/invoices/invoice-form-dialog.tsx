@@ -78,7 +78,16 @@ export function InvoiceFormDialog({ open, onOpenChange, onSaved, initial }: any)
     const fields = ["invoice_no","client_id","policy_id","branch_id","issue_date","due_date","status","notes"] as const;
     const payload: any = { subtotal, tax, total };
     for (const k of fields) if (form[k] !== undefined) payload[k] = form[k];
-    if (!invoiceId) payload.created_by = u.user?.id;
+    let invoiceNo: string = form.invoice_no ?? "";
+    if (!invoiceId) {
+      payload.created_by = u.user?.id;
+      const { data: generated, error: genError } = await supabase.rpc("next_invoice_no_for_me", {
+        _issue_date: form.issue_date ?? new Date().toISOString().slice(0, 10),
+      });
+      if (genError || !generated) { setSaving(false); return toast.error(genError?.message ?? "Could not generate invoice number"); }
+      invoiceNo = generated as unknown as string;
+      payload.invoice_no = invoiceNo;
+    }
     if (invoiceId) {
       const { error } = await supabase.from("invoices").update(payload).eq("id", invoiceId);
       if (error) { setSaving(false); return toast.error(error.message); }
