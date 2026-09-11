@@ -311,6 +311,9 @@ function TemplatesCard({ templates, onChanged }: { templates: any[]; onChanged: 
         data: {
           id: draft.id,
           name: draft.name, language: draft.language, category: draft.category,
+          display_name: draft.display_name || null,
+          description: draft.description || null,
+          library_group: draft.library_group || null,
           header: draft.header || null, body: draft.body, footer: draft.footer || null,
           provider_template_name: draft.provider_template_name || null,
           variables: String(draft.variables).split(",").map((s: string) => s.trim()).filter(Boolean),
