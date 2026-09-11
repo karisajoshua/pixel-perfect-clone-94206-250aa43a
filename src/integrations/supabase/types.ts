@@ -2905,6 +2905,10 @@ export type Database = {
         Args: { _issue_date?: string; _tenant_id: string }
         Returns: string
       }
+      next_invoice_no_for_me: {
+        Args: { _issue_date?: string }
+        Returns: string
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
