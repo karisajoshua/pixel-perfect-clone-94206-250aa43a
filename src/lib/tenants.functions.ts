@@ -30,6 +30,7 @@ export type MyTenant = {
   doc_footer_note?: string | null;
   signatory_name?: string | null;
   signatory_title?: string | null;
+  invoice_code?: string | null;
 };
 
 export const getMyTenant = createServerFn({ method: "GET" })
@@ -165,6 +166,7 @@ const UpdateTenantInput = z.object({
   doc_footer_note: z.string().max(400).optional().nullable(),
   signatory_name: z.string().max(120).optional().nullable(),
   signatory_title: z.string().max(120).optional().nullable(),
+  invoice_code: z.string().regex(/^[A-Za-z0-9]{2,6}$/).transform((v) => v.toUpperCase()).optional().nullable(),
 });
 
 export const updateMyTenant = createServerFn({ method: "POST" })
