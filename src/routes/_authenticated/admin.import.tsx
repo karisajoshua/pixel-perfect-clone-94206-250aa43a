@@ -417,13 +417,19 @@ function ImportPage() {
     // Invoices for policies with an installment
     const invoiceDrafts = insertedPolicies.filter((p) => p.installment && p.installment > 0);
     const insertedInvoices: { id: string; amount: number }[] = [];
-    let invSeq = 0;
     for (let i = 0; i < invoiceDrafts.length; i += 200) {
-      const batch = invoiceDrafts.slice(i, i + 200).map((p) => {
-        invSeq += 1;
+      const slice = invoiceDrafts.slice(i, i + 200);
+      const numbers: string[] = [];
+      for (let n = 0; n < slice.length; n++) {
+        const { data: generated, error: genError } = await supabase.rpc("next_invoice_no_for_me", { _issue_date: today });
+        if (genError || !generated) { errors++; setLog((l) => [...l, `Invoice number error: ${genError?.message ?? "failed"}`]); break; }
+        numbers.push(generated as unknown as string);
+      }
+      if (numbers.length !== slice.length) continue;
+      const batch = slice.map((p, idx) => {
         const amt = p.installment as number;
         return {
-          invoice_no: `INV-${stamp}-${invSeq}`,
+          invoice_no: numbers[idx],
           client_id: p.client_id,
           policy_id: p.id,
           issue_date: today,

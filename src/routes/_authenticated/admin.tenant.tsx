@@ -61,6 +61,7 @@ function TenantSettings() {
         doc_footer_note: form.doc_footer_note ?? null,
         signatory_name: form.signatory_name ?? null,
         signatory_title: form.signatory_title ?? null,
+        invoice_code: form.invoice_code ? String(form.invoice_code).toUpperCase() : null,
       }});
       resetBrandCache();
       toast.success("Agency updated");
@@ -171,6 +172,15 @@ function TenantSettings() {
                 <Label>Website</Label>
                 <Input value={form.website ?? ""} onChange={(e) => setForm({ ...form, website: e.target.value })} placeholder="www.youragency.co.ke" />
                 <Hint>Document footer. Left out if blank.</Hint>
+              </div>
+              <div>
+                <Label>Invoice code</Label>
+                <Input
+                  value={form.invoice_code ?? ""}
+                  onChange={(e) => setForm({ ...form, invoice_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6) })}
+                  placeholder="ZIA"
+                />
+                <Hint>Used inside invoice numbers, e.g. INV202609ZIA001. Letters and numbers only.</Hint>
               </div>
               <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save identity"}</Button>
             </CardContent>
