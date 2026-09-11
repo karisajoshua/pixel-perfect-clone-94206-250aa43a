@@ -9,11 +9,59 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { parseLocalDate } from "@/lib/date-only";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/renewals")({ component: RenewalsPage });
 
-function RenewalsPage() {
+type FilterRange = "all" | "overdue" | "7" | "30" | "31-60";
+
+const RANGE_OPTIONS: { value: FilterRange; label: string }[] = [
+  { value: "all", label: "All renewals" },
+  { value: "overdue", label: "Overdue / due today" },
+  { value: "7", label: "Due in 7 days" },
+  { value: "30", label: "Due in 30 days" },
+  { value: "31-60", label: "31–60 days" },
+];
+
+function matchesRange(days: number, range: FilterRange): boolean {
+  switch (range) {
+    case "all":
+      return true;
+    case "overdue":
+      return days <= 0;
+    case "7":
+      return days > 0 && days <= 7;
+    case "30":
+      return days > 0 && days <= 30;
+    case "31-60":
+      return days > 31 && days <= 60;
+  }
+}
+
+function rangeEmptyLabel(range: FilterRange): string {
+  switch (range) {
+    case "all":
+      return "No upcoming renewals";
+    case "overdue":
+      return "No overdue or due-today renewals";
+    case "7":
+      return "No renewals due in 7 days";
+    case "30":
+      return "No renewals due in 30 days";
+    case "31-60":
+      return "No renewals due in 31–60 days";
+  }
+}
+
+export default function RenewalsPage() {
   const [search, setSearch] = useState("");
+  const [filterRange, setFilterRange] = useState<FilterRange>("all");
   const { data, isLoading } = useQuery({
     queryKey: ["renewals"],
     queryFn: async () => {
@@ -38,9 +86,6 @@ function RenewalsPage() {
       if (candidateResult.error) throw candidateResult.error;
       if (linkResult.error) throw linkResult.error;
 
-      // A policy is superseded only when another policy explicitly links to it.
-      // Do not group by vehicle or client/class: clients can legitimately hold
-      // multiple independent covers for the same vehicle or non-motor class.
       const rows = (candidateResult.data ?? []).filter((p: any) => {
         const d = parseLocalDate(p.end_date);
         return !!d && d.getFullYear() > 1900;
@@ -56,63 +101,108 @@ function RenewalsPage() {
   });
 
   const today = new Date();
-  const buckets = {
-    overdue: [] as any[],
-    in7: [] as any[],
-    in30: [] as any[],
-    later: [] as any[],
-  };
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const q = search.trim().toLowerCase();
+
   const clientLabel = (p: any) => {
     const cl = p.clients;
     if (!cl) return "";
     return (cl.client_type === "corporate" ? cl.company_name ?? cl.full_name : cl.full_name) ?? "";
   };
-  const rows = (data ?? []).filter((p: any) => {
-    if (!q) return true;
-    return [clientLabel(p), p.policy_no, p.vehicles?.registration_no]
-      .filter(Boolean)
-      .some((v: string) => String(v).toLowerCase().includes(q));
-  });
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  for (const p of rows) {
-    const end = parseLocalDate(p.end_date)!;
-    const days = Math.round((end.getTime() - startOfToday.getTime()) / 86400000);
-    if (days < 0) buckets.overdue.push({ ...p, days });
-    else if (days <= 7) buckets.in7.push({ ...p, days });
-    else if (days <= 30) buckets.in30.push({ ...p, days });
-    else buckets.later.push({ ...p, days });
-  }
 
+  const rows = (data ?? [])
+    .map((p: any) => {
+      const end = parseLocalDate(p.end_date);
+      const days = end ? Math.round((end.getTime() - startOfToday.getTime()) / 86400000) : 0;
+      return { ...p, days };
+    })
+    .filter((p: any) => {
+      if (!q) return true;
+      return [clientLabel(p), p.policy_no, p.vehicles?.registration_no]
+        .filter(Boolean)
+        .some((v: string) => String(v).toLowerCase().includes(q));
+    })
+    .filter((p: any) => matchesRange(p.days, filterRange));
+
+  const selectedLabel = RANGE_OPTIONS.find((o) => o.value === filterRange)?.label ?? "Renewals";
 
   return (
     <div className="p-8 space-y-6">
-      <PageHeader title="Renewals" subtitle="Policies due in the next 60 days, grouped by urgency." />
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder="Search by client name, policy no. or registration…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <PageHeader title="Renewals" subtitle="Policies due in the next 60 days, filtered by urgency." />
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative max-w-md flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search by client name, policy no. or registration…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select value={filterRange} onValueChange={(v) => setFilterRange(v as FilterRange)}>
+          <SelectTrigger className="w-full sm:w-[220px]">
+            <SelectValue placeholder="Filter by range" />
+          </SelectTrigger>
+          <SelectContent>
+            {RANGE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
       {isLoading && <div className="text-muted-foreground">Loading…</div>}
-      <Bucket title="Overdue" tone="destructive" rows={buckets.overdue} />
-      <Bucket title="Due in 7 days" tone="warning" rows={buckets.in7} />
-      <Bucket title="Due in 30 days" tone="default" rows={buckets.in30} />
-      <Bucket title="31–60 days" tone="muted" rows={buckets.later} />
+
+      {!isLoading && rows.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-3 space-y-0">
+            <CardTitle className="text-base">{selectedLabel}</CardTitle>
+            <Badge variant="secondary" className="ml-auto">{rows.length}</Badge>
+          </CardHeader>
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <tbody>
+                {rows.map((p) => {
+                  const cl = p.clients;
+                  const name = cl ? (cl.client_type === "corporate" ? cl.company_name ?? cl.full_name : cl.full_name) : "—";
+                  return (
+                    <tr key={p.id} className="border-t">
+                      <td className="px-4 py-3 font-mono">{p.policy_no}</td>
+                      <td className="px-4 py-3">{name}</td>
+                      <td className="px-4 py-3 font-mono text-xs">{p.vehicles?.registration_no ?? "—"}</td>
+                      <td className="px-4 py-3">{p.insurers?.name ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        <div>{p.end_date}</div>
+                        <div className="text-xs text-muted-foreground">{p.days < 0 ? `${Math.abs(p.days)} days overdue` : `in ${p.days} days`}</div>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Button asChild size="sm" variant="outline"><Link to="/policies/$id" params={{ id: p.id }}>Open</Link></Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+
       {!isLoading && q && rows.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">No renewals match “{search}”.</CardContent>
         </Card>
       )}
-      {!isLoading && !q && (data?.length ?? 0) === 0 && (
+
+      {!isLoading && !q && rows.length === 0 && (
         <Card>
           <CardContent className="py-16 text-center space-y-2">
-            <div className="text-lg font-semibold">No upcoming renewals</div>
+            <div className="text-lg font-semibold">{rangeEmptyLabel(filterRange)}</div>
             <p className="text-sm text-muted-foreground">
-              Nothing is due in the next 60 days. New policies will appear here automatically as their end date approaches.
+              {filterRange === "all"
+                ? "Nothing is due in the next 60 days. New policies will appear here automatically as their end date approaches."
+                : "Try a different filter or check back later."}
             </p>
             <div className="pt-2">
               <Button asChild size="sm" variant="outline"><Link to="/policies">Go to policies</Link></Button>
@@ -121,44 +211,5 @@ function RenewalsPage() {
         </Card>
       )}
     </div>
-  );
-}
-
-function Bucket({ title, tone, rows }: { title: string; tone: "destructive" | "warning" | "default" | "muted"; rows: any[] }) {
-  if (rows.length === 0) return null;
-  const dot = { destructive: "bg-destructive", warning: "bg-amber-500", default: "bg-primary", muted: "bg-muted-foreground" }[tone];
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center gap-3 space-y-0">
-        <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
-        <CardTitle className="text-base">{title}</CardTitle>
-        <Badge variant="secondary" className="ml-auto">{rows.length}</Badge>
-      </CardHeader>
-      <CardContent className="p-0">
-        <table className="w-full text-sm">
-          <tbody>
-            {rows.map((p) => {
-              const cl = p.clients;
-              const name = cl ? (cl.client_type === "corporate" ? cl.company_name ?? cl.full_name : cl.full_name) : "—";
-              return (
-                <tr key={p.id} className="border-t">
-                  <td className="px-4 py-3 font-mono">{p.policy_no}</td>
-                  <td className="px-4 py-3">{name}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{p.vehicles?.registration_no ?? "—"}</td>
-                  <td className="px-4 py-3">{p.insurers?.name ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    <div>{p.end_date}</div>
-                    <div className="text-xs text-muted-foreground">{p.days < 0 ? `${Math.abs(p.days)} days overdue` : `in ${p.days} days`}</div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Button asChild size="sm" variant="outline"><Link to="/policies/$id" params={{ id: p.id }}>Open</Link></Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </CardContent>
-    </Card>
   );
 }
