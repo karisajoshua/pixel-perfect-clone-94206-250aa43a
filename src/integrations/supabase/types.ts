@@ -2127,6 +2127,8 @@ export type Database = {
           created_at: string
           doc_footer_note: string | null
           id: string
+          invoice_code: string | null
+          invoice_seq: number
           logo_url: string | null
           mpesa_paybill: string | null
           mpesa_till: string | null
@@ -2159,6 +2161,8 @@ export type Database = {
           created_at?: string
           doc_footer_note?: string | null
           id?: string
+          invoice_code?: string | null
+          invoice_seq?: number
           logo_url?: string | null
           mpesa_paybill?: string | null
           mpesa_till?: string | null
@@ -2191,6 +2195,8 @@ export type Database = {
           created_at?: string
           doc_footer_note?: string | null
           id?: string
+          invoice_code?: string | null
+          invoice_seq?: number
           logo_url?: string | null
           mpesa_paybill?: string | null
           mpesa_till?: string | null
@@ -2895,6 +2901,10 @@ export type Database = {
         }
         Returns: number
       }
+      next_invoice_no: {
+        Args: { _issue_date?: string; _tenant_id: string }
+        Returns: string
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -2903,6 +2913,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      tenant_invoice_code: { Args: { _tenant_id: string }; Returns: string }
       user_branch: { Args: { _user_id: string }; Returns: string }
       verify_invoice: {
         Args: { _id: string }

@@ -8,6 +8,13 @@
       "when": 1789152146489,
       "tag": "0000_set_search_path_email_queue_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789157094406,
+      "tag": "0001_invoice_number_format",
+      "breakpoints": true
     }
   ]
 }
