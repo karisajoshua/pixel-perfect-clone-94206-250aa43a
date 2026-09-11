@@ -52,7 +52,7 @@ export const getWhatsAppOverview = createServerFn({ method: "GET" })
     } catch (e) {
       console.warn("[whatsapp] template library sync failed", e);
     }
-    const usage = await templateUsage(supabaseAdmin, tenantId);
+    const templateUsageMap = await templateUsage(supabaseAdmin, tenantId);
 
     const [{ data: channel }, { data: templates }, { data: messages }, { data: conversations }] = await Promise.all([
       supabase.from("messaging_channels").select("*").eq("tenant_id", tenantId).eq("channel", "whatsapp").maybeSingle(),
@@ -73,7 +73,10 @@ export const getWhatsAppOverview = createServerFn({ method: "GET" })
 
     return {
       channel: safeChannel(channel),
-      templates: templates ?? [],
+      templates: (templates ?? []).map((t: any) => ({
+        ...t,
+        usage: templateUsageMap[t.name] ?? { total: 0, active: 0, names: [] },
+      })),
       messages: messages ?? [],
       conversations: conversations ?? [],
       consent: {
