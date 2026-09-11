@@ -6,6 +6,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { normalizePhone } from "@/lib/phone";
+import { extractVariables, unsupportedVariables } from "./template-library";
 
 // ---------- helpers ----------
 
@@ -44,6 +45,16 @@ export const getWhatsAppOverview = createServerFn({ method: "GET" })
     const { supabase } = context as any;
     const tenantId = await currentTenant(supabase);
 
+    // Keep the shared library in step with the shipped definitions.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { syncPlatformTemplates, templateUsage } = await import("./library.server");
+    try {
+      await syncPlatformTemplates(supabaseAdmin);
+    } catch (e) {
+      console.warn("[whatsapp] template library sync failed", e);
+    }
+    const templateUsageMap = await templateUsage(supabaseAdmin, tenantId);
+
     const [{ data: channel }, { data: templates }, { data: messages }, { data: conversations }] = await Promise.all([
       supabase.from("messaging_channels").select("*").eq("tenant_id", tenantId).eq("channel", "whatsapp").maybeSingle(),
       supabase.from("whatsapp_templates").select("*").order("owner_scope").order("name"),
@@ -63,7 +74,10 @@ export const getWhatsAppOverview = createServerFn({ method: "GET" })
 
     return {
       channel: safeChannel(channel),
-      templates: templates ?? [],
+      templates: (templates ?? []).map((t: any) => ({
+        ...t,
+        usage: templateUsageMap[t.name] ?? { total: 0, active: 0, names: [] },
+      })),
       messages: messages ?? [],
       conversations: conversations ?? [],
       consent: {
@@ -165,6 +179,9 @@ export const testWhatsAppConnection = createServerFn({ method: "POST" })
 const templateSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().trim().regex(/^[a-z0-9_]+$/, "Use lowercase letters, numbers and underscores").max(80),
+  display_name: z.string().trim().max(120).nullable().optional(),
+  description: z.string().trim().max(400).nullable().optional(),
+  library_group: z.string().trim().max(40).nullable().optional(),
   language: z.string().trim().min(2).max(10).default("en"),
   category: z.enum(["UTILITY", "MARKETING", "AUTHENTICATION"]).default("UTILITY"),
   header: z.string().trim().max(200).nullable().optional(),
@@ -174,8 +191,23 @@ const templateSchema = z.object({
   provider_template_name: z.string().trim().max(120).nullable().optional(),
   provider_template_id: z.string().trim().max(120).nullable().optional(),
   status: z.enum(["draft", "pending", "approved", "rejected", "disabled"]).optional(),
+  meta_status: z.enum(["not_submitted", "pending", "approved", "rejected", "disabled"]).optional(),
   is_active: z.boolean().optional(),
 });
+
+/** Blocks unsupported placeholders and empty bodies before anything is stored. */
+function validateTemplateBody(body: string, declared: string[]) {
+  const unsupported = unsupportedVariables(body);
+  if (unsupported.length) {
+    throw new Error(`Unsupported placeholder${unsupported.length > 1 ? "s" : ""}: ${unsupported.map((v) => `{{${v}}}`).join(", ")}`);
+  }
+  const used = extractVariables(body);
+  const orphan = declared.filter((d) => !used.includes(d) && !/^\d+$/.test(d));
+  if (orphan.length) {
+    throw new Error(`These placeholders are listed but not used in the message: ${orphan.join(", ")}`);
+  }
+  return used;
+}
 
 export const saveWhatsAppTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -185,13 +217,16 @@ export const saveWhatsAppTemplate = createServerFn({ method: "POST" })
     await assertManager(supabase, userId);
     const tenantId = await currentTenant(supabase);
 
+    const used = validateTemplateBody(data.body, data.variables ?? []);
+    if (!data.variables?.length) data.variables = used;
+
     if (data.id) {
       const { data: existing, error: exErr } = await supabase
         .from("whatsapp_templates").select("*").eq("id", data.id).maybeSingle();
       if (exErr) throw new Error(exErr.message);
       if (!existing) throw new Error("Template not found");
       if (existing.owner_scope === "platform") {
-        throw new Error("Platform templates cannot be edited — clone it to your agency first");
+        throw new Error("Ready-made templates cannot be edited — copy it to your agency first");
       }
       const { id, ...patch } = data;
       const { data: row, error } = await supabase.from("whatsapp_templates").update(patch).eq("id", id).select("*").single();
@@ -207,7 +242,10 @@ export const saveWhatsAppTemplate = createServerFn({ method: "POST" })
       .from("whatsapp_templates")
       .insert({ ...data, tenant_id: tenantId, owner_scope: "agency", created_by: userId })
       .select("*").single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      if ((error as any).code === "23505") throw new Error("Your agency already has a template with this name and language");
+      throw new Error(error.message);
+    }
     await supabase.from("audit_log").insert({
       tenant_id: tenantId, user_id: userId, action: "whatsapp.template_created",
       entity_type: "whatsapp_template", entity_id: row.id, metadata: { name: row.name },
@@ -229,7 +267,9 @@ export const cloneWhatsAppTemplate = createServerFn({ method: "POST" })
     const { data: row, error: insErr } = await supabase.from("whatsapp_templates").insert({
       tenant_id: tenantId, owner_scope: "agency", name: src.name, language: src.language, category: src.category,
       header: src.header, body: src.body, footer: src.footer, variables: src.variables,
-      provider_template_name: src.provider_template_name, status: "draft", cloned_from: src.id, created_by: userId,
+      display_name: src.display_name, description: src.description, library_group: src.library_group,
+      provider_template_name: src.provider_template_name, status: "draft", meta_status: "not_submitted",
+      cloned_from: src.id, created_by: userId,
     }).select("*").single();
     if (insErr) {
       if (insErr.code === "23505") throw new Error("Your agency already has a template with this name and language");
@@ -245,14 +285,22 @@ export const cloneWhatsAppTemplate = createServerFn({ method: "POST" })
 export const setWhatsAppTemplateStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({ id: z.string().uuid(), status: z.enum(["draft", "pending", "approved", "rejected", "disabled"]) }).parse(d),
+    z.object({
+      id: z.string().uuid(),
+      status: z.enum(["draft", "pending", "approved", "rejected", "disabled"]).optional(),
+      meta_status: z.enum(["not_submitted", "pending", "approved", "rejected", "disabled"]).optional(),
+    }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertManager(supabase, userId);
     const tenantId = await currentTenant(supabase);
+    const patch: Record<string, string> = {};
+    if (data.status) patch.status = data.status;
+    if (data.meta_status) patch.meta_status = data.meta_status;
+    if (!Object.keys(patch).length) throw new Error("Nothing to update");
     const { data: row, error } = await supabase
-      .from("whatsapp_templates").update({ status: data.status }).eq("id", data.id).select("*").maybeSingle();
+      .from("whatsapp_templates").update(patch).eq("id", data.id).select("*").maybeSingle();
     if (error) throw new Error(error.message);
     if (!row) throw new Error("Template not found or not editable");
     await supabase.from("audit_log").insert({
@@ -268,6 +316,21 @@ export const deleteWhatsAppTemplate = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertManager(supabase, userId);
+    const tenantId = await currentTenant(supabase);
+
+    const { data: tpl } = await supabase.from("whatsapp_templates").select("*").eq("id", data.id).maybeSingle();
+    if (!tpl) throw new Error("Template not found");
+    if (tpl.owner_scope === "platform") throw new Error("Ready-made templates cannot be deleted");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { templateUsage } = await import("./library.server");
+    const usage = (await templateUsage(supabaseAdmin, tenantId))[tpl.name];
+    if (usage?.active) {
+      throw new Error(
+        `This template is used by ${usage.active} active automation${usage.active > 1 ? "s" : ""} (${usage.names.join(", ")}). Disable it instead — those automations will not run until another approved template is chosen.`,
+      );
+    }
+
     const { error } = await supabase.from("whatsapp_templates").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };

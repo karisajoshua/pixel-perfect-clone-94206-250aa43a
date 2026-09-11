@@ -22,6 +22,20 @@
       "when": 1789157146008,
       "tag": "0002_next_invoice_no_for_me",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789158409464,
+      "tag": "0003_whatsapp_template_library_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789158727577,
+      "tag": "0004_prevent_profile_branch_self_escalation",
+      "breakpoints": true
     }
   ]
 }

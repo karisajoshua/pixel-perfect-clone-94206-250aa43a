@@ -471,7 +471,20 @@ export async function sendWhatsAppTemplate(admin: Admin, args: SendTemplateArgs)
       return fail(`WhatsApp template '${args.template}' is not approved (status: ${tpl.status})`, false);
     }
     const { values, missing, preview } = buildTemplateValues(tpl, args.variables);
-    if (missing.length) return fail(`Missing template variables: ${missing.join(", ")}`, false);
+    if (missing.length) {
+      await auditWhatsApp(admin, args.tenantId, "whatsapp.message_failed", tpl.id, {
+        reason: "unresolved_variables", template: args.template, missing,
+      }, args.actorId ?? null);
+      return fail(`Missing template variables: ${missing.join(", ")}`, false);
+    }
+    // A message must never leave with a placeholder still in it.
+    const leftover = preview.match(/\{\{\s*[a-zA-Z0-9_]+\s*\}\}/g);
+    if (leftover?.length) {
+      await auditWhatsApp(admin, args.tenantId, "whatsapp.message_failed", tpl.id, {
+        reason: "unresolved_variables", template: args.template, placeholders: leftover,
+      }, args.actorId ?? null);
+      return fail(`Cannot send — these placeholders could not be filled: ${[...new Set(leftover)].join(", ")}`, false);
+    }
     const components = values.length
       ? [{ type: "body", parameters: values.map((v) => ({ type: "text", text: v })) }]
       : [];
