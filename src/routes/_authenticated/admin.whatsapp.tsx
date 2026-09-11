@@ -18,6 +18,9 @@ import {
   saveWhatsAppTemplate, cloneWhatsAppTemplate, setWhatsAppTemplateStatus, deleteWhatsAppTemplate,
   sendWhatsAppTest, setWhatsAppConsent,
 } from "@/lib/whatsapp/whatsapp.functions";
+import {
+  TEMPLATE_GROUPS, TEMPLATE_VARIABLES, previewWithSamples, unsupportedVariables,
+} from "@/lib/whatsapp/template-library";
 
 export const Route = createFileRoute("/_authenticated/admin/whatsapp")({
   beforeLoad: requireRole(["admin", "manager"]),
@@ -332,33 +335,82 @@ function TemplatesCard({ templates, onChanged }: { templates: any[]; onChanged: 
   const status = mut(statusFn, "Status updated");
   const remove = mut(delFn, "Template removed");
 
+  const q = search.trim().toLowerCase();
+  const visible = templates.filter((t) => {
+    if (group !== "all" && (t.library_group ?? "") !== group) return false;
+    if (scope === "ready" && t.owner_scope !== "platform") return false;
+    if (scope === "mine" && t.owner_scope !== "agency") return false;
+    if (statusFilter !== "all" && t.status !== statusFilter) return false;
+    if (!q) return true;
+    return [t.display_name, t.name, t.description, t.body].filter(Boolean).some((v: string) => String(v).toLowerCase().includes(q));
+  });
+
+  const unsupported = unsupportedVariables(draft.body ?? "");
+
   return (
     <Card className="p-4 md:p-6 space-y-5">
       <div>
         <h2 className="font-medium">Message templates</h2>
-        <p className="text-sm text-muted-foreground">Ready-made templates are shared with every agency; copy one to edit it. WhatsApp must approve a template before it can reach customers outside a live chat.</p>
+        <p className="text-sm text-muted-foreground">
+          Ready-made templates are shared with every agency; copy one to make it yours. WhatsApp must approve a template before it can reach customers outside a live chat.
+        </p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-4">
+        <Input placeholder="Search templates…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <select className="h-9 rounded-md border bg-background px-3 text-sm" value={group} onChange={(e) => setGroup(e.target.value)}>
+          <option value="all">All categories</option>
+          {TEMPLATE_GROUPS.map((g) => <option key={g.key} value={g.key}>{g.label}</option>)}
+        </select>
+        <select className="h-9 rounded-md border bg-background px-3 text-sm" value={scope} onChange={(e) => setScope(e.target.value)}>
+          <option value="all">All templates</option>
+          <option value="ready">Ready-made</option>
+          <option value="mine">My agency</option>
+        </select>
+        <select className="h-9 rounded-md border bg-background px-3 text-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="all">Any status</option>
+          {["draft", "pending", "approved", "rejected", "disabled"].map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/40 text-left">
-            <tr><th className="px-3 py-2">Name</th><th className="px-3 py-2">Scope</th><th className="px-3 py-2">Language</th><th className="px-3 py-2">Status</th><th className="px-3 py-2 text-right">Actions</th></tr>
+            <tr>
+              <th className="px-3 py-2">Template</th>
+              <th className="px-3 py-2">Category</th>
+              <th className="px-3 py-2">Status</th>
+              <th className="px-3 py-2">WhatsApp</th>
+              <th className="px-3 py-2">Used by</th>
+              <th className="px-3 py-2 text-right">Actions</th>
+            </tr>
           </thead>
           <tbody>
-            {templates.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">No templates yet.</td></tr>}
-            {templates.map((t) => (
-              <tr key={t.id} className="border-b last:border-0">
-                <td className="px-3 py-2 font-medium">{t.name}</td>
-                <td className="px-3 py-2">{t.owner_scope}</td>
-                <td className="px-3 py-2">{t.language}</td>
+            {visible.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No templates match these filters.</td></tr>}
+            {visible.map((t) => (
+              <tr key={t.id} className="border-b last:border-0 align-top">
+                <td className="px-3 py-2">
+                  <div className="font-medium">{t.display_name ?? t.name}</div>
+                  <div className="text-xs text-muted-foreground">{t.name} · {t.language}</div>
+                </td>
+                <td className="px-3 py-2">
+                  {TEMPLATE_GROUPS.find((g) => g.key === t.library_group)?.label ?? "—"}
+                  <div className="text-xs text-muted-foreground">{t.owner_scope === "platform" ? "Ready-made" : "My agency"}</div>
+                </td>
                 <td className="px-3 py-2"><Badge variant={statusTone(t.status)}>{t.status}</Badge></td>
+                <td className="px-3 py-2"><Badge variant={statusTone(t.meta_status)}>{t.meta_status ?? "not_submitted"}</Badge></td>
+                <td className="px-3 py-2 whitespace-nowrap">
+                  {t.usage?.total ? `${t.usage.total} automation${t.usage.total > 1 ? "s" : ""}${t.usage.active ? ` · ${t.usage.active} active` : ""}` : "—"}
+                </td>
                 <td className="px-3 py-2 text-right space-x-2 whitespace-nowrap">
+                  <Button size="sm" variant="ghost" onClick={() => setPreview(t)}>Preview</Button>
                   {t.owner_scope === "platform" ? (
-                    <Button size="sm" variant="outline" onClick={() => clone.mutate({ id: t.id })}>Copy</Button>
+                    <Button size="sm" variant="outline" onClick={() => clone.mutate({ id: t.id })}>Use template</Button>
                   ) : (
                     <>
                       <Button size="sm" variant="outline" onClick={() => setDraft({
-                        id: t.id, name: t.name, language: t.language, category: t.category,
+                        id: t.id, name: t.name, display_name: t.display_name ?? "", description: t.description ?? "",
+                        library_group: t.library_group ?? "policy", language: t.language, category: t.category,
                         header: t.header ?? "", body: t.body, footer: t.footer ?? "",
                         variables: (t.variables ?? []).join(", "), provider_template_name: t.provider_template_name ?? "",
                       })}>Edit</Button>
@@ -375,22 +427,63 @@ function TemplatesCard({ templates, onChanged }: { templates: any[]; onChanged: 
         </table>
       </div>
 
+      {preview && (
+        <div className="rounded-md border p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="font-medium">{preview.display_name ?? preview.name}</div>
+            <Button size="sm" variant="ghost" onClick={() => setPreview(null)}>Close</Button>
+          </div>
+          <Badge variant="secondary">PREVIEW — NOT SENT</Badge>
+          {preview.description && <p className="text-sm text-muted-foreground">{preview.description}</p>}
+          <pre className="whitespace-pre-wrap rounded-md bg-muted/50 p-3 text-sm">{previewWithSamples(preview.body)}</pre>
+          <div className="text-xs text-muted-foreground">Placeholders: {(preview.variables ?? []).join(", ") || "none"}</div>
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-3 border-t pt-4">
-        <Field label="Name" value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} placeholder="renewal_reminder" />
+        <Field label="Template name (system)" value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} placeholder="renewal_reminder" />
+        <Field label="Display name" value={draft.display_name} onChange={(v) => setDraft({ ...draft, display_name: v })} placeholder="Policy Renewal — 30 Days" />
+        <div className="space-y-2">
+          <Label>Category</Label>
+          <select className="w-full h-9 rounded-md border bg-background px-3 text-sm" value={draft.library_group} onChange={(e) => setDraft({ ...draft, library_group: e.target.value })}>
+            {TEMPLATE_GROUPS.map((g) => <option key={g.key} value={g.key}>{g.label}</option>)}
+          </select>
+        </div>
         <Field label="Language" value={draft.language} onChange={(v) => setDraft({ ...draft, language: v })} />
         <Field label="Name at WhatsApp (if different)" value={draft.provider_template_name} onChange={(v) => setDraft({ ...draft, provider_template_name: v })} />
+        <Field label="Description" value={draft.description} onChange={(v) => setDraft({ ...draft, description: v })} placeholder="When this message is sent" />
         <Field label="Header" value={draft.header} onChange={(v) => setDraft({ ...draft, header: v })} />
         <Field label="Footer" value={draft.footer} onChange={(v) => setDraft({ ...draft, footer: v })} />
-        <Field label="Placeholders (comma separated)" value={draft.variables} onChange={(v) => setDraft({ ...draft, variables: v })} placeholder="client_name, days" />
+        <Field label="Placeholders (comma separated, optional)" value={draft.variables} onChange={(v) => setDraft({ ...draft, variables: v })} placeholder="customer_first_name, policy_number" />
         <div className="md:col-span-3 space-y-2">
-          <Label>Message body — use {"{{1}}"}, {"{{2}}"} in the order of the placeholders above (names like {"{{client_name}}"} also work)</Label>
-          <Textarea rows={3} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
+          <Label>Message body — use named placeholders such as {"{{customer_first_name}}"}; numbered ones like {"{{1}}"} also work</Label>
+          <Textarea rows={5} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
+          {unsupported.length > 0 && (
+            <p className="text-xs text-destructive">Unsupported placeholder{unsupported.length > 1 ? "s" : ""}: {unsupported.map((v) => `{{${v}}}`).join(", ")}</p>
+          )}
+          {draft.body && (
+            <div className="rounded-md bg-muted/50 p-3 text-sm space-y-1">
+              <div className="text-xs font-medium">PREVIEW — NOT SENT</div>
+              <pre className="whitespace-pre-wrap">{previewWithSamples(draft.body)}</pre>
+            </div>
+          )}
         </div>
         <div className="md:col-span-3 flex gap-2">
-          <Button onClick={() => save.mutate()} disabled={!draft.name || !draft.body || save.isPending}>{draft.id ? "Update template" : "Add template"}</Button>
+          <Button onClick={() => save.mutate()} disabled={!draft.name || !draft.body || unsupported.length > 0 || save.isPending}>
+            {draft.id ? "Update template" : "Add template"}
+          </Button>
           {draft.id && <Button variant="ghost" onClick={() => setDraft(blankTemplate)}>Cancel</Button>}
         </div>
       </div>
+
+      <details className="text-sm">
+        <summary className="cursor-pointer text-muted-foreground">Available placeholders</summary>
+        <div className="grid gap-1 md:grid-cols-3 pt-3">
+          {Object.entries(TEMPLATE_VARIABLES).map(([k, v]) => (
+            <div key={k} className="text-xs"><code>{`{{${k}}}`}</code> <span className="text-muted-foreground">— {v.label}</span></div>
+          ))}
+        </div>
+      </details>
     </Card>
   );
 }
