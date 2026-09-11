@@ -288,12 +288,18 @@ function ConsentCard({ consent, usage, onSaved }: { consent: any; usage: any; on
 
 const blankTemplate = {
   id: undefined as string | undefined,
-  name: "", language: "en", category: "UTILITY" as const,
+  name: "", display_name: "", description: "", library_group: "policy",
+  language: "en", category: "UTILITY" as const,
   header: "", body: "", footer: "", variables: "", provider_template_name: "",
 };
 
 function TemplatesCard({ templates, onChanged }: { templates: any[]; onChanged: () => void }) {
   const [draft, setDraft] = useState<any>(blankTemplate);
+  const [search, setSearch] = useState("");
+  const [group, setGroup] = useState("all");
+  const [scope, setScope] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [preview, setPreview] = useState<any>(null);
   const saveFn = useServerFn(saveWhatsAppTemplate);
   const cloneFn = useServerFn(cloneWhatsAppTemplate);
   const statusFn = useServerFn(setWhatsAppTemplateStatus);
