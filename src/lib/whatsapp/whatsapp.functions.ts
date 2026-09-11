@@ -316,6 +316,21 @@ export const deleteWhatsAppTemplate = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertManager(supabase, userId);
+    const tenantId = await currentTenant(supabase);
+
+    const { data: tpl } = await supabase.from("whatsapp_templates").select("*").eq("id", data.id).maybeSingle();
+    if (!tpl) throw new Error("Template not found");
+    if (tpl.owner_scope === "platform") throw new Error("Ready-made templates cannot be deleted");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { templateUsage } = await import("./library.server");
+    const usage = (await templateUsage(supabaseAdmin, tenantId))[tpl.name];
+    if (usage?.active) {
+      throw new Error(
+        `This template is used by ${usage.active} active automation${usage.active > 1 ? "s" : ""} (${usage.names.join(", ")}). Disable it instead — those automations will not run until another approved template is chosen.`,
+      );
+    }
+
     const { error } = await supabase.from("whatsapp_templates").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
