@@ -6,6 +6,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { normalizePhone } from "@/lib/phone";
+import { extractVariables, unsupportedVariables } from "./template-library";
 
 // ---------- helpers ----------
 
@@ -178,6 +179,9 @@ export const testWhatsAppConnection = createServerFn({ method: "POST" })
 const templateSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().trim().regex(/^[a-z0-9_]+$/, "Use lowercase letters, numbers and underscores").max(80),
+  display_name: z.string().trim().max(120).nullable().optional(),
+  description: z.string().trim().max(400).nullable().optional(),
+  library_group: z.string().trim().max(40).nullable().optional(),
   language: z.string().trim().min(2).max(10).default("en"),
   category: z.enum(["UTILITY", "MARKETING", "AUTHENTICATION"]).default("UTILITY"),
   header: z.string().trim().max(200).nullable().optional(),
@@ -187,8 +191,23 @@ const templateSchema = z.object({
   provider_template_name: z.string().trim().max(120).nullable().optional(),
   provider_template_id: z.string().trim().max(120).nullable().optional(),
   status: z.enum(["draft", "pending", "approved", "rejected", "disabled"]).optional(),
+  meta_status: z.enum(["not_submitted", "pending", "approved", "rejected", "disabled"]).optional(),
   is_active: z.boolean().optional(),
 });
+
+/** Blocks unsupported placeholders and empty bodies before anything is stored. */
+function validateTemplateBody(body: string, declared: string[]) {
+  const unsupported = unsupportedVariables(body);
+  if (unsupported.length) {
+    throw new Error(`Unsupported placeholder${unsupported.length > 1 ? "s" : ""}: ${unsupported.map((v) => `{{${v}}}`).join(", ")}`);
+  }
+  const used = extractVariables(body);
+  const orphan = declared.filter((d) => !used.includes(d) && !/^\d+$/.test(d));
+  if (orphan.length) {
+    throw new Error(`These placeholders are listed but not used in the message: ${orphan.join(", ")}`);
+  }
+  return used;
+}
 
 export const saveWhatsAppTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
