@@ -303,9 +303,9 @@ function PolicyDetail() {
         subtitle={`${clientName} • ${productClassLabel(p.product_class, p.product_subclass, p.tonnage)} • ${p.cover_type}`}
         actions={
           <div className="flex gap-2">
-            {isCoverActive(p) && (
-              <Badge variant="outline" className="self-center border-green-300 text-green-800">Cover active</Badge>
-            )}
+            <Badge variant="outline" className={`self-center ${COVER_TONE_CLASS[coverLabel(p).tone]}`}>
+              {coverLabel(p).label === "active" ? "Cover active" : `Cover ${coverLabel(p).label}`}
+            </Badge>
             {p.ipen_policy_id && (
               <>
                 <Badge variant="secondary" className="self-center">IPEN</Badge>
