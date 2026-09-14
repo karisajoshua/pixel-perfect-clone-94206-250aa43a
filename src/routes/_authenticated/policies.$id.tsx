@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { policyTermLabel } from "@/lib/utils";
-import { policyBalance, balanceLabel, formatKES, isCoverActive } from "@/lib/policy-balance";
+import { policyBalance, balanceLabel, formatKES, coverLabel, COVER_TONE_CLASS } from "@/lib/policy-balance";
 import { fetchChainInvoices, chainTotals } from "@/lib/policy-chain";
 import { PaymentStatement } from "@/components/payments/payment-statement";
 
@@ -354,7 +354,7 @@ function PolicyDetail() {
               <Item label="Net premium" value={p.premium_net ? `KES ${Number(p.premium_net).toLocaleString()}` : "—"} />
               <Item label="Commission" value={p.commission ? `KES ${Number(p.commission).toLocaleString()}` : "—"} />
               <Item label="Taxes" value={p.taxes ? `KES ${Number(p.taxes).toLocaleString()}` : "—"} />
-              <Item label="Status" value={p.status} />
+              <Item label="Status" value={coverLabel(p).label} />
               <Item label="Payment" value={p.payment_status} />
               <Item label="Amount paid" value={formatKES(bal.paid)} />
               <div>

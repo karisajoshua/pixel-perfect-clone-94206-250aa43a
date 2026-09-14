@@ -10,7 +10,7 @@ import { VehicleFormDialog } from "@/components/vehicles/vehicle-form-dialog";
 import { TransferOwnershipDialog } from "@/components/vehicles/transfer-ownership-dialog";
 import { useMyRoles } from "@/hooks/use-auth";
 import { VehicleDocuments, useVehicleDocuments, vehicleDocsBadge } from "@/components/clients/vehicle-documents";
-import { policyBalance, balanceLabel, formatKES, isCoverActive } from "@/lib/policy-balance";
+import { policyBalance, balanceLabel, formatKES, isCoverActive, coverLabel } from "@/lib/policy-balance";
 
 const TERMS: Record<string, string> = {
   tor: "One month (TOR)",
@@ -145,7 +145,7 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
                     <>
                       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                         <div className="text-xs uppercase tracking-wider text-muted-foreground">
-                          {active ? "Active cover" : "Latest cover (not active)"}
+                          {active ? "Active cover" : `Latest cover (${coverLabel(shown).label})`}
                         </div>
                         {!shownBal.unknown && shownBal.outstanding && (
                           <Badge variant="outline" className="border-amber-500 text-amber-600">
@@ -219,7 +219,7 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
                           <span className="text-muted-foreground"> • {p.insurers?.name ?? "No insurer"}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant={cancelled ? "destructive" : p.status === "active" ? "default" : "secondary"}>{p.status}</Badge>
+                          <Badge variant={cancelled ? "destructive" : coverLabel(p).tone === "active" ? "default" : "secondary"}>{coverLabel(p).label}</Badge>
                           <Button asChild size="sm" variant="ghost"><Link to="/policies/$id" params={{ id: p.id }}>Open</Link></Button>
                         </div>
                       </div>

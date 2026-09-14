@@ -5,6 +5,7 @@ import { listMyPolicies } from "@/lib/portal.functions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { coverLabel } from "@/lib/policy-balance";
 
 export const Route = createFileRoute("/_portal/portal/policies")({ component: Page });
 
@@ -40,7 +41,7 @@ function Page() {
                     <TableCell>{p.vehicles ? `${p.vehicles.registration_no} · ${p.vehicles.make ?? ""} ${p.vehicles.model ?? ""}`.trim() : "—"}</TableCell>
                     <TableCell className="text-xs">{p.start_date} → {p.end_date}</TableCell>
                     <TableCell>{p.premium_gross ? Number(p.premium_gross).toLocaleString() : "—"}</TableCell>
-                    <TableCell><Badge variant={p.status === "active" ? "default" : "secondary"}>{p.status}</Badge></TableCell>
+                    <TableCell><Badge variant={coverLabel(p).tone === "active" ? "default" : "secondary"}>{coverLabel(p).label}</Badge></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
