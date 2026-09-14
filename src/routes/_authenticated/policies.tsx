@@ -104,10 +104,7 @@ function PoliciesList() {
                       )}
                     </td>
                     <td className="px-4 py-3 space-x-1">
-                      <StatusBadge status={p.status} />
-                      {isCoverActive(p) && p.status !== "active" && (
-                        <Badge variant="outline" className="border-green-300 text-green-800">Cover active</Badge>
-                      )}
+                      <CoverBadge policy={p} />
                       <PayBadge status={p.payment_status} />
                       {p.payment_status !== "paid" && (bal.outstanding || bal.unknown) && (
                         <Badge variant="outline" className="border-destructive/40 text-destructive">
