@@ -12,7 +12,7 @@ import { Plus, Search } from "lucide-react";
 import { PolicyFormDialog } from "@/components/policies/policy-form-dialog";
 import { policyTermLabel } from "@/lib/utils";
 import { isInstallmentTerm } from "@/lib/policy-installments";
-import { policyBalance, formatKES, isCoverActive } from "@/lib/policy-balance";
+import { policyBalance, formatKES, coverLabel, COVER_TONE_CLASS } from "@/lib/policy-balance";
 
 export const Route = createFileRoute("/_authenticated/policies")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: PoliciesLayout });
 
@@ -104,10 +104,7 @@ function PoliciesList() {
                       )}
                     </td>
                     <td className="px-4 py-3 space-x-1">
-                      <StatusBadge status={p.status} />
-                      {isCoverActive(p) && p.status !== "active" && (
-                        <Badge variant="outline" className="border-green-300 text-green-800">Cover active</Badge>
-                      )}
+                      <CoverBadge policy={p} />
                       <PayBadge status={p.payment_status} />
                       {p.payment_status !== "paid" && (bal.outstanding || bal.unknown) && (
                         <Badge variant="outline" className="border-destructive/40 text-destructive">
@@ -134,15 +131,9 @@ function PoliciesList() {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    active: "bg-green-100 text-green-900 border-green-200",
-    pending: "bg-yellow-100 text-yellow-900 border-yellow-200",
-    expired: "bg-red-100 text-red-900 border-red-200",
-    cancelled: "bg-gray-100 text-gray-700 border-gray-200",
-    renewed: "bg-blue-100 text-blue-900 border-blue-200",
-  };
-  return <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs ${map[status] ?? ""}`}>{status}</span>;
+function CoverBadge({ policy }: { policy: any }) {
+  const { label, tone } = coverLabel(policy);
+  return <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs ${COVER_TONE_CLASS[tone]}`}>{label}</span>;
 }
 function PayBadge({ status }: { status: string }) {
   const map: Record<string, string> = {

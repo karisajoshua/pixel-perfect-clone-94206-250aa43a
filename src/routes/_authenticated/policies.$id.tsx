@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { policyTermLabel } from "@/lib/utils";
-import { policyBalance, balanceLabel, formatKES, isCoverActive } from "@/lib/policy-balance";
+import { policyBalance, balanceLabel, formatKES, coverLabel, COVER_TONE_CLASS } from "@/lib/policy-balance";
 import { fetchChainInvoices, chainTotals } from "@/lib/policy-chain";
 import { PaymentStatement } from "@/components/payments/payment-statement";
 
@@ -303,9 +303,9 @@ function PolicyDetail() {
         subtitle={`${clientName} • ${productClassLabel(p.product_class, p.product_subclass, p.tonnage)} • ${p.cover_type}`}
         actions={
           <div className="flex gap-2">
-            {isCoverActive(p) && (
-              <Badge variant="outline" className="self-center border-green-300 text-green-800">Cover active</Badge>
-            )}
+            <Badge variant="outline" className={`self-center ${COVER_TONE_CLASS[coverLabel(p).tone]}`}>
+              {coverLabel(p).label === "active" ? "Cover active" : `Cover ${coverLabel(p).label}`}
+            </Badge>
             {p.ipen_policy_id && (
               <>
                 <Badge variant="secondary" className="self-center">IPEN</Badge>
@@ -354,7 +354,7 @@ function PolicyDetail() {
               <Item label="Net premium" value={p.premium_net ? `KES ${Number(p.premium_net).toLocaleString()}` : "—"} />
               <Item label="Commission" value={p.commission ? `KES ${Number(p.commission).toLocaleString()}` : "—"} />
               <Item label="Taxes" value={p.taxes ? `KES ${Number(p.taxes).toLocaleString()}` : "—"} />
-              <Item label="Status" value={p.status} />
+              <Item label="Status" value={coverLabel(p).label} />
               <Item label="Payment" value={p.payment_status} />
               <Item label="Amount paid" value={formatKES(bal.paid)} />
               <div>

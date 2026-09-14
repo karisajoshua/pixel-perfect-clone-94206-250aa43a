@@ -75,6 +75,37 @@ export function isCoverActive(policy: { status?: string | null; start_date?: str
   return true;
 }
 
+export type CoverLabel = { label: string; tone: "active" | "expired" | "pending" | "cancelled" | "neutral" };
+
+/**
+ * What a cover should be called on screen. The dates win over the stored
+ * status word: a one-month cover whose expiry has passed reads "Expired"
+ * even if the record still says "active". Display only — nothing is written.
+ */
+export function coverLabel(
+  policy: { status?: string | null; start_date?: string | null; end_date?: string | null } | null | undefined,
+): CoverLabel {
+  const status = String(policy?.status ?? "");
+  if (!policy) return { label: "—", tone: "neutral" };
+  if (status === "cancelled") return { label: "cancelled", tone: "cancelled" };
+  const today = new Date().toISOString().slice(0, 10);
+  if (ACTIVE_STATUSES.includes(status)) {
+    if (policy.end_date && policy.end_date < today) return { label: "expired", tone: "expired" };
+    if (policy.start_date && policy.start_date > today) return { label: "not started", tone: "pending" };
+    return { label: "active", tone: "active" };
+  }
+  if (status === "expired") return { label: "expired", tone: "expired" };
+  return { label: status || "—", tone: "neutral" };
+}
+
+export const COVER_TONE_CLASS: Record<CoverLabel["tone"], string> = {
+  active: "bg-green-100 text-green-900 border-green-200",
+  expired: "bg-red-100 text-red-900 border-red-200",
+  pending: "bg-yellow-100 text-yellow-900 border-yellow-200",
+  cancelled: "bg-gray-100 text-gray-700 border-gray-200",
+  neutral: "",
+};
+
 /** Display string for a balance, including the "not set" prompt. */
 export function balanceLabel(b: PolicyBalance) {
   return b.unknown ? "Balance not set — add the premium" : formatKES(b.balance);

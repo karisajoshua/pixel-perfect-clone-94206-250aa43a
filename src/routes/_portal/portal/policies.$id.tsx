@@ -8,7 +8,7 @@ import { productClassLabel } from "@/lib/product-classes";
 import { Button } from "@/components/ui/button";
 import { Download, ArrowLeft } from "lucide-react";
 import { ServiceRequestButton } from "@/components/portal/service-request-button";
-import { policyBalance, formatKES } from "@/lib/policy-balance";
+import { policyBalance, formatKES, coverLabel } from "@/lib/policy-balance";
 
 export const Route = createFileRoute("/_portal/portal/policies/$id")({ component: Page });
 
@@ -31,7 +31,7 @@ function Page() {
           <div className="text-muted-foreground text-sm">{p.insurers?.name} · {productClassLabel(p.product_class, p.product_subclass, p.tonnage)} · {p.cover_type}</div>
         </div>
         <div className="flex gap-2">
-          <Badge variant={p.status === "active" ? "default" : "secondary"}>{p.status}</Badge>
+          <Badge variant={coverLabel(p).tone === "active" ? "default" : "secondary"}>{coverLabel(p).label}</Badge>
           {p.document_url && (
             <Button asChild size="sm" variant="outline">
               <a href={p.document_url} target="_blank" rel="noreferrer"><Download className="h-4 w-4 mr-1" /> Policy PDF</a>
