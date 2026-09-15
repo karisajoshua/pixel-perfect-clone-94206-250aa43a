@@ -9,6 +9,52 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden: admin role required");
 }
 
+/**
+ * Every account-management action must stay inside the caller's own agency:
+ * being an admin elsewhere must never allow touching another agency's people.
+ */
+async function assertSameTenant(supabase: any, callerId: string, targetUserId: string) {
+  const { data: caller } = await supabase
+    .from("tenant_members")
+    .select("tenant_id")
+    .eq("user_id", callerId)
+    .maybeSingle();
+  const callerTenant = (caller as any)?.tenant_id as string | undefined;
+  if (!callerTenant) throw new Error("You are not a member of any agency");
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: target } = await supabaseAdmin
+    .from("tenant_members")
+    .select("tenant_id")
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+  const targetTenant = (target as any)?.tenant_id as string | undefined;
+  if (!targetTenant || targetTenant !== callerTenant) {
+    throw new Error("Forbidden: this account belongs to another agency");
+  }
+}
+
+async function assertClientInTenant(supabase: any, callerId: string, clientId: string) {
+  const { data: caller } = await supabase
+    .from("tenant_members")
+    .select("tenant_id")
+    .eq("user_id", callerId)
+    .maybeSingle();
+  const callerTenant = (caller as any)?.tenant_id as string | undefined;
+  if (!callerTenant) throw new Error("You are not a member of any agency");
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: client } = await supabaseAdmin
+    .from("clients")
+    .select("tenant_id")
+    .eq("id", clientId)
+    .maybeSingle();
+  if (!client) throw new Error("Client not found");
+  if ((client as any).tenant_id !== callerTenant) {
+    throw new Error("Forbidden: this client belongs to another agency");
+  }
+}
+
 async function assertAdminOrManager(supabase: any, userId: string) {
   for (const r of ["admin", "manager"] as const) {
     const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: r });
