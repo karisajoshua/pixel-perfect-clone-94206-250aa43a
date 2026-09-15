@@ -85,6 +85,7 @@ export const createClientPortalAccount = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdminOrManager(supabase, userId);
+    await assertClientInTenant(supabase, userId, data.client_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: client, error: cErr } = await supabaseAdmin
@@ -159,6 +160,7 @@ export const getClientPortalInfo = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdminOrManager(supabase, userId);
+    await assertClientInTenant(supabase, userId, data.client_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: client, error } = await supabaseAdmin
@@ -183,6 +185,7 @@ export const resetClientPortalPassword = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdminOrManager(supabase, userId);
+    await assertClientInTenant(supabase, userId, data.client_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: client, error } = await supabaseAdmin
@@ -220,6 +223,7 @@ export const updateUserProfile = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
+    await assertSameTenant(supabase, userId, data.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const profileUpdate: { full_name?: string | null; email?: string | null; phone?: string | null } = {};
@@ -246,6 +250,7 @@ export const deleteUser = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
+    await assertSameTenant(supabase, userId, data.userId);
     if (data.userId === userId) throw new Error("You cannot delete your own account");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
