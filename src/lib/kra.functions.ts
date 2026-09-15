@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth as requireSupabaseAuth } from "@/lib/auth-mfa.middleware";
 
 export type KraIdType = "national_id" | "passport" | "service_id" | "alien_id";
 

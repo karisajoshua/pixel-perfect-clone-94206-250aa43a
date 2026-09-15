@@ -1,5 +1,5 @@
 import { createMiddleware } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth as requireSupabaseAuth } from "@/lib/auth-mfa.middleware";
 
 /**
  * Wraps the generated Supabase auth middleware and additionally enforces the

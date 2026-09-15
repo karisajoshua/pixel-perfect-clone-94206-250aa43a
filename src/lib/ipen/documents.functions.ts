@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth as requireSupabaseAuth } from "@/lib/auth-mfa.middleware";
 import { ipenFetch } from "./ipen-fetch.server";
 
 // Returns the IPEN document as base64 so the browser can render/download it
