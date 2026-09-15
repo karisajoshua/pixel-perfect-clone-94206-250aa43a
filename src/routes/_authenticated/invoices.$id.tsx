@@ -231,7 +231,7 @@ function PaymentDialog({ open, onOpenChange, invoiceId, max, currentPaid, total,
     const { data: u } = await supabase.auth.getUser();
     const { data: pay, error } = await supabase.from("payments").insert({ invoice_id: invoiceId, amount: capped, method, reference, paid_date: date, recorded_by: u.user?.id } as any).select("id").single();
     if (error) return toast.error(error.message);
-    const newPaid = currentPaid + amount;
+    const newPaid = currentPaid + capped;
     const newStatus = newPaid >= total ? "paid" : "partial";
     await supabase.from("invoices").update({ amount_paid: newPaid, status: newStatus }).eq("id", invoiceId);
     try { await syncPolicyFromInvoice(policyId); } catch {}
@@ -248,7 +248,7 @@ function PaymentDialog({ open, onOpenChange, invoiceId, max, currentPaid, total,
           templateData: {
             clientName: clientDisplayName(c),
             invoiceNo: (inv as any)?.invoice_no ?? '',
-            amount: formatKES(amount),
+            amount: formatKES(capped),
             paidAt: date,
             method,
             reference,

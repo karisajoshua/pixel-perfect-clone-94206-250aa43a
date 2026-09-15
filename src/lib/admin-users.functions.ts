@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth as requireSupabaseAuth } from "@/lib/auth-mfa.middleware";
 import { z } from "zod";
 import { normalizePhone } from "@/lib/phone";
 
@@ -7,6 +7,52 @@ async function assertAdmin(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden: admin role required");
+}
+
+/**
+ * Every account-management action must stay inside the caller's own agency:
+ * being an admin elsewhere must never allow touching another agency's people.
+ */
+async function assertSameTenant(supabase: any, callerId: string, targetUserId: string) {
+  const { data: caller } = await supabase
+    .from("tenant_members")
+    .select("tenant_id")
+    .eq("user_id", callerId)
+    .maybeSingle();
+  const callerTenant = (caller as any)?.tenant_id as string | undefined;
+  if (!callerTenant) throw new Error("You are not a member of any agency");
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: target } = await supabaseAdmin
+    .from("tenant_members")
+    .select("tenant_id")
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+  const targetTenant = (target as any)?.tenant_id as string | undefined;
+  if (!targetTenant || targetTenant !== callerTenant) {
+    throw new Error("Forbidden: this account belongs to another agency");
+  }
+}
+
+async function assertClientInTenant(supabase: any, callerId: string, clientId: string) {
+  const { data: caller } = await supabase
+    .from("tenant_members")
+    .select("tenant_id")
+    .eq("user_id", callerId)
+    .maybeSingle();
+  const callerTenant = (caller as any)?.tenant_id as string | undefined;
+  if (!callerTenant) throw new Error("You are not a member of any agency");
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: client } = await supabaseAdmin
+    .from("clients")
+    .select("tenant_id")
+    .eq("id", clientId)
+    .maybeSingle();
+  if (!client) throw new Error("Client not found");
+  if ((client as any).tenant_id !== callerTenant) {
+    throw new Error("Forbidden: this client belongs to another agency");
+  }
 }
 
 async function assertAdminOrManager(supabase: any, userId: string) {
@@ -39,6 +85,7 @@ export const createClientPortalAccount = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdminOrManager(supabase, userId);
+    await assertClientInTenant(supabase, userId, data.client_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: client, error: cErr } = await supabaseAdmin
@@ -113,6 +160,7 @@ export const getClientPortalInfo = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdminOrManager(supabase, userId);
+    await assertClientInTenant(supabase, userId, data.client_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: client, error } = await supabaseAdmin
@@ -137,6 +185,7 @@ export const resetClientPortalPassword = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdminOrManager(supabase, userId);
+    await assertClientInTenant(supabase, userId, data.client_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: client, error } = await supabaseAdmin
@@ -174,6 +223,7 @@ export const updateUserProfile = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
+    await assertSameTenant(supabase, userId, data.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const profileUpdate: { full_name?: string | null; email?: string | null; phone?: string | null } = {};
@@ -200,6 +250,7 @@ export const deleteUser = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
+    await assertSameTenant(supabase, userId, data.userId);
     if (data.userId === userId) throw new Error("You cannot delete your own account");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);

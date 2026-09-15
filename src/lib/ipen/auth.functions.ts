@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth as requireSupabaseAuth } from "@/lib/auth-mfa.middleware";
 import { ipenPublic, extractTokens } from "./ipen-fetch.server";
 
 // Connect the current staff user to IPEN by exchanging their IPEN

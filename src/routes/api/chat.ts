@@ -234,10 +234,20 @@ export const Route = createFileRoute("/api/chat")({
 
         // Attach the caller's bearer token so all DB queries run under their RLS.
         const authHeader = request.headers.get("authorization") ?? "";
+        if (!authHeader.startsWith("Bearer ")) {
+          return new Response("Unauthorized", { status: 401 });
+        }
         const sb = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-          global: { headers: authHeader ? { Authorization: authHeader } : {} },
+          global: { headers: { Authorization: authHeader } },
           auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
         });
+
+        // Verify the signed-in user before spending any AI credits.
+        const token = authHeader.slice("Bearer ".length);
+        const { data: claimsData, error: claimsError } = await sb.auth.getClaims(token);
+        if (claimsError || !claimsData?.claims?.sub) {
+          return new Response("Unauthorized", { status: 401 });
+        }
 
         const gateway = createLovableAiGatewayProvider(key);
         const result = streamText({

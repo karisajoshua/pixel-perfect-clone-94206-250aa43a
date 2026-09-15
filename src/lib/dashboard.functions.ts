@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth as requireSupabaseAuth } from "@/lib/auth-mfa.middleware";
 
 export type DashboardSummary = {
   totals: {
@@ -60,7 +60,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
     const today = new Date().toISOString().slice(0, 10);
 
     const [policiesRes, claimsRes, renewalsRes, clientsRes, branchesRes, paymentsRes, extensionsRes] = await Promise.all([
-      scope(supabase.from("policies").select("id, status, branch_id, premium_gross, start_date, cancelled_at")),
+      scope(supabase.from("policies").select("id, status, branch_id, premium_gross, start_date, end_date, cancelled_at")),
       scope(supabase.from("claims").select("id, status, branch_id")),
       scope(supabase.from("policies").select("id", { count: "exact", head: true }).gte("end_date", today).lte("end_date", in30).eq("status", "active")),
       scope(supabase.from("clients").select("id, branch_id")),
@@ -80,7 +80,14 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       ? paymentsRaw.filter((p) => p.invoices?.branch_id === scopeBranchId)
       : paymentsRaw;
 
-    const activePolicies = policies.filter((p) => p.status === "active");
+    // A cover only counts as active when the certificate dates still cover today.
+    const activePolicies = policies.filter(
+      (p) =>
+        p.status === "active" &&
+        !p.cancelled_at &&
+        (!p.start_date || p.start_date <= today) &&
+        (!p.end_date || p.end_date >= today),
+    );
     const cancelledPolicies = policies.filter((p) => p.status === "cancelled");
     const cancelledThisMonth = cancelledPolicies.filter((p) => p.cancelled_at && p.cancelled_at >= monthStart).length;
     const extensions = (extensionsRes.data ?? []) as any[];
