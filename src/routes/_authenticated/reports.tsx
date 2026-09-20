@@ -245,16 +245,17 @@ function ReportsPage() {
 
 function Kpis({ data }: { data: ReportsSummary }) {
   const items = [
-    { label: "New business", value: data.kpis.newBusiness.toLocaleString(), detail: fmtKES(data.kpis.newBusinessPremium) },
-    { label: "Revenue (paid)", value: fmtKES(data.kpis.revenue) },
-    { label: "Active cover premium", value: fmtKES(data.kpis.activeCoverPremium) },
-    { label: "Active policies", value: data.kpis.activePolicies.toLocaleString() },
-    { label: "New clients", value: data.kpis.newClients.toLocaleString() },
-    { label: "Open claims", value: data.kpis.openClaims.toLocaleString() },
-    { label: "Renewal hit rate", value: `${Math.round(data.kpis.renewalHitRate * 100)}%` },
+    { label: "New business", value: data.kpis.newBusiness.toLocaleString(), detail: `${fmtKES(data.kpis.newBusinessPremium)} · in selected period` },
+    { label: "Collected (selected period)", value: fmtKES(data.kpis.revenue), detail: "Payments received in this period" },
+    { label: "Total collected (all time)", value: fmtKES(data.kpis.revenueAllTime), detail: "Matches the dashboard figure" },
+    { label: "Active cover premium", value: fmtKES(data.kpis.activeCoverPremium), detail: "As of today" },
+    { label: "Active policies", value: data.kpis.activePolicies.toLocaleString(), detail: "As of today" },
+    { label: "New clients", value: data.kpis.newClients.toLocaleString(), detail: "In selected period" },
+    { label: "Open claims", value: data.kpis.openClaims.toLocaleString(), detail: "As of today" },
+    { label: "Renewal hit rate", value: `${Math.round(data.kpis.renewalHitRate * 100)}%`, detail: "In selected period" },
   ];
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
       {items.map((k) => (
         <Card key={k.label}><CardContent className="px-4 pb-4 pt-4 sm:pt-5">
           <div className="text-xs font-medium text-muted-foreground">{k.label}</div>
@@ -302,9 +303,10 @@ function buildCsv(d: ReportsSummary, isAdmin: boolean): string {
   lines.push(`Period,${d.range.from},${d.range.to}`);
   lines.push("");
   lines.push("KPI,Value");
-  lines.push(`Revenue (paid),${d.kpis.revenue}`);
-  lines.push(`Active cover premium,${d.kpis.activeCoverPremium}`);
-  lines.push(`Active policies,${d.kpis.activePolicies}`);
+  lines.push(`Collected (selected period),${d.kpis.revenue}`);
+  lines.push(`Total collected (all time),${d.kpis.revenueAllTime}`);
+  lines.push(`Active cover premium (as of today),${d.kpis.activeCoverPremium}`);
+  lines.push(`Active policies (as of today),${d.kpis.activePolicies}`);
   lines.push(`New clients,${d.kpis.newClients}`);
   lines.push(`Open claims,${d.kpis.openClaims}`);
   lines.push(`Renewal hit rate,${(d.kpis.renewalHitRate * 100).toFixed(1)}%`);

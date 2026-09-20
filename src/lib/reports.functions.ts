@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAuth as requireSupabaseAuth } from "@/lib/auth-mfa.middleware";
+import { isLiveCover, isNewBusiness, todayISO } from "@/lib/metrics.shared";
 
 const Input = z.object({
   from: z.string(), // ISO date
@@ -12,6 +13,7 @@ export type ReportsSummary = {
   range: { from: string; to: string };
   kpis: {
     revenue: number;
+    revenueAllTime: number;
     activeCoverPremium: number;
     activePolicies: number;
     newClients: number;
@@ -48,14 +50,15 @@ export const getReportsSummary = createServerFn({ method: "POST" })
 
     const branchFilter = (q: any) => (branchId ? q.eq("branch_id", branchId) : q);
 
-    const [policiesRes, clientsRes, claimsRes, branchesRes, profilesRes, insurersRes, paymentsRes] = await Promise.all([
-      branchFilter(supabase.from("policies").select("id, status, premium_gross, insurer_id, branch_id, created_by, start_date, end_date, previous_policy_id, policy_term, insurers(name)")),
+    const [policiesRes, clientsRes, claimsRes, branchesRes, profilesRes, insurersRes, paymentsRes, allPaymentsRes] = await Promise.all([
+      branchFilter(supabase.from("policies").select("id, status, premium_gross, insurer_id, branch_id, created_by, start_date, end_date, cancelled_at, previous_policy_id, policy_term, insurers(name)")),
       branchFilter(supabase.from("clients").select("id, created_at, branch_id").gte("created_at", from).lte("created_at", to)),
       branchFilter(supabase.from("claims").select("id, status, branch_id")),
       supabase.from("branches").select("id, name"),
       supabase.from("profiles").select("id, full_name, branch_id"),
       supabase.from("insurers").select("id, name"),
       supabase.from("payments").select("amount, paid_date, invoices!inner(branch_id)").gte("paid_date", from).lte("paid_date", to),
+      supabase.from("payments").select("amount, invoices!inner(branch_id)"),
     ]);
 
     const policies = policiesRes.data ?? [];
@@ -68,10 +71,18 @@ export const getReportsSummary = createServerFn({ method: "POST" })
       ? paymentsRaw.filter((p: any) => p.invoices?.branch_id === branchId)
       : paymentsRaw;
 
-    const activePoliciesList = policies.filter((p: any) => p.status === "active");
+    const allPaymentsRaw = (allPaymentsRes.data ?? []) as any[];
+    const allPayments = branchId
+      ? allPaymentsRaw.filter((p: any) => p.invoices?.branch_id === branchId)
+      : allPaymentsRaw;
+
+    const today = todayISO();
+    // Same definition as the main dashboard: certificate dates still cover today.
+    const activePoliciesList = policies.filter((p: any) => isLiveCover(p, today));
     const activePoliciesInRange = activePoliciesList.filter((p: any) => p.start_date >= from && p.start_date <= to);
     const activeCoverPremium = activePoliciesList.reduce((s: number, p: any) => s + Number(p.premium_gross ?? 0), 0);
     const revenue = payments.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
+    const revenueAllTime = allPayments.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
     const activePolicies = activePoliciesList.length;
     const newClients = clients.length;
     const openClaims = claims.filter((c: any) => !["paid", "closed", "rejected"].includes(c.status)).length;
@@ -82,11 +93,7 @@ export const getReportsSummary = createServerFn({ method: "POST" })
     const renewalHitRate = endedInRange.length ? renewed / endedInRange.length : 0;
 
     const newBusinessPolicies = policies.filter(
-      (p: any) =>
-        p.start_date >= from &&
-        p.start_date <= to &&
-        !p.previous_policy_id &&
-        !["second_installment", "rop"].includes(String(p.policy_term ?? "")),
+      (p: any) => p.start_date >= from && p.start_date <= to && isNewBusiness(p),
     );
     const newBusinessPremium = newBusinessPolicies.reduce(
       (sum: number, p: any) => sum + Number(p.premium_gross ?? 0),
@@ -193,7 +200,7 @@ export const getReportsSummary = createServerFn({ method: "POST" })
 
     return {
       range: { from, to },
-      kpis: { revenue, activeCoverPremium, activePolicies, newClients, openClaims, renewalHitRate, newBusiness: newBusinessPolicies.length, newBusinessPremium },
+      kpis: { revenue, revenueAllTime, activeCoverPremium, activePolicies, newClients, openClaims, renewalHitRate, newBusiness: newBusinessPolicies.length, newBusinessPremium },
       revenueOverTime,
       newBusinessByMonth,
       policiesByStatus,

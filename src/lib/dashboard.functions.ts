@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireAuth as requireSupabaseAuth } from "@/lib/auth-mfa.middleware";
+import { isLiveCover, isNewBusiness } from "@/lib/metrics.shared";
 
 export type DashboardSummary = {
   totals: {
@@ -86,13 +87,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       : paymentsRaw;
 
     // A cover only counts as active when the certificate dates still cover today.
-    const activePolicies = policies.filter(
-      (p) =>
-        p.status === "active" &&
-        !p.cancelled_at &&
-        (!p.start_date || p.start_date <= today) &&
-        (!p.end_date || p.end_date >= today),
-    );
+    const activePolicies = policies.filter((p) => isLiveCover(p, today));
     const cancelledPolicies = policies.filter((p) => p.status === "cancelled");
     const cancelledThisMonth = cancelledPolicies.filter((p) => p.cancelled_at && p.cancelled_at >= monthStart).length;
     const extensions = (extensionsRes.data ?? []) as any[];
@@ -110,10 +105,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
     });
     const newBusinessByMonth = monthKeys.map((month) => {
       const rows = policies.filter(
-        (p) =>
-          String(p.start_date ?? "").slice(0, 7) === month &&
-          !p.previous_policy_id &&
-          !["second_installment", "rop"].includes(String(p.policy_term ?? "")),
+        (p) => String(p.start_date ?? "").slice(0, 7) === month && isNewBusiness(p),
       );
       return {
         month,

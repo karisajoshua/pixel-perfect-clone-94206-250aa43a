@@ -52,7 +52,7 @@ function Dashboard() {
   const t = data?.totals;
   const tiles = [
     { label: "Clients", value: t?.clients ?? "—", icon: Users, href: "/clients" },
-    { label: "Active policies", value: t?.activePolicies ?? "—", icon: FileText, href: "/policies" },
+    { label: "Active policies (today)", value: t?.activePolicies ?? "—", icon: FileText, href: "/policies" },
     { label: "Open claims", value: t?.openClaims ?? "—", icon: ScrollText, href: "/claims" },
     { label: "Due renewals (30d)", value: t?.dueRenewals ?? "—", icon: BellRing, href: "/renewals" },
     { label: "Cancelled policies", value: t?.cancelledPolicies ?? "—", icon: Ban, href: "/policies" },
@@ -73,13 +73,13 @@ function Dashboard() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total revenue (paid)</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total collected (all time)</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="break-words text-2xl font-bold tabular-nums sm:text-3xl">{t ? fmt(t.revenue) : "—"}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                {t ? `${fmt(t.revenueThisMonth)} this month` : "Loading…"}
+                {t ? `${fmt(t.revenueThisMonth)} collected this month` : "Loading…"}
               </p>
             </CardContent>
           </Card>
@@ -90,7 +90,7 @@ function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="break-words text-2xl font-bold tabular-nums sm:text-3xl">{t ? fmt(t.activeCoverPremium) : "—"}</div>
-              <p className="text-xs text-muted-foreground mt-1">Gross premium on all active policies.</p>
+              <p className="text-xs text-muted-foreground mt-1">Gross premium on covers live today.</p>
             </CardContent>
           </Card>
         </div>
