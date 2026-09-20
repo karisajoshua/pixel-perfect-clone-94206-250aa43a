@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAuth as requireSupabaseAuth } from "@/lib/auth-mfa.middleware";
+import { isLiveCover, isNewBusiness, todayISO } from "@/lib/metrics.shared";
 
 const Input = z.object({
   from: z.string(), // ISO date
@@ -12,6 +13,7 @@ export type ReportsSummary = {
   range: { from: string; to: string };
   kpis: {
     revenue: number;
+    revenueAllTime: number;
     activeCoverPremium: number;
     activePolicies: number;
     newClients: number;
