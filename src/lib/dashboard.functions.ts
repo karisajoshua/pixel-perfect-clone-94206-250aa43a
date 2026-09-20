@@ -87,13 +87,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       : paymentsRaw;
 
     // A cover only counts as active when the certificate dates still cover today.
-    const activePolicies = policies.filter(
-      (p) =>
-        p.status === "active" &&
-        !p.cancelled_at &&
-        (!p.start_date || p.start_date <= today) &&
-        (!p.end_date || p.end_date >= today),
-    );
+    const activePolicies = policies.filter((p) => isLiveCover(p, today));
     const cancelledPolicies = policies.filter((p) => p.status === "cancelled");
     const cancelledThisMonth = cancelledPolicies.filter((p) => p.cancelled_at && p.cancelled_at >= monthStart).length;
     const extensions = (extensionsRes.data ?? []) as any[];
