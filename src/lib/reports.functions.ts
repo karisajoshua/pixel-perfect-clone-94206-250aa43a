@@ -50,14 +50,15 @@ export const getReportsSummary = createServerFn({ method: "POST" })
 
     const branchFilter = (q: any) => (branchId ? q.eq("branch_id", branchId) : q);
 
-    const [policiesRes, clientsRes, claimsRes, branchesRes, profilesRes, insurersRes, paymentsRes] = await Promise.all([
-      branchFilter(supabase.from("policies").select("id, status, premium_gross, insurer_id, branch_id, created_by, start_date, end_date, previous_policy_id, policy_term, insurers(name)")),
+    const [policiesRes, clientsRes, claimsRes, branchesRes, profilesRes, insurersRes, paymentsRes, allPaymentsRes] = await Promise.all([
+      branchFilter(supabase.from("policies").select("id, status, premium_gross, insurer_id, branch_id, created_by, start_date, end_date, cancelled_at, previous_policy_id, policy_term, insurers(name)")),
       branchFilter(supabase.from("clients").select("id, created_at, branch_id").gte("created_at", from).lte("created_at", to)),
       branchFilter(supabase.from("claims").select("id, status, branch_id")),
       supabase.from("branches").select("id, name"),
       supabase.from("profiles").select("id, full_name, branch_id"),
       supabase.from("insurers").select("id, name"),
       supabase.from("payments").select("amount, paid_date, invoices!inner(branch_id)").gte("paid_date", from).lte("paid_date", to),
+      supabase.from("payments").select("amount, invoices!inner(branch_id)"),
     ]);
 
     const policies = policiesRes.data ?? [];
