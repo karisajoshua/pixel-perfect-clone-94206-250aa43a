@@ -39,6 +39,11 @@ export type DashboardSummary = {
     amount_due: number;
     due_date: string;
   }[];
+  newBusinessByMonth: {
+    month: string;
+    policies: number;
+    premium: number;
+  }[];
 };
 
 export const getDashboardSummary = createServerFn({ method: "GET" })
@@ -60,7 +65,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
     const today = new Date().toISOString().slice(0, 10);
 
     const [policiesRes, claimsRes, renewalsRes, clientsRes, branchesRes, paymentsRes, extensionsRes] = await Promise.all([
-      scope(supabase.from("policies").select("id, status, branch_id, premium_gross, start_date, end_date, cancelled_at")),
+      scope(supabase.from("policies").select("id, status, branch_id, premium_gross, start_date, end_date, cancelled_at, previous_policy_id, policy_term")),
       scope(supabase.from("claims").select("id, status, branch_id")),
       scope(supabase.from("policies").select("id", { count: "exact", head: true }).gte("end_date", today).lte("end_date", in30).eq("status", "active")),
       scope(supabase.from("clients").select("id, branch_id")),
@@ -98,6 +103,24 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
     const revenueThisMonth = payments
       .filter((p) => p.paid_date && p.paid_date >= monthStart)
       .reduce((s, p) => s + Number(p.amount ?? 0), 0);
+
+    const monthKeys = Array.from({ length: 6 }, (_, index) => {
+      const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - index), 1));
+      return date.toISOString().slice(0, 7);
+    });
+    const newBusinessByMonth = monthKeys.map((month) => {
+      const rows = policies.filter(
+        (p) =>
+          String(p.start_date ?? "").slice(0, 7) === month &&
+          !p.previous_policy_id &&
+          !["second_installment", "rop"].includes(String(p.policy_term ?? "")),
+      );
+      return {
+        month,
+        policies: rows.length,
+        premium: rows.reduce((sum, p) => sum + Number(p.premium_gross ?? 0), 0),
+      };
+    });
 
     const revByBranch = new Map<string | null, number>();
     for (const p of payments) {
@@ -190,5 +213,6 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       byBranch,
       recentCancellations,
       overdueExtensionsList,
+      newBusinessByMonth,
     };
   });
