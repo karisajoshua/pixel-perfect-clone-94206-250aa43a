@@ -1,0 +1,6 @@
+# Analytics dashboard and reports
+
+- [ ] Add accurate monthly first-time policy reporting
+- [ ] Improve dashboard layout and mobile data views
+- [ ] Improve reports layout, charts, exports, and mobile behavior
+- [ ] Add page metadata and validate desktop/mobile behavior
