@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireAuth as requireSupabaseAuth } from "@/lib/auth-mfa.middleware";
+import { isLiveCover, isNewBusiness } from "@/lib/metrics.shared";
 
 export type DashboardSummary = {
   totals: {
