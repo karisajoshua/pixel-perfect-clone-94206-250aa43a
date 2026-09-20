@@ -4,4 +4,3 @@
 - [x] Improve dashboard layout and mobile data views
 - [x] Improve reports layout, charts, exports, and mobile behavior
 - [x] Add page metadata and validate desktop/mobile behavior
-- [ ] Add page metadata and validate desktop/mobile behavior

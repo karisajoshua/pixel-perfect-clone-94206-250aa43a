@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
-  BarChart, Bar, PieChart, Pie, Cell, Legend,
+  BarChart, Bar, PieChart, Pie, Cell, Legend, ComposedChart,
 } from "recharts";
 import { Download, Printer, TrendingUp } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -184,7 +184,7 @@ function ReportsPage() {
              {report.data.newBusinessByMonth.every((item) => item.policies === 0) ? <Empty msg="No first-time policies in this period." /> : (
                <div className="h-72 w-full sm:h-80" role="img" aria-label="First-time policy count and gross premium by month">
                  <ResponsiveContainer width="100%" height="100%">
-                   <BarChart data={report.data.newBusinessByMonth} margin={{ left: -18, right: 4, top: 12 }}>
+                   <ComposedChart data={report.data.newBusinessByMonth} margin={{ left: -18, right: 4, top: 12 }}>
                      <CartesianGrid vertical={false} stroke="var(--border)" />
                      <XAxis dataKey="month" tickFormatter={shortMonth} tickLine={false} axisLine={false} minTickGap={18} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
                      <YAxis yAxisId="policies" allowDecimals={false} tickLine={false} axisLine={false} width={38} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
@@ -193,7 +193,7 @@ function ReportsPage() {
                      <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
                      <Bar yAxisId="policies" dataKey="policies" name="New policies" fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={44} />
                      <Area yAxisId="premium" type="monotone" dataKey="premium" name="Gross premium" stroke="var(--chart-3)" fill="var(--chart-3)" fillOpacity={0.08} strokeWidth={2.5} />
-                   </BarChart>
+                   </ComposedChart>
                  </ResponsiveContainer>
                </div>
              )}
