@@ -93,11 +93,7 @@ export const getReportsSummary = createServerFn({ method: "POST" })
     const renewalHitRate = endedInRange.length ? renewed / endedInRange.length : 0;
 
     const newBusinessPolicies = policies.filter(
-      (p: any) =>
-        p.start_date >= from &&
-        p.start_date <= to &&
-        !p.previous_policy_id &&
-        !["second_installment", "rop"].includes(String(p.policy_term ?? "")),
+      (p: any) => p.start_date >= from && p.start_date <= to && isNewBusiness(p),
     );
     const newBusinessPremium = newBusinessPolicies.reduce(
       (sum: number, p: any) => sum + Number(p.premium_gross ?? 0),
@@ -204,7 +200,7 @@ export const getReportsSummary = createServerFn({ method: "POST" })
 
     return {
       range: { from, to },
-      kpis: { revenue, activeCoverPremium, activePolicies, newClients, openClaims, renewalHitRate, newBusiness: newBusinessPolicies.length, newBusinessPremium },
+      kpis: { revenue, revenueAllTime, activeCoverPremium, activePolicies, newClients, openClaims, renewalHitRate, newBusiness: newBusinessPolicies.length, newBusinessPremium },
       revenueOverTime,
       newBusinessByMonth,
       policiesByStatus,
