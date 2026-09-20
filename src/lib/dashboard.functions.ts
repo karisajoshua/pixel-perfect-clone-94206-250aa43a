@@ -105,10 +105,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
     });
     const newBusinessByMonth = monthKeys.map((month) => {
       const rows = policies.filter(
-        (p) =>
-          String(p.start_date ?? "").slice(0, 7) === month &&
-          !p.previous_policy_id &&
-          !["second_installment", "rop"].includes(String(p.policy_term ?? "")),
+        (p) => String(p.start_date ?? "").slice(0, 7) === month && isNewBusiness(p),
       );
       return {
         month,
