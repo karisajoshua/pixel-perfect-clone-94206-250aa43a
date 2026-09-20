@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, FileText, ScrollText, BellRing, DollarSign, Ban, AlertTriangle } from "lucide-react";
+import { Users, FileText, ScrollText, BellRing, DollarSign, Ban, AlertTriangle, TrendingUp } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { PageHeader } from "@/components/page-header";
 import { getDashboardSummary } from "@/lib/dashboard.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,6 +13,16 @@ import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { useMyRoles } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  head: () => ({
+    meta: [
+      { title: "Agency dashboard — Zest Insurance" },
+      { name: "description", content: "Agency performance, active covers, payments, renewals and new business at a glance." },
+      { property: "og:title", content: "Agency dashboard — Zest Insurance" },
+      { property: "og:description", content: "Agency performance, active covers, payments, renewals and new business at a glance." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   beforeLoad: async () => {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return;
@@ -46,21 +58,26 @@ function Dashboard() {
     { label: "Cancelled policies", value: t?.cancelledPolicies ?? "—", icon: Ban, href: "/policies" },
   ];
 
+  const newBusinessChart = {
+    policies: { label: "New policies", color: "var(--chart-1)" },
+    premium: { label: "Gross premium", color: "var(--chart-3)" },
+  } satisfies ChartConfig;
+
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-5 p-4 sm:p-6 lg:p-8">
       <PageHeader title="Dashboard" subtitle="Overview of agency activity across all branches." helpDocId="getting-started" />
 
       <OnboardingChecklist />
 
       {isAdmin && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total revenue (paid)</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{t ? fmt(t.revenue) : "—"}</div>
+              <div className="break-words text-2xl font-bold tabular-nums sm:text-3xl">{t ? fmt(t.revenue) : "—"}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 {t ? `${fmt(t.revenueThisMonth)} this month` : "Loading…"}
               </p>
@@ -72,21 +89,21 @@ function Dashboard() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{t ? fmt(t.activeCoverPremium) : "—"}</div>
+              <div className="break-words text-2xl font-bold tabular-nums sm:text-3xl">{t ? fmt(t.activeCoverPremium) : "—"}</div>
               <p className="text-xs text-muted-foreground mt-1">Gross premium on all active policies.</p>
             </CardContent>
           </Card>
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Outstanding balances</CardTitle>
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{t ? fmt(t.outstandingExtensions) : "—"}</div>
+            <div className="break-words text-2xl font-bold tabular-nums sm:text-3xl">{t ? fmt(t.outstandingExtensions) : "—"}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {t ? `${t.overdueExtensions} overdue extension${t.overdueExtensions === 1 ? "" : "s"}` : "Loading…"}
             </p>
@@ -94,7 +111,7 @@ function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
         {tiles.map((t) => (
           <Link to={t.href} key={t.label}>
             <Card className="hover:border-primary transition-colors">
@@ -102,8 +119,8 @@ function Dashboard() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">{t.label}</CardTitle>
                 <t.icon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{t.value}</div>
+              <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
+                <div className="text-2xl font-bold tabular-nums sm:text-3xl">{t.value}</div>
                 {t.label === "Cancelled policies" && data?.totals && (
                   <p className="text-xs text-muted-foreground mt-1">{data.totals.cancelledThisMonth} this month</p>
                 )}
@@ -114,12 +131,49 @@ function Dashboard() {
       </div>
 
       <Card>
+        <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+          <div className="min-w-0">
+            <CardTitle>New business</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">First-time policies issued over the last six months.</p>
+          </div>
+          <TrendingUp className="h-5 w-5 shrink-0 text-primary" />
+        </CardHeader>
+        <CardContent>
+          {!data?.newBusinessByMonth?.some((item) => item.policies > 0) ? (
+            <div className="grid h-48 place-items-center text-sm text-muted-foreground">No new business recorded yet.</div>
+          ) : (
+            <ChartContainer config={newBusinessChart} className="h-56 w-full sm:h-72" aria-label="New policies by month">
+              <AreaChart data={data.newBusinessByMonth} margin={{ left: -18, right: 8, top: 8, bottom: 0 }}>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} tickFormatter={formatMonth} minTickGap={18} />
+                <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={36} />
+                <ChartTooltip content={<ChartTooltipContent labelFormatter={(value) => formatMonth(String(value))} />} />
+                <Area type="monotone" dataKey="policies" stroke="var(--color-policies)" fill="var(--color-policies)" fillOpacity={0.16} strokeWidth={2.5} />
+              </AreaChart>
+            </ChartContainer>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader><CardTitle>Recent cancellations</CardTitle></CardHeader>
         <CardContent>
           {!data?.recentCancellations?.length ? (
             <p className="text-sm text-muted-foreground">No cancelled policies.</p>
           ) : (
-            <Table>
+            <>
+            <div className="space-y-3 md:hidden">
+              {data.recentCancellations.map((r) => (
+                <div key={r.id} className="rounded-md border p-3">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
+                    <div className="min-w-0"><Link to="/policies/$id" params={{ id: r.id }} className="font-mono text-sm font-semibold text-primary">{r.policy_no}</Link><p className="truncate text-sm">{r.client_name}</p></div>
+                    <span className="shrink-0 text-xs text-muted-foreground">{r.cancelled_at ? new Date(r.cancelled_at).toLocaleDateString() : "—"}</span>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">{r.cancellation_reason ?? "No reason provided"}</p>
+                </div>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto md:block"><Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Policy</TableHead>
@@ -140,7 +194,8 @@ function Dashboard() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+            </Table></div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -149,7 +204,7 @@ function Dashboard() {
         <Card>
           <CardHeader><CardTitle>Overdue payment extensions</CardTitle></CardHeader>
           <CardContent>
-            <Table>
+            <div className="overflow-x-auto"><Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Policy</TableHead>
@@ -170,7 +225,7 @@ function Dashboard() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+            </Table></div>
           </CardContent>
         </Card>
       )}
@@ -182,7 +237,7 @@ function Dashboard() {
             {!data?.byBranch?.length ? (
               <p className="text-sm text-muted-foreground">No revenue recorded yet.</p>
             ) : (
-              <Table>
+              <div className="overflow-x-auto"><Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Branch</TableHead>
@@ -217,7 +272,7 @@ function Dashboard() {
                     <TableCell className="text-right">100%</TableCell>
                   </TableRow>
                 </TableBody>
-              </Table>
+              </Table></div>
             )}
           </CardContent>
         </Card>
@@ -234,4 +289,10 @@ function Dashboard() {
       </Card>
     </div>
   );
+}
+
+function formatMonth(value: string) {
+  const [year, month] = value.split("-").map(Number);
+  if (!year || !month) return value;
+  return new Intl.DateTimeFormat("en-KE", { month: "short", year: "2-digit", timeZone: "UTC" }).format(new Date(Date.UTC(year, month - 1, 1)));
 }

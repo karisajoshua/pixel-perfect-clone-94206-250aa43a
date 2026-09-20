@@ -17,8 +17,11 @@ export type ReportsSummary = {
     newClients: number;
     openClaims: number;
     renewalHitRate: number; // 0..1
+    newBusiness: number;
+    newBusinessPremium: number;
   };
   revenueOverTime: { month: string; revenue: number }[];
+  newBusinessByMonth: { month: string; policies: number; premium: number }[];
   policiesByStatus: { status: string; count: number }[];
   insurerShare: { insurer: string; premium: number }[];
   claimsFunnel: { stage: string; count: number }[];
@@ -46,7 +49,7 @@ export const getReportsSummary = createServerFn({ method: "POST" })
     const branchFilter = (q: any) => (branchId ? q.eq("branch_id", branchId) : q);
 
     const [policiesRes, clientsRes, claimsRes, branchesRes, profilesRes, insurersRes, paymentsRes] = await Promise.all([
-      branchFilter(supabase.from("policies").select("id, status, premium_gross, insurer_id, branch_id, created_by, start_date, end_date, insurers(name)")),
+      branchFilter(supabase.from("policies").select("id, status, premium_gross, insurer_id, branch_id, created_by, start_date, end_date, previous_policy_id, policy_term, insurers(name)")),
       branchFilter(supabase.from("clients").select("id, created_at, branch_id").gte("created_at", from).lte("created_at", to)),
       branchFilter(supabase.from("claims").select("id, status, branch_id")),
       supabase.from("branches").select("id, name"),
@@ -77,6 +80,36 @@ export const getReportsSummary = createServerFn({ method: "POST" })
     const endedInRange = policies.filter((p: any) => p.end_date >= from && p.end_date <= to);
     const renewed = endedInRange.filter((p: any) => p.status === "active" || p.status === "renewed").length;
     const renewalHitRate = endedInRange.length ? renewed / endedInRange.length : 0;
+
+    const newBusinessPolicies = policies.filter(
+      (p: any) =>
+        p.start_date >= from &&
+        p.start_date <= to &&
+        !p.previous_policy_id &&
+        !["second_installment", "rop"].includes(String(p.policy_term ?? "")),
+    );
+    const newBusinessPremium = newBusinessPolicies.reduce(
+      (sum: number, p: any) => sum + Number(p.premium_gross ?? 0),
+      0,
+    );
+
+    const monthKeys: string[] = [];
+    const cursor = new Date(`${from.slice(0, 7)}-01T00:00:00Z`);
+    const lastMonth = to.slice(0, 7);
+    for (let guard = 0; guard < 120; guard++) {
+      const key = cursor.toISOString().slice(0, 7);
+      monthKeys.push(key);
+      if (key === lastMonth) break;
+      cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+    }
+    const newBusinessByMonth = monthKeys.map((month) => {
+      const rows = newBusinessPolicies.filter((p: any) => String(p.start_date).slice(0, 7) === month);
+      return {
+        month,
+        policies: rows.length,
+        premium: rows.reduce((sum: number, p: any) => sum + Number(p.premium_gross ?? 0), 0),
+      };
+    });
 
     // Revenue over time — monthly buckets by payment paid_date
     const monthly = new Map<string, number>();
@@ -160,8 +193,9 @@ export const getReportsSummary = createServerFn({ method: "POST" })
 
     return {
       range: { from, to },
-      kpis: { revenue, activeCoverPremium, activePolicies, newClients, openClaims, renewalHitRate },
+      kpis: { revenue, activeCoverPremium, activePolicies, newClients, openClaims, renewalHitRate, newBusiness: newBusinessPolicies.length, newBusinessPremium },
       revenueOverTime,
+      newBusinessByMonth,
       policiesByStatus,
       insurerShare,
       claimsFunnel,
