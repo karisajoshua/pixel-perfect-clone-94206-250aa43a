@@ -71,10 +71,18 @@ export const getReportsSummary = createServerFn({ method: "POST" })
       ? paymentsRaw.filter((p: any) => p.invoices?.branch_id === branchId)
       : paymentsRaw;
 
-    const activePoliciesList = policies.filter((p: any) => p.status === "active");
+    const allPaymentsRaw = (allPaymentsRes.data ?? []) as any[];
+    const allPayments = branchId
+      ? allPaymentsRaw.filter((p: any) => p.invoices?.branch_id === branchId)
+      : allPaymentsRaw;
+
+    const today = todayISO();
+    // Same definition as the main dashboard: certificate dates still cover today.
+    const activePoliciesList = policies.filter((p: any) => isLiveCover(p, today));
     const activePoliciesInRange = activePoliciesList.filter((p: any) => p.start_date >= from && p.start_date <= to);
     const activeCoverPremium = activePoliciesList.reduce((s: number, p: any) => s + Number(p.premium_gross ?? 0), 0);
     const revenue = payments.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
+    const revenueAllTime = allPayments.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
     const activePolicies = activePoliciesList.length;
     const newClients = clients.length;
     const openClaims = claims.filter((c: any) => !["paid", "closed", "rejected"].includes(c.status)).length;
