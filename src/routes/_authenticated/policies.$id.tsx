@@ -69,7 +69,7 @@ function PolicyDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("policies")
-        .select("*, clients(id, full_name, company_name, client_type, phone, email, kra_pin), insurers(name), vehicles(registration_no, make, model, year, chassis_no, engine_no, body_type, seating_capacity, estimated_value)")
+        .select("*, clients(id, full_name, company_name, client_type, phone, email, kra_pin), insurers(name, dmvic_member_company_id), vehicles(registration_no, make, model, year, chassis_no, engine_no, body_type, seating_capacity, estimated_value)")
         .eq("id", id).single();
       if (error) throw error;
       return data as any;
