@@ -3,6 +3,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, ArrowRightLeft, Car, ShieldCheck } from "lucide-react";
@@ -11,7 +16,7 @@ import { VehicleFormDialog } from "@/components/vehicles/vehicle-form-dialog";
 import { TransferOwnershipDialog } from "@/components/vehicles/transfer-ownership-dialog";
 import { useMyRoles } from "@/hooks/use-auth";
 import { VehicleDocuments, useVehicleDocuments, vehicleDocsBadge } from "@/components/clients/vehicle-documents";
-import { dmvicConnectionStatus } from "@/lib/dmvic/dmvic.functions";
+import { dmvicConnectionStatus, dmvicPreviewTypeAFromZest } from "@/lib/dmvic/dmvic.functions";
 import { policyBalance, balanceLabel, formatKES, isCoverActive, coverLabel } from "@/lib/policy-balance";
 
 const TERMS: Record<string, string> = {
@@ -35,6 +40,11 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
   const [transferVehicle, setTransferVehicle] = useState<any>(null);
   const [dmvicVehicle, setDmvicVehicle] = useState<any>(null);
   const dmvicStatusFn = useServerFn(dmvicConnectionStatus);
+  const dmvicPreviewFn = useServerFn(dmvicPreviewTypeAFromZest);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const [previewResult, setPreviewResult] = useState<any>(null);
+  const [dmvicForm, setDmvicForm] = useState({ memberCompanyId: "", certificateTypeCode: "1", coverCode: "200", policyholder: "", policyNumber: "", commencementDate: "", expiryDate: "", phoneNumber: "", email: "", insuredPin: "", sumInsured: "" });
   const { data: dmvicStatus, isLoading: dmvicStatusLoading } = useQuery({
     queryKey: ["dmvic-status"],
     queryFn: () => dmvicStatusFn(),
@@ -308,7 +318,12 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
             <p className="text-muted-foreground">DMVIC certificate operations for this vehicle. DMVIC operations use DMVIC's own API contracts.</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" disabled={!dmvicStatus?.configured}>Check insurance status</Button>
-              <Button variant="outline" disabled={!dmvicStatus?.configured}>Preview certificate</Button>
+              <Button variant="outline" disabled={!dmvicStatus?.configured} onClick={async () => {
+                const policy = [...(dmvicVehicle.policies ?? [])].sort((a: any, b: any) => (b.start_date ?? "").localeCompare(a.start_date ?? ""))[0];
+                const { data: cl } = await supabase.from("clients").select("full_name, company_name, phone, email, kra_pin").eq("id", clientId).single();
+                setDmvicForm({ memberCompanyId: "", certificateTypeCode: "1", coverCode: "200", policyholder: cl?.company_name || cl?.full_name || "", policyNumber: policy?.policy_no || "", commencementDate: policy?.start_date || "", expiryDate: policy?.end_date || "", phoneNumber: cl?.phone || "", email: cl?.email || "", insuredPin: cl?.kra_pin || "", sumInsured: dmvicVehicle.estimated_value ? String(dmvicVehicle.estimated_value) : "" });
+                setPreviewResult(null); setPreviewOpen(true);
+              }}>Preview certificate</Button>
               <Button variant="outline" disabled={!dmvicStatus?.configured}>Validate certificate</Button>
               <Button disabled>Issue certificate</Button>
               <Button variant="ghost" onClick={() => setDmvicVehicle(null)}>Close</Button>
@@ -317,6 +332,40 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>DMVIC Type A certificate preview</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Existing Zest client, policy and vehicle data is prefilled. DMVIC identifiers remain DMVIC-native and must be entered from verified DMVIC data.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="DMVIC Member Company ID" value={dmvicForm.memberCompanyId} set={(v) => setDmvicForm(x => ({...x, memberCompanyId:v}))} />
+            <div className="space-y-1"><Label>Certificate type</Label><Select value={dmvicForm.certificateTypeCode} onValueChange={(v)=>setDmvicForm(x=>({...x,certificateTypeCode:v}))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1">Type A</SelectItem><SelectItem value="8">Type A Tax</SelectItem></SelectContent></Select></div>
+            <div className="space-y-1"><Label>DMVIC cover code</Label><Select value={dmvicForm.coverCode} onValueChange={(v)=>setDmvicForm(x=>({...x,coverCode:v}))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="100">100</SelectItem><SelectItem value="200">200</SelectItem><SelectItem value="300">300</SelectItem></SelectContent></Select></div>
+            <Field label="Policyholder" value={dmvicForm.policyholder} set={(v) => setDmvicForm(x => ({...x, policyholder:v}))} />
+            <Field label="Policy number" value={dmvicForm.policyNumber} set={(v) => setDmvicForm(x => ({...x, policyNumber:v}))} />
+            <Field label="Commencing date" type="date" value={dmvicForm.commencementDate} set={(v) => setDmvicForm(x => ({...x, commencementDate:v}))} />
+            <Field label="Expiry date" type="date" value={dmvicForm.expiryDate} set={(v) => setDmvicForm(x => ({...x, expiryDate:v}))} />
+            <Field label="Phone" value={dmvicForm.phoneNumber} set={(v) => setDmvicForm(x => ({...x, phoneNumber:v}))} />
+            <Field label="Email" value={dmvicForm.email} set={(v) => setDmvicForm(x => ({...x, email:v}))} />
+            <Field label="Insured KRA PIN" value={dmvicForm.insuredPin} set={(v) => setDmvicForm(x => ({...x, insuredPin:v}))} />
+            <Field label="Sum insured" type="number" value={dmvicForm.sumInsured} set={(v) => setDmvicForm(x => ({...x, sumInsured:v}))} />
+          </div>
+          {previewResult && <div className="rounded-md border p-3 text-sm"><div className="font-medium">{previewResult.ok ? "DMVIC preview successful" : "DMVIC preview returned an issue"}</div><div className="text-muted-foreground mt-1">{previewResult.error || previewResult.issuanceMessage || (previewResult.ok ? "The request was accepted by DMVIC UAT for preview." : "Review the DMVIC response and entered data.")}</div></div>}
+          <DialogFooter>
+            <Button variant="ghost" onClick={()=>setPreviewOpen(false)}>Close</Button>
+            <Button disabled={previewBusy || !dmvicForm.memberCompanyId} onClick={async()=>{
+              setPreviewBusy(true); setPreviewResult(null);
+              try {
+                const payload:any = { memberCompanyId: dmvicForm.memberCompanyId, certificateTypeCode:Number(dmvicForm.certificateTypeCode), coverCode:Number(dmvicForm.coverCode), policyholder:dmvicForm.policyholder, policyNumber:dmvicForm.policyNumber, commencementDate:dmvicForm.commencementDate, expiryDate:dmvicForm.expiryDate, registrationNumber:dmvicVehicle.registration_no || undefined, chassisNumber:dmvicVehicle.chassis_no || "", phoneNumber:dmvicForm.phoneNumber, bodyType:dmvicVehicle.body_type || "", licensedToCarry:Number(dmvicVehicle.seating_capacity || 1), vehicleMake:dmvicVehicle.make || undefined, vehicleModel:dmvicVehicle.model || undefined, engineNumber:dmvicVehicle.engine_no || undefined, email:dmvicForm.email, insuredPin:dmvicForm.insuredPin, yearOfManufacture:dmvicVehicle.year ? Number(dmvicVehicle.year) : undefined };
+                if (dmvicForm.sumInsured) payload.sumInsured=Number(dmvicForm.sumInsured);
+                const res=await dmvicPreviewFn({data:payload}); setPreviewResult(res);
+                if(res.ok) toast.success("DMVIC UAT preview completed"); else toast.error(res.error || "DMVIC preview needs review");
+              } catch(e:any){ toast.error(e?.message || "Could not preview DMVIC certificate"); }
+              finally{setPreviewBusy(false);}
+            }}>{previewBusy ? "Previewing…" : "Preview in DMVIC UAT"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <VehicleFormDialog open={open} onOpenChange={setOpen} initial={edit} defaultClientId={clientId} onSaved={refresh} />
       <TransferOwnershipDialog
@@ -336,4 +385,8 @@ function D({ label, value, mono }: { label: string; value?: any; mono?: boolean 
       <dd className={`mt-0.5 ${mono ? "font-mono" : ""}`}>{value || <span className="text-muted-foreground">—</span>}</dd>
     </div>
   );
+}
+
+function Field({ label, value, set, type = "text" }: { label: string; value: string; set: (v: string) => void; type?: string }) {
+  return <div className="space-y-1"><Label>{label}</Label><Input type={type} value={value} onChange={(e)=>set(e.target.value)} /></div>;
 }
