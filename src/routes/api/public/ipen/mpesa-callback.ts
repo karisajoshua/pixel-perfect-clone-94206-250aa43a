@@ -65,10 +65,32 @@ export const Route = createFileRoute("/api/public/ipen/mpesa-callback")({
             patch.reference = String(mpesaReceipt);
           }
           if (Object.keys(patch).length > 0) {
-            await supabaseAdmin
+            const { data: payment } = await supabaseAdmin
               .from("payments")
               .update(patch)
-              .eq("ipen_checkout_request_id", String(checkoutId));
+              .eq("ipen_checkout_request_id", String(checkoutId))
+              .select("id,tenant_id,client_id,policy_id,invoice_id,amount,reference")
+              .maybeSingle();
+            // A successful provider callback is the authoritative trigger for the
+            // next automation stage. Customer chat messages never mark payment paid.
+            if (payment && Number(resultCode) === 0 && mpesaReceipt) {
+              await supabaseAdmin.from("automation_events").insert({
+                tenant_id: payment.tenant_id,
+                event_type: "payment.confirmed",
+                entity_type: "payment",
+                entity_id: payment.id,
+                client_id: payment.client_id,
+                dedupe_key: `ipen:payment-confirmed:${checkoutId}`,
+                payload: {
+                  payment_id: payment.id,
+                  policy_id: payment.policy_id,
+                  invoice_id: payment.invoice_id,
+                  amount: payment.amount,
+                  reference: String(mpesaReceipt),
+                  checkout_request_id: String(checkoutId),
+                },
+              });
+            }
           }
         }
 
