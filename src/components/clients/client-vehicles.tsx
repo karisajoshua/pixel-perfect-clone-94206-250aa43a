@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -107,7 +108,10 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
   const docsKey = ["vehicle-kyc", vehicleIds.join(",")];
   const { data: docs } = useVehicleDocuments(vehicleIds);
 
-  if (isLoading) return <div className="p-8 text-muted-foreground">Loading vehicles…</div>;
+  if (isLoading) return <div className="space-y-4" aria-label="Loading vehicles">
+    <div className="flex justify-end"><Skeleton className="h-9 w-28 rounded-md" /></div>
+    {[0,1].map(i => <Card key={i}><CardHeader><Skeleton className="h-5 w-40" /><Skeleton className="h-4 w-56" /></CardHeader><CardContent className="space-y-4"><Skeleton className="h-24 w-full rounded-md" /><div className="grid grid-cols-2 sm:grid-cols-4 gap-3">{[0,1,2,3].map(x=><Skeleton key={x} className="h-10 w-full" />)}</div></CardContent></Card>)}
+  </div>;
 
   const vehicles = data?.vehicles ?? [];
   const extensions = data?.extensions ?? [];
@@ -120,7 +124,7 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
       </div>
 
       {vehicles.length === 0 && (
-        <Card><CardContent className="p-12 text-center text-muted-foreground">No vehicles on file for this client.</CardContent></Card>
+        <Card><CardContent className="p-10 text-center"><div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-muted"><Car className="h-5 w-5 text-muted-foreground" /></div><div className="font-medium">No vehicles yet</div><p className="mt-1 text-sm text-muted-foreground">Add this client's first vehicle to start cover, DMVIC verification and document management.</p><Button className="mt-4" onClick={() => { setEdit(null); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add vehicle</Button></CardContent></Card>
       )}
 
       {vehicles.map((v: any) => {
