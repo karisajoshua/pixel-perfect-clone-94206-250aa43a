@@ -40,7 +40,7 @@ export const DMVIC_PATHS = {
     D: "/api/v7/IntermediaryIntegration/ValidateTypeDCertificate",
   },
   issue: {
-    A: "/api/v7/IntermediaryIntegration/IssuanceTypeACertificate",
+    A: "/api/v6/IntermediaryIntegration/IssuanceTypeACertificate",
     B: "/api/v7/IntermediaryIntegration/IssuanceTypeBCertificate",
     C: "/api/v7/IntermediaryIntegration/IssuanceTypeCCertificate",
     D: "/api/v7/IntermediaryIntegration/IssuanceTypeDCertificate",
