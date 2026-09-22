@@ -163,6 +163,28 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
+  // Temporary browser-safe UAT diagnostic. It returns only pass/fail and never
+  // exposes credentials, certificate material, or the DMVIC bearer token.
+  // Remove this route immediately after the UAT authentication check.
+  if (req.method === "GET" && url.pathname === "/uat-auth-diagnostic") {
+    const missing = missingEnv();
+    if (missing.length) {
+      return json(res, 503, { ok: false, authenticated: false, configured: false });
+    }
+    try {
+      await getToken(config(), true);
+      return json(res, 200, { ok: true, authenticated: true, environment: "UAT" });
+    } catch (e) {
+      console.error(`[DMVIC] browser diagnostic failed: ${e instanceof Error ? e.message : "unknown"}`);
+      return json(res, 502, {
+        ok: false,
+        authenticated: false,
+        environment: "UAT",
+        error: e instanceof Error ? e.message : "DMVIC authentication failed",
+      });
+    }
+  }
+
   if (req.method === "POST" && url.pathname === "/auth-test") {
     if (!authorized(req)) {
       return json(res, 401, { error: "Unauthorized" });
