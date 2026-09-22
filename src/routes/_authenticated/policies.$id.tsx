@@ -9,7 +9,6 @@ import { ArrowLeft, Pencil, RefreshCw, Ban, ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { productClassLabel } from "@/lib/product-classes";
 import { PolicyFormDialog } from "@/components/policies/policy-form-dialog";
-import { IpenPolicyLiveDrawer } from "@/components/ipen/policy-live-drawer";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -28,10 +27,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Check as CheckIcon } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { initiateMpesaExpress } from "@/lib/ipen/payments.functions";
 import { dmvicConnectionStatus, dmvicPreviewTypeAFromZest } from "@/lib/dmvic/dmvic.functions";
-import { getLifeBenefitsSchedule } from "@/lib/ipen/policies.functions";
-import { Smartphone, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/policies/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: PolicyDetail });
 
@@ -40,7 +36,6 @@ function PolicyDetail() {
   const qc = useQueryClient();
   const [edit, setEdit] = useState(false);
   const [renew, setRenew] = useState(false);
-  const [ipenOpen, setIpenOpen] = useState(false);
   const [dmvicOpen, setDmvicOpen] = useState(false);
   const [dmvicBusy, setDmvicBusy] = useState(false);
   const [dmvicResult, setDmvicResult] = useState<any>(null);
@@ -51,16 +46,7 @@ function PolicyDetail() {
   const [extOpen, setExtOpen] = useState(false);
   const [extForm, setExtForm] = useState<{ amount_due: string; due_date: string; reason: string }>({ amount_due: "", due_date: "", reason: "" });
   const [savingExt, setSavingExt] = useState(false);
-  const [payOpen, setPayOpen] = useState(false);
-  const [payPhone, setPayPhone] = useState("");
-  const [payAmount, setPayAmount] = useState("");
-  const [payBusy, setPayBusy] = useState(false);
-  const [benefitsOpen, setBenefitsOpen] = useState(false);
-  const [benefits, setBenefits] = useState<any>(null);
-  const [benefitsBusy, setBenefitsBusy] = useState(false);
   const [issuing, setIssuing] = useState(false);
-  const stkFn = useServerFn(initiateMpesaExpress);
-  const benefitsFn = useServerFn(getLifeBenefitsSchedule);
   const dmvicStatusFn = useServerFn(dmvicConnectionStatus);
   const dmvicPreviewFn = useServerFn(dmvicPreviewTypeAFromZest);
 
@@ -266,41 +252,6 @@ function PolicyDetail() {
     if (data?.id) window.location.href = `/policies/${data.id}`;
   };
 
-  const ipenProposalId = p.ipen_proposal_id ?? p.ipen_policy_id ?? null;
-  const isLife = String(p.product_class ?? "").toLowerCase().includes("life");
-
-  const openPay = () => {
-    setPayPhone(p.clients?.phone ?? "");
-    setPayAmount(String(p.premium_gross ?? ""));
-    setPayOpen(true);
-  };
-
-  const submitPay = async () => {
-    if (!ipenProposalId) return toast.error("This policy has no IPEN proposal id");
-    if (!payPhone) return toast.error("Enter M-Pesa phone number");
-    const amt = Number(payAmount);
-    if (!amt || amt <= 0) return toast.error("Enter a valid amount");
-    setPayBusy(true);
-    try {
-      await stkFn({ data: { proposalId: ipenProposalId, phoneNumber: payPhone, amount: amt } });
-      toast.success("STK push sent — check the client's phone");
-      setPayOpen(false);
-    } catch (e: any) {
-      toast.error(e?.message ?? "Payment failed");
-    } finally { setPayBusy(false); }
-  };
-
-  const openBenefits = async () => {
-    if (!ipenProposalId) return toast.error("This policy has no IPEN proposal id");
-    setBenefitsOpen(true);
-    setBenefitsBusy(true);
-    try {
-      const res = await benefitsFn({ data: { quoteId: ipenProposalId } });
-      setBenefits(res);
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to load benefits schedule");
-    } finally { setBenefitsBusy(false); }
-  };
 
   return (
     <div className="p-8 space-y-6">
@@ -315,20 +266,6 @@ function PolicyDetail() {
             </Badge>
             {p.vehicles?.registration_no && (
               <Button variant="outline" onClick={() => { setDmvicResult(null); setDmvicForm((x) => ({ ...x, phoneNumber: p.clients?.phone || "", email: p.clients?.email || "", insuredPin: p.clients?.kra_pin || "", bodyType: p.vehicles?.body_type || "", licensedToCarry: String(p.vehicles?.seating_capacity || 1) })); setDmvicOpen(true); }}><ShieldCheck className="h-4 w-4 mr-1" /> DMVIC</Button>
-            )}
-            {p.ipen_policy_id && (
-              <>
-                <Badge variant="secondary" className="self-center">IPEN</Badge>
-                <Button variant="outline" onClick={() => setIpenOpen(true)}>View live IPEN details</Button>
-              </>
-            )}
-            {ipenProposalId && (
-              <Button variant="outline" onClick={openPay}>
-                <Smartphone className="h-4 w-4 mr-1" /> Process M-Pesa
-              </Button>
-            )}
-            {ipenProposalId && isLife && (
-              <Button variant="outline" onClick={openBenefits}>Benefits schedule</Button>
             )}
             {p.status !== "cancelled" && (
               <Button variant="outline" onClick={() => setCancelOpen(true)}><Ban className="h-4 w-4 mr-1" /> Cancel policy</Button>
@@ -524,9 +461,6 @@ function PolicyDetail() {
         qc.invalidateQueries({ queryKey: ["policies"] });
         if (newId) toast.success("Renewal policy created");
       }} />
-      {p.ipen_policy_id && (
-        <IpenPolicyLiveDrawer open={ipenOpen} onOpenChange={setIpenOpen} ipenPolicyId={String(p.ipen_policy_id)} />
-      )}
 
       <Dialog open={dmvicOpen} onOpenChange={setDmvicOpen}>
         <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[92dvh] overflow-y-auto p-4 sm:p-6">
@@ -616,45 +550,6 @@ function PolicyDetail() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={payOpen} onOpenChange={setPayOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Process M-Pesa payment</DialogTitle>
-            <DialogDescription>Sends an STK push to the client's phone via the IPEN gateway.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5"><Label>Phone number</Label>
-              <Input value={payPhone} onChange={(e) => setPayPhone(e.target.value)} placeholder="2547XXXXXXXX" />
-            </div>
-            <div className="space-y-1.5"><Label>Amount (KES)</Label>
-              <Input type="number" step="0.01" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setPayOpen(false)}>Cancel</Button>
-            <Button onClick={submitPay} disabled={payBusy}>
-              {payBusy && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-              Send STK push
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={benefitsOpen} onOpenChange={setBenefitsOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Life benefits schedule</DialogTitle>
-            <DialogDescription>Live from IPEN.</DialogDescription>
-          </DialogHeader>
-          {benefitsBusy ? (
-            <div className="text-sm text-muted-foreground">Loading…</div>
-          ) : (
-            <pre className="max-h-[420px] overflow-auto rounded border p-3 text-xs">
-              {JSON.stringify(benefits ?? {}, null, 2)}
-            </pre>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
