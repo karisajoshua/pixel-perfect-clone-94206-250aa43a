@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, ArrowRightLeft, Car } from "lucide-react";
+import { Plus, Pencil, ArrowRightLeft, Car, ShieldCheck } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { VehicleFormDialog } from "@/components/vehicles/vehicle-form-dialog";
 import { TransferOwnershipDialog } from "@/components/vehicles/transfer-ownership-dialog";
@@ -31,6 +31,7 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<any>(null);
   const [transferVehicle, setTransferVehicle] = useState<any>(null);
+  const [dmvicVehicle, setDmvicVehicle] = useState<any>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["client-vehicles", clientId],
@@ -128,6 +129,9 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
                 </p>
               </div>
               <div className="flex gap-1">
+                <Button size="sm" variant="outline" title="DMVIC motor certificate" onClick={() => setDmvicVehicle(v)}>
+                  <ShieldCheck className="h-4 w-4 mr-1" /> DMVIC
+                </Button>
                 {canTransfer && (
                   <Button size="sm" variant="ghost" title="Transfer ownership"
                     onClick={() => setTransferVehicle({ id: v.id, registration_no: v.registration_no, client_id: v.client_id })}>
@@ -285,6 +289,25 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
           </Card>
         );
       })}
+
+      {dmvicVehicle && (
+        <Card className="border-primary/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" /> DMVIC · {dmvicVehicle.registration_no}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <p className="text-muted-foreground">DMVIC certificate operations for this vehicle. DMVIC operations use DMVIC's own API contracts.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" disabled>Check insurance status</Button>
+              <Button variant="outline" disabled>Preview certificate</Button>
+              <Button variant="outline" disabled>Validate certificate</Button>
+              <Button disabled>Issue certificate</Button>
+              <Button variant="ghost" onClick={() => setDmvicVehicle(null)}>Close</Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Actions remain disabled until the corresponding DMVIC UAT endpoint and required identifiers are verified. This prevents accidental issuance or stock consumption.</p>
+          </CardContent>
+        </Card>
+      )}
 
       <VehicleFormDialog open={open} onOpenChange={setOpen} initial={edit} defaultClientId={clientId} onSaved={refresh} />
       <TransferOwnershipDialog
