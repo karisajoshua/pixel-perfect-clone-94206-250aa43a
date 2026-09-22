@@ -35,15 +35,15 @@ export const DMVIC_PATHS = {
   },
   validate: {
     A: "/api/v7/IntermediaryIntegration/ValidateTypeACertificate",
-    B: "/api/v7/IntermediaryIntegration/ValidateTypeBCertificate",
-    C: "/api/v7/IntermediaryIntegration/ValidateTypeCCertificate",
-    D: "/api/v7/IntermediaryIntegration/ValidateTypeDCertificate",
+    B: "/api/v6/IntermediaryIntegration/ValidateTypeBCertificate",
+    C: "/api/v6/IntermediaryIntegration/ValidateTypeCCertificate",
+    D: "/api/v6/IntermediaryIntegration/ValidateTypeDCertificate",
   },
   issue: {
     A: "/api/v6/IntermediaryIntegration/IssuanceTypeACertificate",
-    B: "/api/v7/IntermediaryIntegration/IssuanceTypeBCertificate",
-    C: "/api/v7/IntermediaryIntegration/IssuanceTypeCCertificate",
-    D: "/api/v7/IntermediaryIntegration/IssuanceTypeDCertificate",
+    B: "/api/v6/IntermediaryIntegration/IssuanceTypeBCertificate",
+    C: "/api/v6/IntermediaryIntegration/IssuanceTypeCCertificate",
+    D: "/api/v6/IntermediaryIntegration/IssuanceTypeDCertificate",
   },
   stock: "/api/v6/IntermediaryIntegration/MemberCompanyStock",
   // NOTE: the formal confirmation endpoint is v6. Some DMVIC policy-alert
