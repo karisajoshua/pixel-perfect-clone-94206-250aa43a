@@ -850,18 +850,28 @@ export type Database = {
           dmvic_transaction_number: string | null
           id: string
           insurer_id: string | null
+          issuance_idempotency_key: string | null
+          issuance_payload: Json | null
+          issuance_response: Json | null
           issued_at: string | null
           member_company_id: number | null
           paid_at: string | null
+          payment_idempotency_key: string | null
           payment_provider: string | null
           payment_reference: string | null
           payment_status: string
           policy_id: string
           requested_by: string
           selling_price: number
+          settlement_id: string | null
           status: string
+          stock_checked_at: string | null
+          tenant_id: string | null
           updated_at: string
           validated_at: string | null
+          validation_payload: Json | null
+          validation_response: Json | null
+          vehicle_id: string | null
         }
         Insert: {
           certificate_classification?: number | null
@@ -878,18 +888,28 @@ export type Database = {
           dmvic_transaction_number?: string | null
           id?: string
           insurer_id?: string | null
+          issuance_idempotency_key?: string | null
+          issuance_payload?: Json | null
+          issuance_response?: Json | null
           issued_at?: string | null
           member_company_id?: number | null
           paid_at?: string | null
+          payment_idempotency_key?: string | null
           payment_provider?: string | null
           payment_reference?: string | null
           payment_status?: string
           policy_id: string
           requested_by: string
           selling_price: number
+          settlement_id?: string | null
           status?: string
+          stock_checked_at?: string | null
+          tenant_id?: string | null
           updated_at?: string
           validated_at?: string | null
+          validation_payload?: Json | null
+          validation_response?: Json | null
+          vehicle_id?: string | null
         }
         Update: {
           certificate_classification?: number | null
@@ -906,18 +926,28 @@ export type Database = {
           dmvic_transaction_number?: string | null
           id?: string
           insurer_id?: string | null
+          issuance_idempotency_key?: string | null
+          issuance_payload?: Json | null
+          issuance_response?: Json | null
           issued_at?: string | null
           member_company_id?: number | null
           paid_at?: string | null
+          payment_idempotency_key?: string | null
           payment_provider?: string | null
           payment_reference?: string | null
           payment_status?: string
           policy_id?: string
           requested_by?: string
           selling_price?: number
+          settlement_id?: string | null
           status?: string
+          stock_checked_at?: string | null
+          tenant_id?: string | null
           updated_at?: string
           validated_at?: string | null
+          validation_payload?: Json | null
+          validation_response?: Json | null
+          vehicle_id?: string | null
         }
         Relationships: [
           {
@@ -934,7 +964,141 @@ export type Database = {
             referencedRelation: "policies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "dmvic_certificate_orders_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "dmvic_settlements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dmvic_certificate_orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dmvic_certificate_orders_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      dmvic_certificate_prices: {
+        Row: {
+          active: boolean
+          certificate_type: string
+          classification: number | null
+          created_at: string
+          dmvic_cost: number | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          selling_price: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          certificate_type: string
+          classification?: number | null
+          created_at?: string
+          dmvic_cost?: number | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          selling_price: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          certificate_type?: string
+          classification?: number | null
+          created_at?: string
+          dmvic_cost?: number | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          selling_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      dmvic_order_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          event_type: string
+          from_status: string | null
+          id: number
+          order_id: string
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type: string
+          from_status?: string | null
+          id?: number
+          order_id: string
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type?: string
+          from_status?: string | null
+          id?: number
+          order_id?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dmvic_order_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "dmvic_certificate_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dmvic_settlements: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          reference: string
+          settled_at: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          reference: string
+          settled_at?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          reference?: string
+          settled_at?: string | null
+          status?: string
+        }
+        Relationships: []
       }
       email_send_log: {
         Row: {
@@ -2234,6 +2398,9 @@ export type Database = {
           id: string
           invoice_code: string | null
           invoice_seq: number
+          ira_number: string | null
+          ira_verification_status: string
+          ira_verified_at: string | null
           logo_url: string | null
           mpesa_paybill: string | null
           mpesa_till: string | null
@@ -2268,6 +2435,9 @@ export type Database = {
           id?: string
           invoice_code?: string | null
           invoice_seq?: number
+          ira_number?: string | null
+          ira_verification_status?: string
+          ira_verified_at?: string | null
           logo_url?: string | null
           mpesa_paybill?: string | null
           mpesa_till?: string | null
@@ -2302,6 +2472,9 @@ export type Database = {
           id?: string
           invoice_code?: string | null
           invoice_seq?: number
+          ira_number?: string | null
+          ira_verification_status?: string
+          ira_verified_at?: string | null
           logo_url?: string | null
           mpesa_paybill?: string | null
           mpesa_till?: string | null
