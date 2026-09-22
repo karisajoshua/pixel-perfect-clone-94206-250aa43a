@@ -60,6 +60,26 @@ Real DMVIC secrets must be supplied through protected server/deployment secret m
 **Security debt**
 A real `.env` had previously been tracked in the repository. Ignore rules prevent future accidental additions but do not remove historical exposure. Identify affected secrets, remove tracked secret material safely, and rotate affected credentials where required.
 
+### 2026-09-22 — Typed payload validation added
+
+**Files changed**
+- `src/lib/dmvic/dmvic.schemas.ts`
+- `src/lib/dmvic/dmvic.server.ts`
+
+**What changed**
+- Added Zod validation for shared DMVIC policy/vehicle fields and certificate-specific Type A–D fields.
+- Added conditional `SumInsured` validation for Comprehensive and TPTF cover.
+- Preview, validate and issue operations now validate payloads before sending them to DMVIC.
+
+**Why**
+The captured DMVIC contract has required fields, constrained certificate/cover codes and multiple documentation inconsistencies. Rejecting clearly invalid payloads before the network call reduces avoidable UAT/API failures and gives the application a stable validation boundary.
+
+**Compatibility caution**
+Schemas intentionally use `.passthrough()` so documented/example fields that are still ambiguous are not stripped. Type B and Type D have known discrepancies around tonnage/licensed-to-carry fields; these must be refined from UAT evidence rather than guessed.
+
+**Testing/status**
+Static code integration completed on the feature branch. Real DMVIC network testing remains blocked until protected UAT secrets are configured in the deployment/runtime environment.
+
 ## Current status
 
 The code foundation is ready for UAT configuration. The next milestone is real authentication/connectivity.
