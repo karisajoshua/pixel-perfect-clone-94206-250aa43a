@@ -36,6 +36,34 @@
       "when": 1789158727577,
       "tag": "0004_prevent_profile_branch_self_escalation",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790106874872,
+      "tag": "0005_dmvic_certificate_orders",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790106907042,
+      "tag": "0006_dmvic_distribution_completion",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790106938574,
+      "tag": "0007_dmvic_atomic_workflow",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790106957535,
+      "tag": "0008_motor_insurer_comparison",
+      "breakpoints": true
     }
   ]
 }

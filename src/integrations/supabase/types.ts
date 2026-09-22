@@ -834,6 +834,272 @@ export type Database = {
           },
         ]
       }
+      dmvic_certificate_orders: {
+        Row: {
+          certificate_classification: number | null
+          certificate_type: string
+          created_at: string
+          dmvic_api_request_number: string | null
+          dmvic_certificate_number: string | null
+          dmvic_cost: number | null
+          dmvic_issuance_request_id: string | null
+          dmvic_last_error_code: string | null
+          dmvic_last_error_message: string | null
+          dmvic_settled_at: string | null
+          dmvic_settlement_status: string
+          dmvic_transaction_number: string | null
+          id: string
+          insurer_id: string | null
+          issuance_idempotency_key: string | null
+          issuance_payload: Json | null
+          issuance_response: Json | null
+          issued_at: string | null
+          member_company_id: number | null
+          paid_at: string | null
+          payment_idempotency_key: string | null
+          payment_provider: string | null
+          payment_reference: string | null
+          payment_status: string
+          policy_id: string
+          requested_by: string
+          selling_price: number
+          settlement_id: string | null
+          status: string
+          stock_checked_at: string | null
+          tenant_id: string | null
+          updated_at: string
+          validated_at: string | null
+          validation_payload: Json | null
+          validation_response: Json | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          certificate_classification?: number | null
+          certificate_type: string
+          created_at?: string
+          dmvic_api_request_number?: string | null
+          dmvic_certificate_number?: string | null
+          dmvic_cost?: number | null
+          dmvic_issuance_request_id?: string | null
+          dmvic_last_error_code?: string | null
+          dmvic_last_error_message?: string | null
+          dmvic_settled_at?: string | null
+          dmvic_settlement_status?: string
+          dmvic_transaction_number?: string | null
+          id?: string
+          insurer_id?: string | null
+          issuance_idempotency_key?: string | null
+          issuance_payload?: Json | null
+          issuance_response?: Json | null
+          issued_at?: string | null
+          member_company_id?: number | null
+          paid_at?: string | null
+          payment_idempotency_key?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
+          payment_status?: string
+          policy_id: string
+          requested_by: string
+          selling_price: number
+          settlement_id?: string | null
+          status?: string
+          stock_checked_at?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          validation_payload?: Json | null
+          validation_response?: Json | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          certificate_classification?: number | null
+          certificate_type?: string
+          created_at?: string
+          dmvic_api_request_number?: string | null
+          dmvic_certificate_number?: string | null
+          dmvic_cost?: number | null
+          dmvic_issuance_request_id?: string | null
+          dmvic_last_error_code?: string | null
+          dmvic_last_error_message?: string | null
+          dmvic_settled_at?: string | null
+          dmvic_settlement_status?: string
+          dmvic_transaction_number?: string | null
+          id?: string
+          insurer_id?: string | null
+          issuance_idempotency_key?: string | null
+          issuance_payload?: Json | null
+          issuance_response?: Json | null
+          issued_at?: string | null
+          member_company_id?: number | null
+          paid_at?: string | null
+          payment_idempotency_key?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
+          payment_status?: string
+          policy_id?: string
+          requested_by?: string
+          selling_price?: number
+          settlement_id?: string | null
+          status?: string
+          stock_checked_at?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          validation_payload?: Json | null
+          validation_response?: Json | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dmvic_certificate_orders_insurer_id_fkey"
+            columns: ["insurer_id"]
+            isOneToOne: false
+            referencedRelation: "insurers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dmvic_certificate_orders_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dmvic_certificate_orders_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "dmvic_settlements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dmvic_certificate_orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dmvic_certificate_orders_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dmvic_certificate_prices: {
+        Row: {
+          active: boolean
+          certificate_type: string
+          classification: number | null
+          created_at: string
+          dmvic_cost: number | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          selling_price: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          certificate_type: string
+          classification?: number | null
+          created_at?: string
+          dmvic_cost?: number | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          selling_price: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          certificate_type?: string
+          classification?: number | null
+          created_at?: string
+          dmvic_cost?: number | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          selling_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      dmvic_order_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          event_type: string
+          from_status: string | null
+          id: number
+          order_id: string
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type: string
+          from_status?: string | null
+          id?: number
+          order_id: string
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type?: string
+          from_status?: string | null
+          id?: number
+          order_id?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dmvic_order_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "dmvic_certificate_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dmvic_settlements: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          reference: string
+          settled_at: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          reference: string
+          settled_at?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          reference?: string
+          settled_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -927,6 +1193,7 @@ export type Database = {
           contact_email: string | null
           contact_phone: string | null
           created_at: string
+          dmvic_member_company_id: number | null
           id: string
           logo_url: string | null
           name: string
@@ -939,6 +1206,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          dmvic_member_company_id?: number | null
           id?: string
           logo_url?: string | null
           name: string
@@ -951,6 +1219,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          dmvic_member_company_id?: number | null
           id?: string
           logo_url?: string | null
           name?: string
@@ -1297,6 +1566,68 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      motor_insurer_rates: {
+        Row: {
+          active: boolean
+          benefits_summary: string | null
+          cover_type: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          excess_summary: string | null
+          flat_premium: number | null
+          id: string
+          insurer_id: string
+          minimum_premium: number | null
+          rate_percent: number | null
+          underwriting_notes: string | null
+          updated_at: string
+          vehicle_category: string
+        }
+        Insert: {
+          active?: boolean
+          benefits_summary?: string | null
+          cover_type: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          excess_summary?: string | null
+          flat_premium?: number | null
+          id?: string
+          insurer_id: string
+          minimum_premium?: number | null
+          rate_percent?: number | null
+          underwriting_notes?: string | null
+          updated_at?: string
+          vehicle_category: string
+        }
+        Update: {
+          active?: boolean
+          benefits_summary?: string | null
+          cover_type?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          excess_summary?: string | null
+          flat_premium?: number | null
+          id?: string
+          insurer_id?: string
+          minimum_premium?: number | null
+          rate_percent?: number | null
+          underwriting_notes?: string | null
+          updated_at?: string
+          vehicle_category?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "motor_insurer_rates_insurer_id_fkey"
+            columns: ["insurer_id"]
+            isOneToOne: false
+            referencedRelation: "insurers"
             referencedColumns: ["id"]
           },
         ]
@@ -2129,6 +2460,9 @@ export type Database = {
           id: string
           invoice_code: string | null
           invoice_seq: number
+          ira_number: string | null
+          ira_verification_status: string
+          ira_verified_at: string | null
           logo_url: string | null
           mpesa_paybill: string | null
           mpesa_till: string | null
@@ -2163,6 +2497,9 @@ export type Database = {
           id?: string
           invoice_code?: string | null
           invoice_seq?: number
+          ira_number?: string | null
+          ira_verification_status?: string
+          ira_verified_at?: string | null
           logo_url?: string | null
           mpesa_paybill?: string | null
           mpesa_till?: string | null
@@ -2197,6 +2534,9 @@ export type Database = {
           id?: string
           invoice_code?: string | null
           invoice_seq?: number
+          ira_number?: string | null
+          ira_verification_status?: string
+          ira_verified_at?: string | null
           logo_url?: string | null
           mpesa_paybill?: string | null
           mpesa_till?: string | null
@@ -2882,6 +3222,52 @@ export type Database = {
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
+      }
+      dmvic_claim_issuance: {
+        Args: { p_idempotency_key: string; p_order_id: string }
+        Returns: boolean
+      }
+      dmvic_complete_issuance: {
+        Args: {
+          p_api_request_no: string
+          p_certificate_no: string
+          p_order_id: string
+          p_response: Json
+          p_transaction_no: string
+        }
+        Returns: undefined
+      }
+      dmvic_confirm_payment: {
+        Args: {
+          p_amount: number
+          p_idempotency_key: string
+          p_order_id: string
+          p_provider: string
+          p_reference: string
+        }
+        Returns: undefined
+      }
+      dmvic_create_order: {
+        Args: {
+          p_certificate_type: string
+          p_classification: number
+          p_dmvic_cost: number
+          p_insurer_id: string
+          p_member_company_id: number
+          p_policy_id: string
+          p_selling_price: number
+          p_validation_payload: Json
+          p_vehicle_id: string
+        }
+        Returns: string
+      }
+      dmvic_mark_validated: {
+        Args: {
+          p_order_id: string
+          p_response: Json
+          p_stock_checked?: boolean
+        }
+        Returns: undefined
       }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
