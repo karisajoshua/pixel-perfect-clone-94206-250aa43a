@@ -51,7 +51,15 @@ export type DmvicAlert = {
   meaning: string | null;
 };
 
-export type DmvicNormalizedResult<T = unknown> = {
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+export type DmvicNormalizedResult<T extends JsonValue = JsonValue> = {
   ok: boolean;
   /** HTTP status of the DMVIC response (0 for transport failures). */
   status: number;
@@ -144,7 +152,7 @@ export function readIssuance(payload: unknown): { requestId: string | null; mess
 }
 
 /** Build the normalised result for any DMVIC HTTP response payload. */
-export function normalizeDmvicPayload<T>(
+export function normalizeDmvicPayload<T extends JsonValue = JsonValue>(
   status: number,
   payload: unknown,
   httpOk: boolean,

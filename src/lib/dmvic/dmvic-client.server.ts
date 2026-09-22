@@ -19,7 +19,7 @@
 //  made, because that would silently drop the client certificate.
 
 import { Buffer } from "node:buffer";
-import { normalizeDmvicPayload, type DmvicNormalizedResult } from "./errors";
+import { normalizeDmvicPayload, type DmvicNormalizedResult, type JsonValue } from "./errors";
 
 export type DmvicConfig = {
   baseUrl: string;
@@ -228,7 +228,7 @@ async function getToken(cfg: DmvicConfig, forceRefresh = false): Promise<string>
  * `ClientID`, retries once on 401 with a fresh token, and returns the
  * normalised alert-preserving result.
  */
-export async function dmvicPost<T = unknown>(
+export async function dmvicPost<T extends JsonValue = JsonValue>(
   path: string,
   body: unknown,
 ): Promise<DmvicNormalizedResult<T>> {

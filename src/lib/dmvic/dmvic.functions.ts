@@ -11,7 +11,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAuth as requireSupabaseAuth } from "@/lib/auth-mfa.middleware";
 import { DMVIC_PATHS, type DmvicCertificateType } from "./types";
-import type { DmvicNormalizedResult } from "./errors";
+import type { DmvicNormalizedResult, JsonValue } from "./errors";
 
 const certTypeSchema = z.enum(["A", "B", "C", "D"]);
 
@@ -26,15 +26,15 @@ const certRequestSchema = z.object({
 });
 
 /** Shape returned to callers: normalised, alert-preserving, no credentials. */
-export type DmvicResult<T = unknown> = DmvicNormalizedResult<T> & {
+export type DmvicResult<T extends JsonValue = JsonValue> = DmvicNormalizedResult<T> & {
   /** Set when DMVIC could not be reached or is not configured on this server. */
   transportError?: string;
 };
 
-async function call<T>(path: string, body: unknown): Promise<DmvicResult<T>> {
+async function call(path: string, body: unknown): Promise<DmvicResult> {
   const { dmvicPost } = await import("./dmvic-client.server");
   try {
-    return await dmvicPost<T>(path, body);
+    return await dmvicPost(path, body);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown DMVIC failure";
     // Message only — never the request body (PII) or any credential.
