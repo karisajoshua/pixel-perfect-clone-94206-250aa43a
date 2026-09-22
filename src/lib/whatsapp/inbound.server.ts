@@ -331,6 +331,32 @@ async function handleInboundMessage(admin: Admin, channel: any, contactsByWaId: 
       }
     }
 
+    // Payment handoff. The bot never treats a customer message as proof of payment;
+    // PAY only creates a server-side request for the configured payment integration.
+    if (text && stateAtInbound === "awaiting_payment" && ["pay","1","yes","proceed"].includes(text)) {
+      const ctx=latestState?.bot_context ?? {};
+      if (!ctx.selected_quote_id || !ctx.selected_price) {
+        await sendWhatsAppText(admin,{tenantId,to:from,body:"Your selected cover could not be confirmed. Reply CONTINUE to choose the cover again.",clientId:match.client_id,idempotencyKey:`wa:payment-missing-selection:${providerId}`});
+      } else {
+        const {data:q,error:qErr}=await admin.from("quotations")
+          .select("id,client_id,vehicle_id,ipen_proposal_id,quoted_premium,premium_gross,status")
+          .eq("id",ctx.selected_quote_id).eq("client_id",match.client_id).eq("vehicle_id",ctx.vehicle_id).maybeSingle();
+        if (qErr) throw new Error(qErr.message);
+        const amount=Number(q?.quoted_premium ?? q?.premium_gross ?? 0);
+        if (!q || amount<=0) {
+          await sendWhatsAppText(admin,{tenantId,to:from,body:"We could not prepare this payment automatically. Reply AGENT and our team will assist you.",clientId:match.client_id,idempotencyKey:`wa:payment-not-ready:${providerId}`});
+        } else if (!q.ipen_proposal_id) {
+          await admin.from("automation_events").insert({tenant_id:tenantId,event_type:"whatsapp.payment_requested",entity_type:"quotation",entity_id:q.id,client_id:match.client_id,dedupe_key:`whatsapp:payment-requested:${providerId}`,payload:{conversation_id:conversation.id,vehicle_id:ctx.vehicle_id,quotation_id:q.id,amount,phone:from,requires_proposal:true}});
+          await sendWhatsAppText(admin,{tenantId,to:from,body:"Your payment request is being prepared. We will send the payment prompt as soon as it is ready. You do not need to send any money manually in this chat.",clientId:match.client_id,idempotencyKey:`wa:payment-preparing:${providerId}`});
+          await admin.from("conversations").update({bot_state:"processing",bot_context:{...ctx,payment_requested_at:new Date().toISOString()}}).eq("id",conversation.id);
+        } else {
+          await admin.from("automation_events").insert({tenant_id:tenantId,event_type:"whatsapp.payment_requested",entity_type:"quotation",entity_id:q.id,client_id:match.client_id,dedupe_key:`whatsapp:payment-requested:${providerId}`,payload:{conversation_id:conversation.id,vehicle_id:ctx.vehicle_id,quotation_id:q.id,proposal_id:String(q.ipen_proposal_id),amount,phone:from,requires_proposal:false}});
+          await admin.from("conversations").update({bot_state:"processing",bot_context:{...ctx,payment_requested_at:new Date().toISOString(),proposal_id:String(q.ipen_proposal_id)}}).eq("id",conversation.id);
+          await sendWhatsAppText(admin,{tenantId,to:from,body:`Your payment request for KES ${amount.toLocaleString("en-KE")} is being initiated. Complete the payment only through the official prompt sent to your phone. We will confirm it automatically before issuing your cover.`,clientId:match.client_id,idempotencyKey:`wa:payment-request:${providerId}`});
+        }
+      }
+    }
+
     // Automation event — Phase 4 will consume this for conversational flows.
     const { error: evErr } = await admin.from("automation_events").insert({
       tenant_id: tenantId,
