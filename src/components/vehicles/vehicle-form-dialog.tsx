@@ -47,9 +47,9 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
   const dmvicSearchFn = useServerFn(dmvicVehicleSearch);
   const [dmvicChecking, setDmvicChecking] = useState(false);
   const [dmvicCheck, setDmvicCheck] = useState<any>(null);
-  const [comparisons, setComparisons] = useState<any[]>([]);
+  const [comparisons, setComparisons] = useState<any[]>([]);\n  const [selectedBasePremium, setSelectedBasePremium] = useState<number | null>(null);\n  const [markupType, setMarkupType] = useState<"fixed" | "percent">("fixed");\n  const [markupValue, setMarkupValue] = useState<string>("");
   const [comparing, setComparing] = useState(false);
-  const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
+  const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));\n  const markupAmount = selectedBasePremium == null ? 0 : markupType === "percent" ? selectedBasePremium * (Number(markupValue || 0) / 100) : Number(markupValue || 0);\n  const finalQuotedPremium = selectedBasePremium == null ? null : Math.round((selectedBasePremium + markupAmount) * 100) / 100;
 
   useEffect(() => {
     if (!open) return;
@@ -426,8 +426,18 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
 
         <div className="rounded-md border p-3 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="text-sm font-medium">Compare motor insurance</div><p className="text-xs text-muted-foreground">Compare configured insurer premiums for this vehicle before selecting cover.</p></div><Button type="button" variant="outline" disabled={comparing||!form.estimated_value} onClick={async()=>{setComparing(true);try{const category=String(form.usage_type||"private");const coverType=String(cover.cover_type||"comprehensive");const {data,error}=await (supabase as any).from("motor_insurer_rates").select("*, insurers(name)").eq("active",true).eq("vehicle_category",category).eq("cover_type",coverType);if(error)throw error;const rows=compareMotorRates(data??[],Number(form.estimated_value||0));setComparisons(rows);if(!rows.length)toast.message("No insurer rates configured for this category yet.");}catch(e:any){toast.error(e?.message||"Could not compare insurers");}finally{setComparing(false);}}}>{comparing?"Comparing…":"Compare insurers"}</Button></div>
-          {comparisons.length>0&&<div className="space-y-2">{comparisons.map((r:any)=><button type="button" key={r.id} className="w-full rounded-md border p-3 text-left hover:bg-muted/40" onClick={()=>{setCover((x:any)=>({...x,insurer_id:r.insurer_id,premium_gross:r.estimated_premium}));toast.success(`${r.insurers?.name||"Insurer"} selected`);}}><div className="flex justify-between gap-3"><span className="font-medium">{r.insurers?.name||"Insurer"}</span><span className="font-semibold">KES {Number(r.estimated_premium).toLocaleString()}</span></div>{(r.excess_summary||r.benefits_summary)&&<div className="mt-1 text-xs text-muted-foreground">{[r.excess_summary,r.benefits_summary].filter(Boolean).join(" · ")}</div>}</button>)}</div>}
+          {comparisons.length>0&&<div className="space-y-2">{comparisons.map((r:any)=><button type="button" key={r.id} className="w-full rounded-md border p-3 text-left hover:bg-muted/40" onClick={()=>{setSelectedBasePremium(Number(r.estimated_premium));setMarkupValue("");setCover((x:any)=>({...x,insurer_id:r.insurer_id,premium_gross:r.estimated_premium}));toast.success(`${r.insurers?.name||"Insurer"} selected — add your markup below`);}}><div className="flex justify-between gap-3"><span className="font-medium">{r.insurers?.name||"Insurer"}</span><span className="font-semibold">KES {Number(r.estimated_premium).toLocaleString()}</span></div>{(r.excess_summary||r.benefits_summary)&&<div className="mt-1 text-xs text-muted-foreground">{[r.excess_summary,r.benefits_summary].filter(Boolean).join(" · ")}</div>}</button>)}</div>}
         </div>
+
+        {selectedBasePremium != null && <div className="rounded-md border p-3 space-y-3">
+          <div><div className="text-sm font-medium">Agency / agent markup</div><p className="text-xs text-muted-foreground">The insurer price stays unchanged. Add your markup to calculate the client quote.</p></div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div><Label>Company price</Label><Input value={selectedBasePremium.toFixed(2)} readOnly /></div>
+            <div><Label>Markup type</Label><Select value={markupType} onValueChange={(v:any)=>setMarkupType(v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="fixed">Fixed KES</SelectItem><SelectItem value="percent">Percentage %</SelectItem></SelectContent></Select></div>
+            <div><Label>{markupType==="percent"?"Markup (%)":"Markup (KES)"}</Label><Input type="number" min="0" value={markupValue} onChange={(e)=>setMarkupValue(e.target.value)} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 rounded-md bg-muted/40 p-3 text-sm"><div><span className="text-muted-foreground">Base</span><div className="font-medium">KES {selectedBasePremium.toLocaleString()}</div></div><div><span className="text-muted-foreground">Markup</span><div className="font-medium">KES {Math.round(markupAmount*100)/100}</div></div><div><span className="text-muted-foreground">Client quote</span><div className="font-semibold">KES {Number(finalQuotedPremium??0).toLocaleString()}</div></div></div>
+        </div>}
 
         <div className="rounded-md border p-3 space-y-3">
           <div>
