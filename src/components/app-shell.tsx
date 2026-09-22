@@ -4,7 +4,6 @@ import {
   LayoutDashboard, Users, FileText, FileSignature, Receipt, ScrollText,
   BarChart3, ShieldCheck, LogOut, Building2, BellRing, Settings, Mail, Upload,
   BookOpen, Menu, Inbox, KeyRound, Clock, MoreHorizontal, Sparkles,
-  Plug,
   MessageCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,7 +49,6 @@ const adminNav = [
   { to: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle },
   { to: "/admin/security", label: "Account security", icon: KeyRound },
   { to: "/admin/docs", label: "Documentation", icon: BookOpen },
-  { to: "/admin/ipen", label: "IPEN integration", icon: Plug },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
