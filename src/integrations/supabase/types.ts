@@ -834,6 +834,108 @@ export type Database = {
           },
         ]
       }
+      dmvic_certificate_orders: {
+        Row: {
+          certificate_classification: number | null
+          certificate_type: string
+          created_at: string
+          dmvic_api_request_number: string | null
+          dmvic_certificate_number: string | null
+          dmvic_cost: number | null
+          dmvic_issuance_request_id: string | null
+          dmvic_last_error_code: string | null
+          dmvic_last_error_message: string | null
+          dmvic_settled_at: string | null
+          dmvic_settlement_status: string
+          dmvic_transaction_number: string | null
+          id: string
+          insurer_id: string | null
+          issued_at: string | null
+          member_company_id: number | null
+          paid_at: string | null
+          payment_provider: string | null
+          payment_reference: string | null
+          payment_status: string
+          policy_id: string
+          requested_by: string
+          selling_price: number
+          status: string
+          updated_at: string
+          validated_at: string | null
+        }
+        Insert: {
+          certificate_classification?: number | null
+          certificate_type: string
+          created_at?: string
+          dmvic_api_request_number?: string | null
+          dmvic_certificate_number?: string | null
+          dmvic_cost?: number | null
+          dmvic_issuance_request_id?: string | null
+          dmvic_last_error_code?: string | null
+          dmvic_last_error_message?: string | null
+          dmvic_settled_at?: string | null
+          dmvic_settlement_status?: string
+          dmvic_transaction_number?: string | null
+          id?: string
+          insurer_id?: string | null
+          issued_at?: string | null
+          member_company_id?: number | null
+          paid_at?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
+          payment_status?: string
+          policy_id: string
+          requested_by: string
+          selling_price: number
+          status?: string
+          updated_at?: string
+          validated_at?: string | null
+        }
+        Update: {
+          certificate_classification?: number | null
+          certificate_type?: string
+          created_at?: string
+          dmvic_api_request_number?: string | null
+          dmvic_certificate_number?: string | null
+          dmvic_cost?: number | null
+          dmvic_issuance_request_id?: string | null
+          dmvic_last_error_code?: string | null
+          dmvic_last_error_message?: string | null
+          dmvic_settled_at?: string | null
+          dmvic_settlement_status?: string
+          dmvic_transaction_number?: string | null
+          id?: string
+          insurer_id?: string | null
+          issued_at?: string | null
+          member_company_id?: number | null
+          paid_at?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
+          payment_status?: string
+          policy_id?: string
+          requested_by?: string
+          selling_price?: number
+          status?: string
+          updated_at?: string
+          validated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dmvic_certificate_orders_insurer_id_fkey"
+            columns: ["insurer_id"]
+            isOneToOne: false
+            referencedRelation: "insurers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dmvic_certificate_orders_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -927,6 +1029,7 @@ export type Database = {
           contact_email: string | null
           contact_phone: string | null
           created_at: string
+          dmvic_member_company_id: number | null
           id: string
           logo_url: string | null
           name: string
@@ -939,6 +1042,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          dmvic_member_company_id?: number | null
           id?: string
           logo_url?: string | null
           name: string
@@ -951,6 +1055,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          dmvic_member_company_id?: number | null
           id?: string
           logo_url?: string | null
           name?: string
