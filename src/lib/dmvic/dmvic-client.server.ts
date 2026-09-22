@@ -269,6 +269,19 @@ export async function dmvicPost<T extends JsonValue = JsonValue>(
   path: string,
   body: unknown,
 ): Promise<DmvicNormalizedResult<T>> {
+  // Preferred path: the Node-hosted mTLS gateway (works on Cloudflare Workers).
+  if (isGatewayConfigured()) {
+    const res = await gatewayCall(path, body);
+    const normalized = normalizeDmvicPayload<T>(res.status, parseJson(res.text), res.ok);
+    console.info(
+      `[DMVIC] gateway POST ${path} -> ${res.status}` +
+        (normalized.alerts.length
+          ? ` alerts=${normalized.alerts.map((a) => a.rawCode || "?").join(",")}`
+          : ""),
+    );
+    return normalized;
+  }
+
   const cfg = getDmvicConfig();
   const payload = JSON.stringify(body ?? {});
 
