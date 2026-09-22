@@ -142,8 +142,21 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
                 </p>
               </div>
               <div className="flex gap-1">
-                <Button size="sm" variant="outline" title="DMVIC motor certificate" onClick={() => setDmvicVehicle(v)}>
-                  <ShieldCheck className="h-4 w-4 mr-1" /> DMVIC
+                <Button size="sm" variant="outline" title="Check vehicle and insurance with DMVIC" onClick={async () => {
+                  setDmvicVehicle(v);
+                  setVehicleSearchResult(null);
+                  setTimeout(() => document.getElementById("dmvic-vehicle-check")?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+                  if (!dmvicStatus?.configured) { toast.error("DMVIC is not configured in this deployment. Check the gateway URL/token server secrets."); return; }
+                  setVehicleSearchBusy(true);
+                  try {
+                    const res = await dmvicVehicleSearchFn({ data: { VehicleRegistrationNumber: String(v.registration_no || "").trim() } });
+                    setVehicleSearchResult(res);
+                    if (res.ok) toast.success("DMVIC vehicle and insurance check completed");
+                    else toast.error(res.error || "DMVIC vehicle check needs review");
+                  } catch (e: any) { toast.error(e?.message || "DMVIC vehicle check failed"); }
+                  finally { setVehicleSearchBusy(false); }
+                }}>
+                  <ShieldCheck className="h-4 w-4 mr-1" /> {vehicleSearchBusy && dmvicVehicle?.id === v.id ? "Checking…" : "DMVIC"}
                 </Button>
                 {canTransfer && (
                   <Button size="sm" variant="ghost" title="Transfer ownership"
@@ -304,7 +317,7 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
       })}
 
       {dmvicVehicle && (
-        <Card className="border-primary/30">
+        <Card id="dmvic-vehicle-check" className="border-primary/30">
           <CardHeader>
             <CardTitle className="flex flex-wrap items-center gap-2"><ShieldCheck className="h-5 w-5" /> DMVIC · {dmvicVehicle.registration_no} {dmvicStatusLoading ? <Badge variant="outline">Checking UAT…</Badge> : dmvicStatus?.configured ? <Badge variant="secondary">UAT ready</Badge> : <Badge variant="destructive">UAT unavailable</Badge>}</CardTitle>
           </CardHeader>
