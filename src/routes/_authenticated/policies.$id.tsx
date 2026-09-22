@@ -27,7 +27,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Check as CheckIcon } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { dmvicConnectionStatus, dmvicPreviewTypeAFromZest } from "@/lib/dmvic/dmvic.functions";
+import { dmvicConnectionStatus, dmvicProcessZestCertificate } from "@/lib/dmvic/dmvic.functions";
 
 export const Route = createFileRoute("/_authenticated/policies/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: PolicyDetail });
 
@@ -39,7 +39,7 @@ function PolicyDetail() {
   const [dmvicOpen, setDmvicOpen] = useState(false);
   const [dmvicBusy, setDmvicBusy] = useState(false);
   const [dmvicResult, setDmvicResult] = useState<any>(null);
-  const [dmvicForm, setDmvicForm] = useState({ certificateTypeCode: "1", coverCode: "200", phoneNumber: "", email: "", insuredPin: "", bodyType: "", licensedToCarry: "1" });
+  const [dmvicForm, setDmvicForm] = useState({ family: "A", certificateTypeCode: "1", vehicleType: "1", coverCode: "200", phoneNumber: "", email: "", insuredPin: "", bodyType: "", licensedToCarry: "1", tonnage: "1" });
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
@@ -48,7 +48,7 @@ function PolicyDetail() {
   const [savingExt, setSavingExt] = useState(false);
   const [issuing, setIssuing] = useState(false);
   const dmvicStatusFn = useServerFn(dmvicConnectionStatus);
-  const dmvicPreviewFn = useServerFn(dmvicPreviewTypeAFromZest);
+  const dmvicProcessFn = useServerFn(dmvicProcessZestCertificate);
 
   const { data: p, isLoading } = useQuery({
     queryKey: ["policy", id],
@@ -480,14 +480,19 @@ function PolicyDetail() {
             <div className="font-medium">Certificate workflow</div>
             <p className="text-sm text-muted-foreground">Validate and preview the policy with DMVIC before certificate issuance. Issuance remains protected until the UAT contract is fully verified.</p>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5"><Label>DMVIC cover code</Label><Select value={dmvicForm.coverCode} onValueChange={(v)=>setDmvicForm(x=>({...x,coverCode:v}))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="100">100</SelectItem><SelectItem value="200">200</SelectItem><SelectItem value="300">300</SelectItem></SelectContent></Select></div>
+              <div className="space-y-1.5"><Label>DMVIC certificate family</Label><Select value={dmvicForm.family} onValueChange={(v)=>setDmvicForm(x=>({...x,family:v,certificateTypeCode:v==="D"?"4":"1"}))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="A">Type A — PSV / Passenger Vehicles</SelectItem><SelectItem value="B">Type B — Commercial Vehicles</SelectItem><SelectItem value="C">Type C — Motor Certificate</SelectItem><SelectItem value="D">Type D — Motorcycles</SelectItem></SelectContent></Select></div>
+              {dmvicForm.family==="A" && <div className="space-y-1.5"><Label>Associated category</Label><Select value={dmvicForm.certificateTypeCode} onValueChange={(v)=>setDmvicForm(x=>({...x,certificateTypeCode:v}))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1">PSV Unmarked</SelectItem><SelectItem value="6">Bus</SelectItem><SelectItem value="7">Matatu</SelectItem><SelectItem value="8">Taxi</SelectItem></SelectContent></Select></div>}
+              {dmvicForm.family==="B" && <div className="space-y-1.5"><Label>Associated commercial category</Label><Select value={dmvicForm.vehicleType} onValueChange={(v)=>setDmvicForm(x=>({...x,vehicleType:v}))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1">Own Goods</SelectItem><SelectItem value="2">General Cartage</SelectItem><SelectItem value="3">Institutional Vehicle</SelectItem><SelectItem value="4">Special Vehicle</SelectItem><SelectItem value="5">Tanker (Liquid Carrying)</SelectItem><SelectItem value="6">Motor Trade / Road Risk</SelectItem></SelectContent></Select></div>}
+              {dmvicForm.family==="D" && <div className="space-y-1.5"><Label>Associated motorcycle category</Label><Select value={dmvicForm.certificateTypeCode} onValueChange={(v)=>setDmvicForm(x=>({...x,certificateTypeCode:v}))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="4">Motorcycle</SelectItem><SelectItem value="9">PSV Motorcycle</SelectItem><SelectItem value="10">Commercial Motorcycle</SelectItem></SelectContent></Select></div>}
+              <div className="space-y-1.5"><Label>Cover</Label><Select value={dmvicForm.coverCode} onValueChange={(v)=>setDmvicForm(x=>({...x,coverCode:v}))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="100">Comprehensive</SelectItem><SelectItem value="200">Third Party</SelectItem><SelectItem value="300">Third Party, Theft & Fire</SelectItem></SelectContent></Select></div>
               <div className="space-y-1.5"><Label>Phone</Label><Input value={dmvicForm.phoneNumber} onChange={(e)=>setDmvicForm(x=>({...x,phoneNumber:e.target.value}))} /></div>
               <div className="space-y-1.5"><Label>Email</Label><Input value={dmvicForm.email} onChange={(e)=>setDmvicForm(x=>({...x,email:e.target.value}))} /></div>
               <div className="space-y-1.5"><Label>Insured KRA PIN</Label><Input value={dmvicForm.insuredPin} onChange={(e)=>setDmvicForm(x=>({...x,insuredPin:e.target.value}))} /></div>
               <div className="space-y-1.5"><Label>Body type</Label><Input value={dmvicForm.bodyType} onChange={(e)=>setDmvicForm(x=>({...x,bodyType:e.target.value}))} /></div>
-              <div className="space-y-1.5"><Label>Licensed to carry</Label><Input type="number" min="1" value={dmvicForm.licensedToCarry} onChange={(e)=>setDmvicForm(x=>({...x,licensedToCarry:e.target.value}))} /></div>
+              {(dmvicForm.family==="A" || (dmvicForm.family==="D" && dmvicForm.certificateTypeCode!=="10")) && <div className="space-y-1.5"><Label>Licensed to carry</Label><Input type="number" min="1" value={dmvicForm.licensedToCarry} onChange={(e)=>setDmvicForm(x=>({...x,licensedToCarry:e.target.value}))} /></div>}
+              {(dmvicForm.family==="B" || (dmvicForm.family==="D" && dmvicForm.certificateTypeCode==="10")) && <div className="space-y-1.5"><Label>Tonnage / carrying capacity</Label><Input type="number" min="1" value={dmvicForm.tonnage} onChange={(e)=>setDmvicForm(x=>({...x,tonnage:e.target.value}))} /></div>}
             </div>
-            {dmvicResult && <div className="rounded-md border p-3 text-sm"><div className="font-medium">{dmvicResult.ok ? "DMVIC UAT preview successful" : "DMVIC needs attention"}</div><div className="mt-1 text-muted-foreground">{dmvicResult.error || dmvicResult.issuanceMessage || (dmvicResult.ok ? "The certificate data passed the DMVIC preview request." : "Review the response and policy data.")}</div></div>}
+            {dmvicResult && <div className="rounded-md border p-3 text-sm"><div className="font-medium">{dmvicResult.ok ? "DMVIC UAT validation successful" : "DMVIC needs attention"}</div><div className="mt-1 text-muted-foreground">{dmvicResult.error || dmvicResult.issuanceMessage || (dmvicResult.ok ? "The certificate data passed DMVIC validation." : "Review the response and policy data.")}</div></div>}
             <div className="flex flex-col sm:flex-row gap-2">
               <Button className="w-full sm:w-auto" variant="outline" disabled={dmvicBusy} onClick={async()=>{
                 setDmvicBusy(true); setDmvicResult(null);
@@ -495,13 +500,17 @@ function PolicyDetail() {
                   const status=await dmvicStatusFn();
                   if(!status.configured) throw new Error("DMVIC UAT is not configured for this deployment");
                   const memberCompanyId = Number((p.insurers as any)?.dmvic_member_company_id || 0); if (!memberCompanyId) throw new Error("This insurer is not yet mapped to a DMVIC Member Company ID. Configure the insurer mapping before preview.");
-                  const payload:any={ memberCompanyId, certificateTypeCode:Number(dmvicForm.certificateTypeCode), coverCode:Number(dmvicForm.coverCode), policyholder:clientName || "", policyNumber:p.policy_no || "", commencementDate:p.start_date || "", expiryDate:p.end_date || "", registrationNumber:p.vehicles?.registration_no || undefined, chassisNumber:p.vehicles?.chassis_no || "", phoneNumber:dmvicForm.phoneNumber, bodyType:dmvicForm.bodyType, licensedToCarry:Number(dmvicForm.licensedToCarry || 1), vehicleMake:p.vehicles?.make || undefined, vehicleModel:p.vehicles?.model || undefined, engineNumber:p.vehicles?.engine_no || undefined, email:dmvicForm.email, insuredPin:dmvicForm.insuredPin, yearOfManufacture:p.vehicles?.year ? Number(p.vehicles.year) : undefined };
+                  const year=Number(p.vehicles?.year || new Date().getFullYear());
+                  const payload:any={ certificateType:dmvicForm.family, memberCompanyId, coverCode:Number(dmvicForm.coverCode), policyholder:clientName || "", policyNumber:p.policy_no || "", commencementDate:p.start_date || "", expiryDate:p.end_date || "", registrationNumber:p.vehicles?.registration_no || undefined, chassisNumber:p.vehicles?.chassis_no || "", phoneNumber:dmvicForm.phoneNumber, bodyType:dmvicForm.bodyType, vehicleMake:p.vehicles?.make || undefined, vehicleModel:p.vehicles?.model || undefined, engineNumber:p.vehicles?.engine_no || undefined, email:dmvicForm.email, insuredPin:dmvicForm.insuredPin, yearOfRegistration:year, yearOfManufacture:p.vehicles?.year ? Number(p.vehicles.year) : undefined };
+                  if(dmvicForm.family==="A"){payload.certificateTypeCode=Number(dmvicForm.certificateTypeCode);payload.licensedToCarry=Number(dmvicForm.licensedToCarry);}
+                  if(dmvicForm.family==="B"){payload.vehicleType=Number(dmvicForm.vehicleType);payload.tonnageCarryingCapacity=Number(dmvicForm.tonnage);}
+                  if(dmvicForm.family==="D"){payload.certificateTypeCode=Number(dmvicForm.certificateTypeCode); if(dmvicForm.certificateTypeCode==="10") payload.tonnage=Number(dmvicForm.tonnage); else payload.licensedToCarry=Number(dmvicForm.licensedToCarry);}
                   const sum=Number(p.sum_insured ?? p.vehicles?.estimated_value ?? 0); if(sum) payload.sumInsured=sum;
-                  const res=await dmvicPreviewFn({data:payload}); setDmvicResult(res);
-                  if(res.ok) toast.success("DMVIC UAT validation and preview completed"); else toast.error(res.error || "DMVIC preview needs review");
+                  const res=await dmvicProcessFn({data:{operation:"validate",input:payload}}); setDmvicResult(res);
+                  if(res.ok) toast.success("DMVIC UAT validation completed"); else toast.error(res.error || "DMVIC validation needs review");
                 } catch(e:any){ toast.error(e?.message || "DMVIC validation failed"); }
                 finally{setDmvicBusy(false);}
-              }}>{dmvicBusy ? "Validating…" : "Validate & Preview"}</Button>
+              }}>{dmvicBusy ? "Validating…" : "Validate with DMVIC"}</Button>
               <Button className="w-full sm:w-auto" disabled>Issue DMVIC Certificate</Button>
             </div>
           </div>
