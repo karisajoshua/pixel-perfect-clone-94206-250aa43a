@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: dmvic-mtls-gateway
+    runtime: node
+    plan: starter
+    rootDir: dmvic-gateway
+    buildCommand: npm install --no-audit --no-fund
+    startCommand: node server.js
+    healthCheckPath: /health
+    envVars:
+      # All values are set in the Render dashboard only. Never commit them.
+      - key: NODE_VERSION
+        value: "20"
+      - key: DMVIC_UAT_BASE_URL
+        sync: false
+      - key: DMVIC_UAT_USERNAME
+        sync: false
+      - key: DMVIC_UAT_PASSWORD
+        sync: false
+      - key: DMVIC_UAT_CLIENT_ID
+        sync: false
+      - key: DMVIC_UAT_CLIENT_CERT
+        sync: false
+      - key: DMVIC_UAT_CLIENT_CERT_PASSWORD
+        sync: false
+      - key: DMVIC_GATEWAY_TOKEN
+        sync: false

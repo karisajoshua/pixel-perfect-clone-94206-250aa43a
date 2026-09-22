@@ -1,0 +1,14 @@
+{
+  "name": "dmvic-mtls-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal dependency-free Node service that fronts DMVIC UAT with a PKCS#12 client certificate (mTLS).",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node --check server.js",
+    "start": "node server.js"
+  }
+}
