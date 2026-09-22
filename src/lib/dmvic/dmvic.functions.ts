@@ -45,6 +45,44 @@ async function call(path: string, body: unknown): Promise<DmvicResult> {
   }
 }
 
+
+const typeAPreviewFromZestSchema = z.object({
+  memberCompanyId: z.union([z.string().min(1), z.number().int().positive()]),
+  certificateTypeCode: z.union([z.literal(1), z.literal(8)]),
+  coverCode: z.union([z.literal(100), z.literal(200), z.literal(300)]),
+  policyholder: z.string().min(1),
+  policyNumber: z.string().min(1),
+  commencementDate: z.string(),
+  expiryDate: z.string(),
+  registrationNumber: z.string().optional(),
+  chassisNumber: z.string().min(4).max(20),
+  phoneNumber: z.string().min(9).max(15),
+  bodyType: z.string().min(1),
+  licensedToCarry: z.number().int().positive(),
+  vehicleMake: z.string().optional(),
+  vehicleModel: z.string().optional(),
+  engineNumber: z.string().optional(),
+  email: z.string().email(),
+  sumInsured: z.number().nonnegative().optional(),
+  insuredPin: z.string().min(1).max(11),
+  yearOfManufacture: z.number().int().min(1900).max(2200).optional(),
+  hudumaNumber: z.string().optional(),
+});
+
+/**
+ * First application-level Zest → DMVIC operation.
+ * Maps canonical Zest motor/policy data and performs PREVIEW only.
+ * It deliberately cannot issue a certificate or consume certificate stock.
+ */
+export const dmvicPreviewTypeAFromZest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(typeAPreviewFromZestSchema)
+  .handler(async ({ data }) => {
+    const { mapZestToDmvicTypeA } = await import("./zest-mapping");
+    const payload = mapZestToDmvicTypeA(data);
+    return call(DMVIC_PATHS.preview.A, payload);
+  });
+
 /** Preview a Type A/B/C/D certificate (no stock is consumed). */
 export const dmvicPreviewCertificate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
