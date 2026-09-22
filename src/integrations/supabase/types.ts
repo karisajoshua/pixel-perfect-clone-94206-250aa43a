@@ -3161,6 +3161,52 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      dmvic_claim_issuance: {
+        Args: { p_idempotency_key: string; p_order_id: string }
+        Returns: boolean
+      }
+      dmvic_complete_issuance: {
+        Args: {
+          p_api_request_no: string
+          p_certificate_no: string
+          p_order_id: string
+          p_response: Json
+          p_transaction_no: string
+        }
+        Returns: undefined
+      }
+      dmvic_confirm_payment: {
+        Args: {
+          p_amount: number
+          p_idempotency_key: string
+          p_order_id: string
+          p_provider: string
+          p_reference: string
+        }
+        Returns: undefined
+      }
+      dmvic_create_order: {
+        Args: {
+          p_certificate_type: string
+          p_classification: number
+          p_dmvic_cost: number
+          p_insurer_id: string
+          p_member_company_id: number
+          p_policy_id: string
+          p_selling_price: number
+          p_validation_payload: Json
+          p_vehicle_id: string
+        }
+        Returns: string
+      }
+      dmvic_mark_validated: {
+        Args: {
+          p_order_id: string
+          p_response: Json
+          p_stock_checked?: boolean
+        }
+        Returns: undefined
+      }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
