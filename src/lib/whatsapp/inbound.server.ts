@@ -231,6 +231,38 @@ async function handleInboundMessage(admin: Admin, channel: any, contactsByWaId: 
       }
     }
 
+    // Continue protected vehicle journey after the menu.
+    const latestState = (await admin.from("conversations").select("bot_state,bot_context,client_id").eq("id",conversation.id).maybeSingle()).data;
+    if (text && latestState?.bot_state === "awaiting_registration") {
+      const registration=text.toUpperCase().replace(/[^A-Z0-9]/g,"");
+      if (/^[A-Z0-9]{5,10}$/.test(registration)) {
+        const {data:vehicle}=await admin.from("vehicles").select("id,client_id,registration_no")
+          .eq("tenant_id",tenantId).eq("registration_no",registration).maybeSingle();
+        // Never reveal whether an unrelated registration exists in this agency.
+        if (!vehicle || !match.client_id || vehicle.client_id !== match.client_id) {
+          await sendWhatsAppText(admin,{tenantId,to:from,body:"We could not verify that vehicle against this WhatsApp number. Check the registration and try again, or reply AGENT for assistance.",clientId:match.client_id,idempotencyKey:`wa:vehicle-unverified:${providerId}`});
+        } else {
+          const {createWhatsAppOtp}=await import("./verification.server");
+          const challenge=await createWhatsAppOtp(admin,{tenantId,conversationId:conversation.id,clientId:match.client_id,vehicleId:vehicle.id,phone:from});
+          // The OTP is intentionally sent only to the already matched registered WhatsApp contact.
+          await sendWhatsAppText(admin,{tenantId,to:from,body:`Your verification code is ${challenge.otp}. It expires in 10 minutes. Do not share this code with anyone.`,clientId:match.client_id,idempotencyKey:`wa:otp:${challenge.id}`});
+          await admin.from("conversations").update({bot_state:"awaiting_otp",bot_context:{...(latestState.bot_context??{}),vehicle_id:vehicle.id,registration_no:vehicle.registration_no}}).eq("id",conversation.id);
+        }
+      } else {
+        await sendWhatsAppText(admin,{tenantId,to:from,body:"Please enter a valid vehicle registration number, for example KAA 123A.",clientId:match.client_id,idempotencyKey:`wa:bad-registration:${providerId}`});
+      }
+    } else if (text && latestState?.bot_state === "awaiting_otp" && /^\d{6}$/.test(text)) {
+      const {verifyWhatsAppOtp}=await import("./verification.server");
+      const verified=await verifyWhatsAppOtp(admin,{tenantId,conversationId:conversation.id,otp:text});
+      if (!verified.ok) {
+        await sendWhatsAppText(admin,{tenantId,to:from,body:verified.reason,clientId:match.client_id,idempotencyKey:`wa:otp-failed:${providerId}`});
+      } else {
+        await admin.from("conversations").update({bot_state:"verified",identification:"identified"}).eq("id",conversation.id);
+        await sendWhatsAppText(admin,{tenantId,to:from,body:"Verification successful. We can now continue securely with your insurance request.",clientId:match.client_id,idempotencyKey:`wa:verified:${verified.challenge.id}`});
+        await admin.from("automation_events").insert({tenant_id:tenantId,event_type:"whatsapp.customer_verified",entity_type:"conversation",entity_id:conversation.id,client_id:match.client_id,dedupe_key:`whatsapp:verified:${verified.challenge.id}`,payload:{conversation_id:conversation.id,vehicle_id:verified.challenge.vehicle_id,intent:latestState.bot_context?.intent}});
+      }
+    }
+
     // Automation event — Phase 4 will consume this for conversational flows.
     const { error: evErr } = await admin.from("automation_events").insert({
       tenant_id: tenantId,
