@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, Check as CheckIcon } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { dmvicConnectionStatus, dmvicProcessZestCertificate } from "@/lib/dmvic/dmvic.functions";
+import { dmvicPrepareCertificateOrder } from "@/lib/dmvic/certificate-orders.functions";
 
 export const Route = createFileRoute("/_authenticated/policies/$id")({ beforeLoad: requireRole(["admin", "manager", "agent"]), component: PolicyDetail });
 
@@ -39,6 +40,8 @@ function PolicyDetail() {
   const [dmvicOpen, setDmvicOpen] = useState(false);
   const [dmvicBusy, setDmvicBusy] = useState(false);
   const [dmvicResult, setDmvicResult] = useState<any>(null);
+  const [dmvicLastPayload, setDmvicLastPayload] = useState<any>(null);
+  const [dmvicOrder, setDmvicOrder] = useState<any>(null);
   const [dmvicForm, setDmvicForm] = useState({ family: "A", certificateTypeCode: "1", vehicleType: "1", coverCode: "200", phoneNumber: "", email: "", insuredPin: "", bodyType: "", licensedToCarry: "1", tonnage: "1" });
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -49,6 +52,7 @@ function PolicyDetail() {
   const [issuing, setIssuing] = useState(false);
   const dmvicStatusFn = useServerFn(dmvicConnectionStatus);
   const dmvicProcessFn = useServerFn(dmvicProcessZestCertificate);
+  const dmvicPrepareFn = useServerFn(dmvicPrepareCertificateOrder);
 
   const { data: p, isLoading } = useQuery({
     queryKey: ["policy", id],
@@ -493,6 +497,7 @@ function PolicyDetail() {
               {(dmvicForm.family==="B" || (dmvicForm.family==="D" && dmvicForm.certificateTypeCode==="10")) && <div className="space-y-1.5"><Label>Tonnage / carrying capacity</Label><Input type="number" min="1" value={dmvicForm.tonnage} onChange={(e)=>setDmvicForm(x=>({...x,tonnage:e.target.value}))} /></div>}
             </div>
             {dmvicResult && <div className="rounded-md border p-3 text-sm"><div className="font-medium">{dmvicResult.ok ? "DMVIC UAT validation successful" : "DMVIC needs attention"}</div><div className="mt-1 text-muted-foreground">{dmvicResult.error || dmvicResult.issuanceMessage || (dmvicResult.ok ? "The certificate data passed DMVIC validation." : "Review the response and policy data.")}</div></div>}
+            {dmvicOrder?.ok && <div className="rounded-md border p-3 text-sm"><div className="font-medium">Ready for payment</div><div className="text-muted-foreground mt-1">Certificate price: KES {Number(dmvicOrder.price).toLocaleString()} · DMVIC stock available: {dmvicOrder.available}. Order {dmvicOrder.orderId} will not issue until payment is independently confirmed.</div></div>}
             <div className="flex flex-col sm:flex-row gap-2">
               <Button className="w-full sm:w-auto" variant="outline" disabled={dmvicBusy} onClick={async()=>{
                 setDmvicBusy(true); setDmvicResult(null);
@@ -506,12 +511,13 @@ function PolicyDetail() {
                   if(dmvicForm.family==="B"){payload.vehicleType=Number(dmvicForm.vehicleType);payload.tonnageCarryingCapacity=Number(dmvicForm.tonnage);}
                   if(dmvicForm.family==="D"){payload.certificateTypeCode=Number(dmvicForm.certificateTypeCode); if(dmvicForm.certificateTypeCode==="10") payload.tonnage=Number(dmvicForm.tonnage); else payload.licensedToCarry=Number(dmvicForm.licensedToCarry);}
                   const sum=Number(p.sum_insured ?? p.vehicles?.estimated_value ?? 0); if(sum) payload.sumInsured=sum;
-                  const res=await dmvicProcessFn({data:{operation:"validate",input:payload}}); setDmvicResult(res);
+                  setDmvicLastPayload(payload); setDmvicOrder(null); const res=await dmvicProcessFn({data:{operation:"validate",input:payload}}); setDmvicResult(res);
                   if(res.ok) toast.success("DMVIC UAT validation completed"); else toast.error(res.error || "DMVIC validation needs review");
                 } catch(e:any){ toast.error(e?.message || "DMVIC validation failed"); }
                 finally{setDmvicBusy(false);}
               }}>{dmvicBusy ? "Validating…" : "Validate with DMVIC"}</Button>
-              <Button className="w-full sm:w-auto" disabled>Issue DMVIC Certificate</Button>
+              {dmvicResult?.ok && dmvicLastPayload && <Button className="w-full sm:w-auto" disabled={dmvicBusy} onClick={async()=>{setDmvicBusy(true);try{if(!p.insurer_id)throw new Error("Select an insurer first.");const family=dmvicForm.family as "A"|"B"|"C"|"D";const classification=family==="A"?Number(dmvicForm.certificateTypeCode):family==="B"?2:family==="C"?3:(dmvicForm.certificateTypeCode==="9"?9:4);const memberCompanyId=Number((p.insurers as any)?.dmvic_member_company_id||0);const r=await dmvicPrepareFn({data:{policyId:p.id,vehicleId:p.vehicle_id||null,insurerId:p.insurer_id,certificateType:family,classification,memberCompanyId,input:dmvicLastPayload}});setDmvicOrder(r);if(r.ok)toast.success("Certificate order prepared for payment");else toast.error(r.error||`DMVIC ${r.stage} check failed`);}catch(e:any){toast.error(e?.message||"Could not prepare certificate order");}finally{setDmvicBusy(false);}}}>Check stock & prepare payment</Button>}
+              <Button className="w-full sm:w-auto" disabled>Issue after confirmed payment</Button>
             </div>
           </div>
           <DialogFooter className="sm:justify-end"><Button className="w-full sm:w-auto" variant="ghost" onClick={() => setDmvicOpen(false)}>Close</Button></DialogFooter>
