@@ -94,6 +94,28 @@ export const dmvicVehicleSearch = createServerFn({ method: "POST" })
   .inputValidator(z.object({ VehicleRegistrationNumber: z.string().trim().min(1).max(15) }))
   .handler(async ({ data }) => call(DMVIC_PATHS.vehicleSearch, data));
 
+const zestMappedRequestSchema = z.object({
+  operation: z.enum(["validate", "issue"]).default("validate"),
+  input: z.any(),
+});
+
+/**
+ * Maps Zest's canonical policy/client/vehicle fields to the exact DMVIC family
+ * contract on the server. This is the preferred A-D application entry point.
+ */
+export const dmvicProcessZestCertificate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(zestMappedRequestSchema)
+  .handler(async ({ data }) => {
+    const { mapZestToDmvic } = await import("./zest-mapping");
+    const mapped = mapZestToDmvic(data.input, data.operation);
+    const family = data.input.certificateType as DmvicCertificateType;
+    return call(
+      data.operation === "issue" ? DMVIC_PATHS.issue[family] : DMVIC_PATHS.validate[family],
+      mapped,
+    );
+  });
+
 /** Preview a Type A/B/C/D certificate (no stock is consumed). */
 export const dmvicPreviewCertificate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
