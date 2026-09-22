@@ -12,6 +12,7 @@ import { ScanLine, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { extractLogbookFields, getClientLogbookDoc } from "@/lib/vehicles.functions";
 import { ProductClassFields } from "@/components/product-class-fields";
+import { dmvicVehicleSearch } from "@/lib/dmvic/dmvic.functions";
 
 type Props = {
   open: boolean;
@@ -42,6 +43,9 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
   const fileRef = useRef<HTMLInputElement>(null);
   const extractFn = useServerFn(extractLogbookFields);
   const getStoredFn = useServerFn(getClientLogbookDoc);
+  const dmvicSearchFn = useServerFn(dmvicVehicleSearch);
+  const [dmvicChecking, setDmvicChecking] = useState(false);
+  const [dmvicCheck, setDmvicCheck] = useState<any>(null);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   useEffect(() => {
@@ -372,7 +376,7 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
               </>
             )}
           </div>
-          <F label="Registration *" value={form.registration_no} onChange={(v) => set("registration_no", v.toUpperCase())} auto={autoFilled.has("registration_no")} />
+          <div className="space-y-1.5 min-w-0"><Label>Registration *</Label><div className="flex gap-2"><Input value={form.registration_no??""} onChange={(e)=>{set("registration_no",e.target.value.toUpperCase());setDmvicCheck(null);}}/><Button type="button" variant="outline" disabled={dmvicChecking||!form.registration_no} onClick={async()=>{setDmvicChecking(true);setDmvicCheck(null);try{const r=await dmvicSearchFn({data:{VehicleRegistrationNumber:String(form.registration_no).trim()}});setDmvicCheck(r);if(r.ok)toast.success("Vehicle checked with DMVIC");else toast.error(r.error||"DMVIC check needs review");}catch(e:any){toast.error(e?.message||"Could not check DMVIC");}finally{setDmvicChecking(false);}}}>{dmvicChecking?"Checking…":"Check DMVIC"}</Button></div>{dmvicCheck&&<p className={`text-xs ${dmvicCheck.ok?"text-emerald-600":"text-destructive"}`}>{dmvicCheck.ok?"DMVIC vehicle/policy record found. Review the returned record after saving.":dmvicCheck.error||"No confirmed DMVIC record returned."}</p>}</div>
           <div className="space-y-1.5 min-w-0">
             <Label>Branch</Label>
             <Select value={form.branch_id ?? ""} onValueChange={(v) => set("branch_id", v || null)}>
