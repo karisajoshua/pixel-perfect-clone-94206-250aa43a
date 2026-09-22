@@ -9,21 +9,12 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { dmvicCertificateRequestSchema } from "./schemas";
 import { requireAuth as requireSupabaseAuth } from "@/lib/auth-mfa.middleware";
 import { DMVIC_PATHS, type DmvicCertificateType } from "./types";
 import type { DmvicNormalizedResult, JsonValue } from "./errors";
 
-const certTypeSchema = z.enum(["A", "B", "C", "D"]);
-
-const payloadSchema = z.record(
-  z.string(),
-  z.union([z.string(), z.number(), z.boolean(), z.null()]),
-);
-
-const certRequestSchema = z.object({
-  certificateType: certTypeSchema,
-  payload: payloadSchema,
-});
+const certRequestSchema = dmvicCertificateRequestSchema;
 
 /** Shape returned to callers: normalised, alert-preserving, no credentials. */
 export type DmvicResult<T extends JsonValue = JsonValue> = DmvicNormalizedResult<T> & {
