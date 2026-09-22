@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { VehicleFormDialog } from "@/components/vehicles/vehicle-form-dialog";
 import { TransferOwnershipDialog } from "@/components/vehicles/transfer-ownership-dialog";
 import { useMyRoles } from "@/hooks/use-auth";
 import { VehicleDocuments, useVehicleDocuments, vehicleDocsBadge } from "@/components/clients/vehicle-documents";
+import { dmvicConnectionStatus } from "@/lib/dmvic/dmvic.functions";
 import { policyBalance, balanceLabel, formatKES, isCoverActive, coverLabel } from "@/lib/policy-balance";
 
 const TERMS: Record<string, string> = {
@@ -32,6 +34,13 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
   const [edit, setEdit] = useState<any>(null);
   const [transferVehicle, setTransferVehicle] = useState<any>(null);
   const [dmvicVehicle, setDmvicVehicle] = useState<any>(null);
+  const dmvicStatusFn = useServerFn(dmvicConnectionStatus);
+  const { data: dmvicStatus, isLoading: dmvicStatusLoading } = useQuery({
+    queryKey: ["dmvic-status"],
+    queryFn: () => dmvicStatusFn(),
+    retry: false,
+    staleTime: 60_000,
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["client-vehicles", clientId],
@@ -293,18 +302,18 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
       {dmvicVehicle && (
         <Card className="border-primary/30">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" /> DMVIC · {dmvicVehicle.registration_no}</CardTitle>
+            <CardTitle className="flex flex-wrap items-center gap-2"><ShieldCheck className="h-5 w-5" /> DMVIC · {dmvicVehicle.registration_no} {dmvicStatusLoading ? <Badge variant="outline">Checking UAT…</Badge> : dmvicStatus?.configured ? <Badge variant="secondary">UAT ready</Badge> : <Badge variant="destructive">UAT unavailable</Badge>}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p className="text-muted-foreground">DMVIC certificate operations for this vehicle. DMVIC operations use DMVIC's own API contracts.</p>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" disabled>Check insurance status</Button>
-              <Button variant="outline" disabled>Preview certificate</Button>
-              <Button variant="outline" disabled>Validate certificate</Button>
+              <Button variant="outline" disabled={!dmvicStatus?.configured}>Check insurance status</Button>
+              <Button variant="outline" disabled={!dmvicStatus?.configured}>Preview certificate</Button>
+              <Button variant="outline" disabled={!dmvicStatus?.configured}>Validate certificate</Button>
               <Button disabled>Issue certificate</Button>
               <Button variant="ghost" onClick={() => setDmvicVehicle(null)}>Close</Button>
             </div>
-            <p className="text-xs text-muted-foreground">Actions remain disabled until the corresponding DMVIC UAT endpoint and required identifiers are verified. This prevents accidental issuance or stock consumption.</p>
+            <p className="text-xs text-muted-foreground">Connection readiness is checked securely through the Zest server. Preview/status controls become available when UAT is configured; issuance remains locked until its DMVIC contract and identifiers are verified.</p>
           </CardContent>
         </Card>
       )}
