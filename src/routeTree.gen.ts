@@ -58,6 +58,7 @@ import { Route as AuthenticatedAdminInsurersRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminImportRouteImport } from './routes/_authenticated/admin.import'
 import { Route as AuthenticatedAdminEmailsRouteImport } from './routes/_authenticated/admin.emails'
 import { Route as AuthenticatedAdminDocsRouteImport } from './routes/_authenticated/admin.docs'
+import { Route as AuthenticatedAdminDmvicRouteImport } from './routes/_authenticated/admin.dmvic'
 import { Route as AuthenticatedAdminBranchesRouteImport } from './routes/_authenticated/admin.branches'
 import { Route as AuthenticatedAdminAutomationRouteImport } from './routes/_authenticated/admin.automation'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
@@ -329,6 +330,11 @@ const AuthenticatedAdminDocsRoute = AuthenticatedAdminDocsRouteImport.update({
   path: '/admin/docs',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminDmvicRoute = AuthenticatedAdminDmvicRouteImport.update({
+  id: '/admin/dmvic',
+  path: '/admin/dmvic',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminBranchesRoute =
   AuthenticatedAdminBranchesRouteImport.update({
     id: '/admin/branches',
@@ -439,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/admin/branches': typeof AuthenticatedAdminBranchesRoute
+  '/admin/dmvic': typeof AuthenticatedAdminDmvicRoute
   '/admin/docs': typeof AuthenticatedAdminDocsRoute
   '/admin/emails': typeof AuthenticatedAdminEmailsRoute
   '/admin/import': typeof AuthenticatedAdminImportRoute
@@ -503,6 +510,7 @@ export interface FileRoutesByTo {
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/admin/branches': typeof AuthenticatedAdminBranchesRoute
+  '/admin/dmvic': typeof AuthenticatedAdminDmvicRoute
   '/admin/docs': typeof AuthenticatedAdminDocsRoute
   '/admin/emails': typeof AuthenticatedAdminEmailsRoute
   '/admin/import': typeof AuthenticatedAdminImportRoute
@@ -571,6 +579,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/_authenticated/admin/branches': typeof AuthenticatedAdminBranchesRoute
+  '/_authenticated/admin/dmvic': typeof AuthenticatedAdminDmvicRoute
   '/_authenticated/admin/docs': typeof AuthenticatedAdminDocsRoute
   '/_authenticated/admin/emails': typeof AuthenticatedAdminEmailsRoute
   '/_authenticated/admin/import': typeof AuthenticatedAdminImportRoute
@@ -637,6 +646,7 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/automation'
     | '/admin/branches'
+    | '/admin/dmvic'
     | '/admin/docs'
     | '/admin/emails'
     | '/admin/import'
@@ -701,6 +711,7 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/automation'
     | '/admin/branches'
+    | '/admin/dmvic'
     | '/admin/docs'
     | '/admin/emails'
     | '/admin/import'
@@ -768,6 +779,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/automation'
     | '/_authenticated/admin/branches'
+    | '/_authenticated/admin/dmvic'
     | '/_authenticated/admin/docs'
     | '/_authenticated/admin/emails'
     | '/_authenticated/admin/import'
@@ -1184,6 +1196,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminDocsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/dmvic': {
+      id: '/_authenticated/admin/dmvic'
+      path: '/admin/dmvic'
+      fullPath: '/admin/dmvic'
+      preLoaderRoute: typeof AuthenticatedAdminDmvicRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/branches': {
       id: '/_authenticated/admin/branches'
       path: '/admin/branches'
@@ -1351,6 +1370,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
   AuthenticatedAdminAutomationRoute: typeof AuthenticatedAdminAutomationRoute
   AuthenticatedAdminBranchesRoute: typeof AuthenticatedAdminBranchesRoute
+  AuthenticatedAdminDmvicRoute: typeof AuthenticatedAdminDmvicRoute
   AuthenticatedAdminDocsRoute: typeof AuthenticatedAdminDocsRoute
   AuthenticatedAdminEmailsRoute: typeof AuthenticatedAdminEmailsRoute
   AuthenticatedAdminImportRoute: typeof AuthenticatedAdminImportRoute
@@ -1378,6 +1398,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
   AuthenticatedAdminAutomationRoute: AuthenticatedAdminAutomationRoute,
   AuthenticatedAdminBranchesRoute: AuthenticatedAdminBranchesRoute,
+  AuthenticatedAdminDmvicRoute: AuthenticatedAdminDmvicRoute,
   AuthenticatedAdminDocsRoute: AuthenticatedAdminDocsRoute,
   AuthenticatedAdminEmailsRoute: AuthenticatedAdminEmailsRoute,
   AuthenticatedAdminImportRoute: AuthenticatedAdminImportRoute,
