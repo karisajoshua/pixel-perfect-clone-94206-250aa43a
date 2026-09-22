@@ -63,7 +63,44 @@ export function getDmvicConfig(): DmvicConfig {
 }
 
 export function isDmvicConfigured(): boolean {
-  return REQUIRED_ENV.every((k) => Boolean(process.env[k]));
+  return isGatewayConfigured() || REQUIRED_ENV.every((k) => Boolean(process.env[k]));
+}
+
+// ---------------------------------------------------------------------------
+// Gateway transport (preferred on Cloudflare Workers)
+// ---------------------------------------------------------------------------
+//
+// The published app runs on workerd, which has no Node TLS stack, so the
+// PKCS#12 client certificate cannot be presented from here. When a Node-hosted
+// mTLS gateway is configured (see dmvic-gateway/), every DMVIC call is proxied
+// through it over plain HTTPS with a shared bearer token. The certificate and
+// the DMVIC credentials never leave that gateway.
+
+export function isGatewayConfigured(): boolean {
+  return Boolean(process.env["DMVIC_GATEWAY_URL"] && process.env["DMVIC_GATEWAY_TOKEN"]);
+}
+
+async function gatewayCall(path: string, body: unknown): Promise<RawResponse> {
+  const base = (process.env["DMVIC_GATEWAY_URL"] as string).replace(/\/$/, "");
+  const res = await fetch(`${base}/dmvic`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${process.env["DMVIC_GATEWAY_TOKEN"] as string}`,
+    },
+    body: JSON.stringify({ path, body: body ?? {} }),
+  });
+  const envelope = (await res.json().catch(() => null)) as
+    | { status?: number; text?: string; error?: string }
+    | null;
+  if (!res.ok || !envelope || typeof envelope.status !== "number") {
+    throw new DmvicTransportError(
+      envelope?.error ?? `DMVIC gateway request failed (HTTP ${res.status}).`,
+    );
+  }
+  const status = envelope.status;
+  return { status, ok: status >= 200 && status < 300, text: envelope.text ?? "" };
 }
 
 type RawResponse = { status: number; ok: boolean; text: string };
@@ -232,6 +269,19 @@ export async function dmvicPost<T extends JsonValue = JsonValue>(
   path: string,
   body: unknown,
 ): Promise<DmvicNormalizedResult<T>> {
+  // Preferred path: the Node-hosted mTLS gateway (works on Cloudflare Workers).
+  if (isGatewayConfigured()) {
+    const res = await gatewayCall(path, body);
+    const normalized = normalizeDmvicPayload<T>(res.status, parseJson(res.text), res.ok);
+    console.info(
+      `[DMVIC] gateway POST ${path} -> ${res.status}` +
+        (normalized.alerts.length
+          ? ` alerts=${normalized.alerts.map((a) => a.rawCode || "?").join(",")}`
+          : ""),
+    );
+    return normalized;
+  }
+
   const cfg = getDmvicConfig();
   const payload = JSON.stringify(body ?? {});
 
