@@ -15,8 +15,8 @@ const base = z.object({
   Chassisnumber: z.string().regex(/^[A-Za-z0-9]{4,20}$/),
   Phonenumber: z.string().min(9).max(15),
   Bodytype: z.string().min(1),
-  // DMVIC intermediary docs show Yearofregistration struck through; do not require it.
-  Yearofregistration: year.optional(),
+  // Intermediary Type A v1.8.1/v1.8.2 requires Yearofregistration.
+  Yearofregistration: year,
   Email: z.string().email(),
   InsuredPIN: z.string().max(11),
   SumInsured: z.number().nonnegative().optional(),
@@ -28,7 +28,7 @@ const base = z.object({
 
 export const dmvicCertificateSchemas = {
   A: base.and(z.object({
-    TypeOfCertificate: z.union([z.literal(1), z.literal(8)]),
+    TypeOfCertificate: z.union([z.literal(1), z.literal(6), z.literal(7), z.literal(8)]),
     Licensedtocarry: z.number().int().positive(),
   }).passthrough()),
   B: base.and(z.object({
