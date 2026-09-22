@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PageHeader } from "@/components/page-header";
-import { Plus, Pencil, ArrowRight, Download, Check, X, Send, Search, Trash2 } from "lucide-react";
+import { Plus, Pencil, ArrowRight, Download, Check, X, Send, Search, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { downloadQuotationPdf } from "@/lib/quotation-pdf";
 import { useMyRoles } from "@/hooks/use-auth";
@@ -618,7 +618,7 @@ function QuoteDialog({ open, onOpenChange, initial, onSaved }: any) {
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit} disabled={saving || !form.quote_no || !clientText.trim()}>Save</Button>
+          <Button onClick={submit} disabled={saving || !form.quote_no || !clientText.trim()} aria-busy={saving}>{saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving quote…</> : initial?.id ? "Save changes" : "Create quotation"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
