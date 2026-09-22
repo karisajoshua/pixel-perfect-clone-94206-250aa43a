@@ -41,6 +41,10 @@ export function IpenMotorQuoteWizard({ open, onOpenChange, client }: Props) {
   const [year, setYear] = useState("");
   const [value, setValue] = useState("");
   const [phone, setPhone] = useState(client.phone ?? "");
+  const [chassisNumber, setChassisNumber] = useState("");
+  const [bodyType, setBodyType] = useState("");
+  const [licensedToCarry, setLicensedToCarry] = useState("");
+  const [insuredPin, setInsuredPin] = useState("");
   const [quotes, setQuotes] = useState<any[]>([]);
   const [pickedQuote, setPickedQuote] = useState<any>(null);
   const [confirmed, setConfirmed] = useState<any>(null);
@@ -75,7 +79,10 @@ export function IpenMotorQuoteWizard({ open, onOpenChange, client }: Props) {
 
   useEffect(() => { if (!open) { setStep(1); setQuotes([]); setPickedQuote(null); setConfirmed(null); } }, [open]);
 
-  const canQuote = categoryId && riskClassId && coverOptionId && reg && year && value;
+  // These DMVIC fields are collected during the motor journey so they are available
+  // after payment/policy confirmation; they are not sent to IPEN quote generation.
+  const dmvicDetailsComplete = chassisNumber && bodyType && licensedToCarry && insuredPin;
+  const canQuote = categoryId && riskClassId && coverOptionId && reg && year && value && dmvicDetailsComplete;
 
   const doGenerate = async () => {
     setBusy(true);
@@ -163,6 +170,10 @@ export function IpenMotorQuoteWizard({ open, onOpenChange, client }: Props) {
             <Field label="Year"><Input value={year} onChange={(e) => setYear(e.target.value)} placeholder="2020" inputMode="numeric" /></Field>
             <Field label="Value (KES)"><Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="1500000" inputMode="numeric" /></Field>
             <Field label="Phone (M-Pesa)"><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="2547XXXXXXXX" /></Field>
+            <Field label="Chassis number"><Input value={chassisNumber} onChange={(e) => setChassisNumber(e.target.value.toUpperCase())} placeholder="Vehicle chassis / VIN" /></Field>
+            <Field label="Body type"><Input value={bodyType} onChange={(e) => setBodyType(e.target.value)} placeholder="e.g. Saloon" /></Field>
+            <Field label="Licensed to carry"><Input value={licensedToCarry} onChange={(e) => setLicensedToCarry(e.target.value)} placeholder="e.g. 5" inputMode="numeric" /></Field>
+            <Field label="Insured KRA PIN"><Input value={insuredPin} onChange={(e) => setInsuredPin(e.target.value.toUpperCase())} placeholder="Policyholder KRA PIN" /></Field>
           </div>
         )}
 
