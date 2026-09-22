@@ -1854,8 +1854,12 @@ export type Database = {
           end_date: string
           id: string
           installment_plan: string | null
+          insurer_base_premium: number | null
           insurer_id: string | null
           ipen_policy_id: string | null
+          markup_amount: number | null
+          markup_type: string | null
+          markup_value: number | null
           notes: string | null
           payment_status: string
           policy_no: string
@@ -1865,6 +1869,7 @@ export type Database = {
           previous_policy_id: string | null
           product_class: string
           product_subclass: string | null
+          quoted_premium: number | null
           risk_details: Json
           risk_label: string | null
           rop_of_policy_id: string | null
@@ -1893,8 +1898,12 @@ export type Database = {
           end_date: string
           id?: string
           installment_plan?: string | null
+          insurer_base_premium?: number | null
           insurer_id?: string | null
           ipen_policy_id?: string | null
+          markup_amount?: number | null
+          markup_type?: string | null
+          markup_value?: number | null
           notes?: string | null
           payment_status?: string
           policy_no: string
@@ -1904,6 +1913,7 @@ export type Database = {
           previous_policy_id?: string | null
           product_class?: string
           product_subclass?: string | null
+          quoted_premium?: number | null
           risk_details?: Json
           risk_label?: string | null
           rop_of_policy_id?: string | null
@@ -1932,8 +1942,12 @@ export type Database = {
           end_date?: string
           id?: string
           installment_plan?: string | null
+          insurer_base_premium?: number | null
           insurer_id?: string | null
           ipen_policy_id?: string | null
+          markup_amount?: number | null
+          markup_type?: string | null
+          markup_value?: number | null
           notes?: string | null
           payment_status?: string
           policy_no?: string
@@ -1943,6 +1957,7 @@ export type Database = {
           previous_policy_id?: string | null
           product_class?: string
           product_subclass?: string | null
+          quoted_premium?: number | null
           risk_details?: Json
           risk_label?: string | null
           rop_of_policy_id?: string | null
@@ -2126,10 +2141,14 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          insurer_base_premium: number | null
           insurer_id: string | null
           ipen_proposal_id: string | null
           ipen_quote_payload: Json | null
           line_items: Json
+          markup_amount: number | null
+          markup_type: string | null
+          markup_value: number | null
           notes: string | null
           parent_quote_id: string | null
           policy_term: string | null
@@ -2138,6 +2157,7 @@ export type Database = {
           product_class: string
           product_subclass: string | null
           quote_no: string
+          quoted_premium: number | null
           rejection_reason: string | null
           revision: number
           risk_details: Json
@@ -2161,10 +2181,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          insurer_base_premium?: number | null
           insurer_id?: string | null
           ipen_proposal_id?: string | null
           ipen_quote_payload?: Json | null
           line_items?: Json
+          markup_amount?: number | null
+          markup_type?: string | null
+          markup_value?: number | null
           notes?: string | null
           parent_quote_id?: string | null
           policy_term?: string | null
@@ -2173,6 +2197,7 @@ export type Database = {
           product_class?: string
           product_subclass?: string | null
           quote_no: string
+          quoted_premium?: number | null
           rejection_reason?: string | null
           revision?: number
           risk_details?: Json
@@ -2196,10 +2221,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          insurer_base_premium?: number | null
           insurer_id?: string | null
           ipen_proposal_id?: string | null
           ipen_quote_payload?: Json | null
           line_items?: Json
+          markup_amount?: number | null
+          markup_type?: string | null
+          markup_value?: number | null
           notes?: string | null
           parent_quote_id?: string | null
           policy_term?: string | null
@@ -2208,6 +2237,7 @@ export type Database = {
           product_class?: string
           product_subclass?: string | null
           quote_no?: string
+          quoted_premium?: number | null
           rejection_reason?: string | null
           revision?: number
           risk_details?: Json

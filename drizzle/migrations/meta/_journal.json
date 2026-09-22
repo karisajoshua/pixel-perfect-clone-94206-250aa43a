@@ -64,6 +64,13 @@
       "when": 1790106957535,
       "tag": "0008_motor_insurer_comparison",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790107862776,
+      "tag": "0009_motor_quote_markup",
+      "breakpoints": true
     }
   ]
 }
