@@ -47,9 +47,14 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
   const dmvicSearchFn = useServerFn(dmvicVehicleSearch);
   const [dmvicChecking, setDmvicChecking] = useState(false);
   const [dmvicCheck, setDmvicCheck] = useState<any>(null);
-  const [comparisons, setComparisons] = useState<any[]>([]);\n  const [selectedBasePremium, setSelectedBasePremium] = useState<number | null>(null);\n  const [markupType, setMarkupType] = useState<"fixed" | "percent">("fixed");\n  const [markupValue, setMarkupValue] = useState<string>("");
+  const [comparisons, setComparisons] = useState<any[]>([]);
+  const [selectedBasePremium, setSelectedBasePremium] = useState<number | null>(null);
+  const [markupType, setMarkupType] = useState<"fixed" | "percent">("fixed");
+  const [markupValue, setMarkupValue] = useState<string>("");
   const [comparing, setComparing] = useState(false);
-  const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));\n  const markupAmount = selectedBasePremium == null ? 0 : markupType === "percent" ? selectedBasePremium * (Number(markupValue || 0) / 100) : Number(markupValue || 0);\n  const finalQuotedPremium = selectedBasePremium == null ? null : Math.round((selectedBasePremium + markupAmount) * 100) / 100;
+  const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
+  const markupAmount = selectedBasePremium == null ? 0 : markupType === "percent" ? selectedBasePremium * (Number(markupValue || 0) / 100) : Number(markupValue || 0);
+  const finalQuotedPremium = selectedBasePremium == null ? null : Math.round((selectedBasePremium + markupAmount) * 100) / 100;
 
   useEffect(() => {
     if (!open) return;
