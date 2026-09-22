@@ -142,7 +142,9 @@ export function extractAlerts(payload: unknown): DmvicAlert[] {
 export function readIssuance(payload: unknown): { requestId: string | null; message: string | null } {
   if (!payload || typeof payload !== "object") return { requestId: null, message: null };
   const p = payload as any;
-  const node = p.Issuance ?? p.issuance ?? p.callbackObj ?? p.CallbackObj;
+  const callback = p.callbackObj ?? p.CallbackObj;
+  const nestedIssuance = callback && typeof callback === "object" ? (callback.Issuance ?? callback.issuance) : null;
+  const node = p.Issuance ?? p.issuance ?? nestedIssuance ?? callback;
   if (!node || typeof node !== "object") return { requestId: null, message: null };
   const requestId = node.RequestID ?? node.RequestId ?? node.requestID ?? node.requestId ?? node.IssuanceRequestID ?? node.issuanceRequestID ?? null;
   const message = node.Message ?? node.message ?? node.IssuanceMessage ?? node.issuanceMessage ?? null;
