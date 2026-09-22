@@ -230,6 +230,16 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
           ? (cover.payment_status === "paid" ? 0 : (cover.payment_status === "unpaid" && cover.premium_gross ? Number(cover.premium_gross) : null))
           : Number(cover.balance_due),
       };
+      // Persist markup audit fields: the insurer base price stays untouched and the
+      // markup is stored alongside it; premium_gross carries the final client quote.
+      if (selectedBasePremium != null && markupValue !== "" && Number(markupValue) >= 0) {
+        payload.insurer_base_premium = selectedBasePremium;
+        payload.markup_type = markupType;
+        payload.markup_value = Number(markupValue);
+        payload.markup_amount = Math.round(markupAmount * 100) / 100;
+        payload.quoted_premium = finalQuotedPremium;
+        payload.premium_gross = finalQuotedPremium;
+      }
       if (coverId || suggestedCoverId) {
         const { error: pErr } = await supabase
           .from("policies")
