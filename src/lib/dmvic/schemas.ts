@@ -15,7 +15,8 @@ const base = z.object({
   Chassisnumber: z.string().regex(/^[A-Za-z0-9]{4,20}$/),
   Phonenumber: z.string().min(9).max(15),
   Bodytype: z.string().min(1),
-  Yearofregistration: year,
+  // DMVIC intermediary docs show Yearofregistration struck through; do not require it.
+  Yearofregistration: year.optional(),
   Email: z.string().email(),
   InsuredPIN: z.string().max(11),
   SumInsured: z.number().nonnegative().optional(),
