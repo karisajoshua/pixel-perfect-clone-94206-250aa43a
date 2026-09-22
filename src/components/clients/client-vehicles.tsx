@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, ArrowRightLeft, Car, ShieldCheck } from "lucide-react";
+import { Plus, Pencil, ArrowRightLeft, Car, ShieldCheck, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { VehicleFormDialog } from "@/components/vehicles/vehicle-form-dialog";
 import { TransferOwnershipDialog } from "@/components/vehicles/transfer-ownership-dialog";
@@ -327,11 +327,18 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p className="text-muted-foreground">DMVIC certificate operations for this vehicle. DMVIC operations use DMVIC's own API contracts.</p>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" disabled={!dmvicStatus?.configured || vehicleSearchBusy} onClick={async()=>{setVehicleSearchBusy(true);setVehicleSearchResult(null);try{const res=await dmvicVehicleSearchFn({data:{VehicleRegistrationNumber:String(dmvicVehicle.registration_no||"").trim()}});setVehicleSearchResult(res);if(res.ok) toast.success("DMVIC vehicle and insurance check completed");else toast.error(res.error||"DMVIC vehicle check needs review");}catch(e:any){toast.error(e?.message||"DMVIC vehicle check failed");}finally{setVehicleSearchBusy(false);}}}>{vehicleSearchBusy?"Checking…":"Check vehicle & insurance"}</Button>
-              <Button variant="ghost" onClick={() => setDmvicVehicle(null)}>Close</Button>
+            <div className="grid gap-2 sm:grid-cols-3" aria-live="polite">
+              <div className={`rounded-md border p-3 ${vehicleSearchBusy?"border-primary/40 bg-primary/5":vehicleSearchResult?.ok?"border-emerald-500/30 bg-emerald-500/5":"bg-muted/20"}`}>
+                <div className="flex items-center gap-2 font-medium">{vehicleSearchBusy?<Loader2 className="h-4 w-4 animate-spin"/>:vehicleSearchResult?.ok?<CheckCircle2 className="h-4 w-4 text-emerald-600"/>:<ShieldCheck className="h-4 w-4"/>} Vehicle</div><div className="mt-1 text-xs text-muted-foreground">{vehicleSearchBusy?"Checking DMVIC…":vehicleSearchResult?.ok?"Vehicle record checked":"Ready to verify"}</div>
+              </div>
+              <div className={`rounded-md border p-3 ${vehicleSearchResult?.ok?"border-emerald-500/30 bg-emerald-500/5":"bg-muted/20"}`}><div className="flex items-center gap-2 font-medium">{vehicleSearchResult?.ok?<CheckCircle2 className="h-4 w-4 text-emerald-600"/>:<ShieldCheck className="h-4 w-4"/>} Insurance</div><div className="mt-1 text-xs text-muted-foreground">{vehicleSearchResult?.ok?"Policy history returned":"Waiting for vehicle check"}</div></div>
+              <div className={`rounded-md border p-3 ${vehicleSearchResult&&!vehicleSearchResult.ok?"border-destructive/30 bg-destructive/5":"bg-muted/20"}`}><div className="flex items-center gap-2 font-medium">{vehicleSearchResult&&!vehicleSearchResult.ok?<AlertTriangle className="h-4 w-4 text-destructive"/>:<CheckCircle2 className="h-4 w-4 text-muted-foreground"/>} Review</div><div className="mt-1 text-xs text-muted-foreground">{vehicleSearchResult&&!vehicleSearchResult.ok?"Attention required":vehicleSearchResult?.ok?"Check complete":"Pending"}</div></div>
             </div>
-            {vehicleSearchResult && <div className="rounded-md border p-3 space-y-2"><div className="font-medium">{vehicleSearchResult.ok?"DMVIC vehicle record":"DMVIC check needs attention"}</div>{vehicleSearchResult.error&&<div className="text-destructive">{vehicleSearchResult.error}</div>}<pre className="max-h-64 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(vehicleSearchResult.data??{},null,2)}</pre></div>}
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" disabled={!dmvicStatus?.configured || vehicleSearchBusy} onClick={async()=>{setVehicleSearchBusy(true);setVehicleSearchResult(null);try{const res=await dmvicVehicleSearchFn({data:{VehicleRegistrationNumber:String(dmvicVehicle.registration_no||"").trim()}});setVehicleSearchResult(res);if(res.ok) toast.success("DMVIC vehicle and insurance check completed");else toast.error(res.error||"DMVIC vehicle check needs review");}catch(e:any){toast.error(e?.message||"DMVIC vehicle check failed");}finally{setVehicleSearchBusy(false);}}}>{vehicleSearchBusy?<><Loader2 className="h-4 w-4 animate-spin"/>Checking DMVIC…</>:"Check again"}</Button>
+              <Button variant="ghost" disabled={vehicleSearchBusy} onClick={() => setDmvicVehicle(null)}>Close</Button>
+            </div>
+            {vehicleSearchResult && <div className={`rounded-md border p-3 space-y-2 ${vehicleSearchResult.ok?"border-emerald-500/30":"border-destructive/30"}`}><div className="font-medium">{vehicleSearchResult.ok?"DMVIC check completed":"DMVIC check needs attention"}</div>{vehicleSearchResult.error&&<div className="text-destructive">{vehicleSearchResult.error}</div>}<details><summary className="cursor-pointer text-xs text-muted-foreground">View technical response</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(vehicleSearchResult.data??{},null,2)}</pre></details></div>}
             <p className="text-xs text-muted-foreground">This check uses DMVIC Vehicle Search only. Vehicle information and policy history returned by DMVIC are shown without a separate NTSA integration.</p>
           </CardContent>
         </Card>
