@@ -278,6 +278,59 @@ async function handleInboundMessage(admin: Admin, channel: any, contactsByWaId: 
       }
     }
 
+    // Continue a verified journey using the agency's own quotation/pricing records.
+    // Only final client-facing prices are shown; insurer base price and provider details stay internal.
+    if (text && stateAtInbound === "verified" && ["continue","1","yes","proceed"].includes(text)) {
+      const ctx = latestState?.bot_context ?? {};
+      const verifiedAt = ctx.verified_at ? new Date(ctx.verified_at).getTime() : 0;
+      const verificationFresh = verifiedAt > 0 && Date.now() - verifiedAt <= 15 * 60_000;
+      if (!verificationFresh) {
+        await admin.from("conversations").update({ bot_state: "awaiting_registration", bot_context: { intent: ctx.intent } }).eq("id", conversation.id);
+        await sendWhatsAppText(admin,{tenantId,to:from,body:"For your security, verification has expired. Please enter the vehicle registration number again.",clientId:match.client_id,idempotencyKey:`wa:verification-expired:${providerId}`});
+      } else {
+        const {data:quotes,error:qErr}=await admin.from("quotations")
+          .select("id,quote_no,cover_type,policy_term,quoted_premium,premium_gross,valid_until,status,insurers(name)")
+          .eq("client_id",match.client_id).eq("vehicle_id",ctx.vehicle_id)
+          .in("status",["draft","approved","sent","accepted"])
+          .order("created_at",{ascending:false}).limit(5);
+        if (qErr) throw new Error(qErr.message);
+        const today=new Date().toISOString().slice(0,10);
+        const eligible=(quotes??[]).filter((q:any)=>!q.valid_until || q.valid_until>=today);
+        if (!eligible.length) {
+          await sendWhatsAppText(admin,{tenantId,to:from,body:"We do not yet have a current price option ready for this vehicle. A member of our team can prepare it for you. Reply AGENT for assistance.",clientId:match.client_id,idempotencyKey:`wa:no-price:${providerId}`});
+        } else {
+          const options=eligible.map((q:any,i:number)=>{
+            const price=Number(q.quoted_premium ?? q.premium_gross ?? 0);
+            const cover=String(q.cover_type??"motor cover").replace(/_/g," ");
+            return `${i+1}. ${cover} — KES ${price.toLocaleString("en-KE")}`;
+          }).join("\\n");
+          await admin.from("conversations").update({bot_state:"selecting_cover",bot_context:{...ctx,quote_options:eligible.map((q:any)=>q.id)}}).eq("id",conversation.id);
+          await sendWhatsAppText(admin,{tenantId,to:from,body:`Here are the available cover options for your vehicle:\\n\\n${options}\\n\\nReply with the option number to continue.`,clientId:match.client_id,idempotencyKey:`wa:cover-options:${providerId}`});
+        }
+      }
+    } else if (text && stateAtInbound === "selecting_cover" && /^\\d+$/.test(text)) {
+      const ctx=latestState?.bot_context ?? {};
+      const ids=Array.isArray(ctx.quote_options)?ctx.quote_options:[];
+      const quoteId=ids[Number(text)-1];
+      if (!quoteId) {
+        await sendWhatsAppText(admin,{tenantId,to:from,body:"Please reply with one of the option numbers shown above, or reply AGENT for assistance.",clientId:match.client_id,idempotencyKey:`wa:bad-cover-option:${providerId}`});
+      } else {
+        const {data:q,error:qErr}=await admin.from("quotations")
+          .select("id,quote_no,client_id,vehicle_id,cover_type,policy_term,quoted_premium,premium_gross,valid_until,status")
+          .eq("id",quoteId).eq("client_id",match.client_id).eq("vehicle_id",ctx.vehicle_id).maybeSingle();
+        if (qErr) throw new Error(qErr.message);
+        if (!q) {
+          await sendWhatsAppText(admin,{tenantId,to:from,body:"That option is no longer available. Reply CONTINUE to refresh the available options.",clientId:match.client_id,idempotencyKey:`wa:quote-unavailable:${providerId}`});
+        } else {
+          const price=Number(q.quoted_premium ?? q.premium_gross ?? 0);
+          const cover=String(q.cover_type??"motor cover").replace(/_/g," ");
+          await admin.from("conversations").update({bot_state:"awaiting_payment",bot_context:{...ctx,selected_quote_id:q.id,selected_price:price}}).eq("id",conversation.id);
+          await sendWhatsAppText(admin,{tenantId,to:from,body:`You selected ${cover} at KES ${price.toLocaleString("en-KE")}. Your cover will only be issued after payment is confirmed. Reply PAY to continue or AGENT for assistance.`,clientId:match.client_id,idempotencyKey:`wa:quote-selected:${providerId}`});
+          await admin.from("automation_events").insert({tenant_id:tenantId,event_type:"whatsapp.cover_selected",entity_type:"quotation",entity_id:q.id,client_id:match.client_id,dedupe_key:`whatsapp:cover-selected:${providerId}`,payload:{conversation_id:conversation.id,vehicle_id:ctx.vehicle_id,quotation_id:q.id,amount:price,intent:ctx.intent}});
+        }
+      }
+    }
+
     // Automation event — Phase 4 will consume this for conversational flows.
     const { error: evErr } = await admin.from("automation_events").insert({
       tenant_id: tenantId,
