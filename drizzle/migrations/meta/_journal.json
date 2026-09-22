@@ -71,6 +71,13 @@
       "when": 1790107862776,
       "tag": "0009_motor_quote_markup",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790110774367,
+      "tag": "0010_dmvic_admin_configuration",
+      "breakpoints": true
     }
   ]
 }
