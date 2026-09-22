@@ -149,3 +149,37 @@
   main { overflow: visible !important; }
   body { background: #ffffff !important; }
 }
+
+
+/* Platform interaction polish: fast, tactile, accessible, never decorative latency. */
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { text-rendering: optimizeLegibility; }
+  button, a, input, select, textarea, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+  :focus-visible { outline-offset: 2px; }
+}
+
+@layer utilities {
+  .zest-page-enter { animation: zest-page-enter 180ms cubic-bezier(.2,.8,.2,1) both; }
+  .zest-interactive { transition: transform 140ms ease, box-shadow 160ms ease, background-color 160ms ease, border-color 160ms ease, opacity 160ms ease; }
+  .zest-interactive:active:not(:disabled) { transform: scale(.98); }
+  .zest-card { transition: box-shadow 180ms ease, border-color 180ms ease, transform 180ms ease; }
+  .zest-card:hover { box-shadow: 0 8px 24px oklch(0.18 0.04 260 / .07); }
+}
+
+@keyframes zest-page-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
