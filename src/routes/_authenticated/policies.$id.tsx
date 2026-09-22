@@ -5,7 +5,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Pencil, RefreshCw, Ban } from "lucide-react";
+import { ArrowLeft, Pencil, RefreshCw, Ban, ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { productClassLabel } from "@/lib/product-classes";
 import { PolicyFormDialog } from "@/components/policies/policy-form-dialog";
@@ -40,6 +40,7 @@ function PolicyDetail() {
   const [edit, setEdit] = useState(false);
   const [renew, setRenew] = useState(false);
   const [ipenOpen, setIpenOpen] = useState(false);
+  const [dmvicOpen, setDmvicOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
@@ -306,6 +307,9 @@ function PolicyDetail() {
             <Badge variant="outline" className={`self-center ${COVER_TONE_CLASS[coverLabel(p).tone]}`}>
               {coverLabel(p).label === "active" ? "Cover active" : `Cover ${coverLabel(p).label}`}
             </Badge>
+            {p.vehicles?.registration_no && (
+              <Button variant="outline" onClick={() => setDmvicOpen(true)}><ShieldCheck className="h-4 w-4 mr-1" /> DMVIC</Button>
+            )}
             {p.ipen_policy_id && (
               <>
                 <Badge variant="secondary" className="self-center">IPEN</Badge>
@@ -517,6 +521,32 @@ function PolicyDetail() {
       {p.ipen_policy_id && (
         <IpenPolicyLiveDrawer open={ipenOpen} onOpenChange={setIpenOpen} ipenPolicyId={String(p.ipen_policy_id)} />
       )}
+
+      <Dialog open={dmvicOpen} onOpenChange={setDmvicOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" /> DMVIC Motor Certificate</DialogTitle>
+            <DialogDescription>DMVIC operations for this policy and vehicle.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <Item label="Client" value={clientName} />
+            <Item label="Vehicle" value={p.vehicles?.registration_no} />
+            <Item label="Policy no." value={p.policy_no} />
+            <Item label="Insurer" value={p.insurers?.name} />
+            <Item label="Certificate no." value={p.certificate_no} />
+            <Item label="Status" value={p.certificate_no ? "Certificate recorded" : "Not issued"} />
+          </div>
+          <div className="rounded-md border p-4 space-y-3">
+            <div className="font-medium">Certificate workflow</div>
+            <p className="text-sm text-muted-foreground">Validate and preview the policy with DMVIC before certificate issuance. Issuance remains protected until the UAT contract is fully verified.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" disabled>Validate & Preview</Button>
+              <Button disabled>Issue DMVIC Certificate</Button>
+            </div>
+          </div>
+          <DialogFooter><Button variant="ghost" onClick={() => setDmvicOpen(false)}>Close</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <DialogContent className="max-w-lg">
