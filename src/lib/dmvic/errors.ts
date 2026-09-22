@@ -31,12 +31,12 @@ export const DMVIC_ALERT_CODES: readonly DmvicAlertCode[] = [
 /** Human descriptions. ER005 is a business-rule outcome (not a transport
  *  failure); ER0015 flags a blacklisted / reported-stolen vehicle. */
 export const DMVIC_ALERT_MEANING: Record<DmvicAlertCode, string> = {
-  ER001: "Validation error in the submitted request.",
-  ER002: "Authentication or authorisation failure with DMVIC.",
-  ER003: "Requested record was not found on DMVIC.",
-  ER004: "Duplicate request or duplicate certificate detected.",
-  ER005: "Business rule result returned by DMVIC (not a transport failure).",
-  ER006: "Member company stock or inventory problem.",
+  ER001: "Input JSON format is incorrect.",
+  ER002: "Unknown DMVIC error.",
+  ER003: "Mandatory field is missing.",
+  ER004: "Input is not valid.",
+  ER005: "Double insurance: an active policy already exists.",
+  ER006: "Insufficient certificate inventory.",
   ER007: "Policy alert raised — manual review required before confirmation.",
   ER0015: "Vehicle is blacklisted or reported stolen.",
 };
@@ -141,10 +141,11 @@ export function extractAlerts(payload: unknown): DmvicAlert[] {
 
 export function readIssuance(payload: unknown): { requestId: string | null; message: string | null } {
   if (!payload || typeof payload !== "object") return { requestId: null, message: null };
-  const node = (payload as any).Issuance ?? (payload as any).issuance;
+  const p = payload as any;
+  const node = p.Issuance ?? p.issuance ?? p.callbackObj ?? p.CallbackObj;
   if (!node || typeof node !== "object") return { requestId: null, message: null };
-  const requestId = node.RequestID ?? node.RequestId ?? node.requestID ?? node.requestId ?? null;
-  const message = node.Message ?? node.message ?? null;
+  const requestId = node.RequestID ?? node.RequestId ?? node.requestID ?? node.requestId ?? node.IssuanceRequestID ?? node.issuanceRequestID ?? null;
+  const message = node.Message ?? node.message ?? node.IssuanceMessage ?? node.issuanceMessage ?? null;
   return {
     requestId: requestId == null ? null : String(requestId),
     message: message == null ? null : String(message),
