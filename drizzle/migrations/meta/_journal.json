@@ -78,6 +78,13 @@
       "when": 1790110774367,
       "tag": "0010_dmvic_admin_configuration",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790112720132,
+      "tag": "0011_whatsapp_digital_agent",
+      "breakpoints": true
     }
   ]
 }
