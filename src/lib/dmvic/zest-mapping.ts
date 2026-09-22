@@ -9,7 +9,7 @@ import { dmvicCertificateSchemas } from "./schemas";
  */
 export const zestTypeAMappingInputSchema = z.object({
   memberCompanyId: z.union([z.string().min(1), z.number().int().positive()]),
-  certificateTypeCode: z.union([z.literal(1), z.literal(8)]),
+  certificateTypeCode: z.union([z.literal(1), z.literal(6), z.literal(7), z.literal(8)]),
   coverCode: z.union([z.literal(100), z.literal(200), z.literal(300)]),
   policyholder: z.string().min(1),
   policyNumber: z.string().min(1),
@@ -26,6 +26,7 @@ export const zestTypeAMappingInputSchema = z.object({
   email: z.string().email(),
   sumInsured: z.number().nonnegative().optional(),
   insuredPin: z.string().min(1).max(11),
+  yearOfRegistration: z.number().int().min(1900).max(2200),
   yearOfManufacture: z.number().int().min(1900).max(2200).optional(),
   hudumaNumber: z.string().optional(),
 });
@@ -63,11 +64,11 @@ export function mapZestToDmvicTypeA(input: ZestTypeAMappingInput) {
     Email: value.email.trim().toLowerCase(),
     ...(value.sumInsured != null ? { SumInsured: value.sumInsured } : {}),
     InsuredPIN: value.insuredPin.trim().toUpperCase(),
+    Yearofregistration: value.yearOfRegistration,
     ...(value.yearOfManufacture != null ? { Yearofmanufacture: value.yearOfManufacture } : {}),
     ...(value.hudumaNumber ? { HudumaNumber: value.hudumaNumber.trim() } : {}),
   };
 
-  // DMVIC docs show Yearofregistration struck through, so it is deliberately
-  // not generated here. Validate the exact outbound payload before transport.
+  // Intermediary Type A documentation requires Yearofregistration.
   return dmvicCertificateSchemas.A.parse(payload);
 }
