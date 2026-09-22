@@ -1570,6 +1570,68 @@ export type Database = {
           },
         ]
       }
+      motor_insurer_rates: {
+        Row: {
+          active: boolean
+          benefits_summary: string | null
+          cover_type: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          excess_summary: string | null
+          flat_premium: number | null
+          id: string
+          insurer_id: string
+          minimum_premium: number | null
+          rate_percent: number | null
+          underwriting_notes: string | null
+          updated_at: string
+          vehicle_category: string
+        }
+        Insert: {
+          active?: boolean
+          benefits_summary?: string | null
+          cover_type: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          excess_summary?: string | null
+          flat_premium?: number | null
+          id?: string
+          insurer_id: string
+          minimum_premium?: number | null
+          rate_percent?: number | null
+          underwriting_notes?: string | null
+          updated_at?: string
+          vehicle_category: string
+        }
+        Update: {
+          active?: boolean
+          benefits_summary?: string | null
+          cover_type?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          excess_summary?: string | null
+          flat_premium?: number | null
+          id?: string
+          insurer_id?: string
+          minimum_premium?: number | null
+          rate_percent?: number | null
+          underwriting_notes?: string | null
+          updated_at?: string
+          vehicle_category?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "motor_insurer_rates_insurer_id_fkey"
+            columns: ["insurer_id"]
+            isOneToOne: false
+            referencedRelation: "insurers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null
