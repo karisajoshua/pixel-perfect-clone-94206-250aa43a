@@ -744,6 +744,9 @@ export type Database = {
           ai_context: Json
           ai_intent: string | null
           assigned_to: string | null
+          bot_context: Json
+          bot_paused: boolean
+          bot_state: string
           channel: string
           channel_id: string | null
           client_id: string | null
@@ -765,6 +768,9 @@ export type Database = {
           ai_context?: Json
           ai_intent?: string | null
           assigned_to?: string | null
+          bot_context?: Json
+          bot_paused?: boolean
+          bot_state?: string
           channel?: string
           channel_id?: string | null
           client_id?: string | null
@@ -786,6 +792,9 @@ export type Database = {
           ai_context?: Json
           ai_intent?: string | null
           assigned_to?: string | null
+          bot_context?: Json
+          bot_paused?: boolean
+          bot_state?: string
           channel?: string
           channel_id?: string | null
           client_id?: string | null
@@ -2869,6 +2878,86 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_verification_challenges: {
+        Row: {
+          attempts: number
+          client_id: string | null
+          consumed_at: string | null
+          conversation_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          max_attempts: number
+          otp_hash: string
+          phone: string
+          purpose: string
+          tenant_id: string
+          vehicle_id: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          client_id?: string | null
+          consumed_at?: string | null
+          conversation_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          max_attempts?: number
+          otp_hash: string
+          phone: string
+          purpose: string
+          tenant_id: string
+          vehicle_id?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          client_id?: string | null
+          consumed_at?: string | null
+          conversation_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          max_attempts?: number
+          otp_hash?: string
+          phone?: string
+          purpose?: string
+          tenant_id?: string
+          vehicle_id?: string | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_verification_challenges_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_verification_challenges_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_verification_challenges_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_verification_challenges_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
