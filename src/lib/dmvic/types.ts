@@ -26,6 +26,7 @@ export type DmvicConfirmIssuanceRequest = {
 
 export const DMVIC_PATHS = {
   login: "/api/v1/Account/Login",
+  vehicleSearch: "/api/v7/Integration/VehicleSearch",
   preview: {
     A: "/api/v7/IntermediaryIntegration/PreviewTypeACertificate",
     B: "/api/v7/IntermediaryIntegration/PreviewTypeBCertificate",
