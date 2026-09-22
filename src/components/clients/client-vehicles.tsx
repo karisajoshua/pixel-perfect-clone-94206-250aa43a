@@ -16,7 +16,7 @@ import { VehicleFormDialog } from "@/components/vehicles/vehicle-form-dialog";
 import { TransferOwnershipDialog } from "@/components/vehicles/transfer-ownership-dialog";
 import { useMyRoles } from "@/hooks/use-auth";
 import { VehicleDocuments, useVehicleDocuments, vehicleDocsBadge } from "@/components/clients/vehicle-documents";
-import { dmvicConnectionStatus, dmvicPreviewTypeAFromZest } from "@/lib/dmvic/dmvic.functions";
+import { dmvicConnectionStatus, dmvicVehicleSearch } from "@/lib/dmvic/dmvic.functions";
 import { policyBalance, balanceLabel, formatKES, isCoverActive, coverLabel } from "@/lib/policy-balance";
 
 const TERMS: Record<string, string> = {
@@ -40,7 +40,9 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
   const [transferVehicle, setTransferVehicle] = useState<any>(null);
   const [dmvicVehicle, setDmvicVehicle] = useState<any>(null);
   const dmvicStatusFn = useServerFn(dmvicConnectionStatus);
-  const dmvicPreviewFn = useServerFn(dmvicPreviewTypeAFromZest);
+  const dmvicVehicleSearchFn = useServerFn(dmvicVehicleSearch);
+  const [vehicleSearchBusy, setVehicleSearchBusy] = useState(false);
+  const [vehicleSearchResult, setVehicleSearchResult] = useState<any>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewBusy, setPreviewBusy] = useState(false);
   const [previewResult, setPreviewResult] = useState<any>(null);
@@ -317,18 +319,11 @@ export function ClientVehicles({ clientId }: { clientId: string }) {
           <CardContent className="space-y-3 text-sm">
             <p className="text-muted-foreground">DMVIC certificate operations for this vehicle. DMVIC operations use DMVIC's own API contracts.</p>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" disabled={!dmvicStatus?.configured}>Check insurance status</Button>
-              <Button variant="outline" disabled={!dmvicStatus?.configured} onClick={async () => {
-                const policy = [...(dmvicVehicle.policies ?? [])].sort((a: any, b: any) => (b.start_date ?? "").localeCompare(a.start_date ?? ""))[0];
-                const { data: cl } = await supabase.from("clients").select("full_name, company_name, phone, email, kra_pin").eq("id", clientId).single();
-                setDmvicForm({ memberCompanyId: "", certificateTypeCode: "1", coverCode: "200", policyholder: cl?.company_name || cl?.full_name || "", policyNumber: policy?.policy_no || "", commencementDate: policy?.start_date || "", expiryDate: policy?.end_date || "", phoneNumber: cl?.phone || "", email: cl?.email || "", insuredPin: cl?.kra_pin || "", sumInsured: dmvicVehicle.estimated_value ? String(dmvicVehicle.estimated_value) : "" });
-                setPreviewResult(null); setPreviewOpen(true);
-              }}>Preview certificate</Button>
-              <Button variant="outline" disabled={!dmvicStatus?.configured}>Validate certificate</Button>
-              <Button disabled>Issue certificate</Button>
+              <Button variant="outline" disabled={!dmvicStatus?.configured || vehicleSearchBusy} onClick={async()=>{setVehicleSearchBusy(true);setVehicleSearchResult(null);try{const res=await dmvicVehicleSearchFn({data:{VehicleRegistrationNumber:String(dmvicVehicle.registration_no||"").trim()}});setVehicleSearchResult(res);if(res.ok) toast.success("DMVIC vehicle and insurance check completed");else toast.error(res.error||"DMVIC vehicle check needs review");}catch(e:any){toast.error(e?.message||"DMVIC vehicle check failed");}finally{setVehicleSearchBusy(false);}}}>{vehicleSearchBusy?"Checking…":"Check vehicle & insurance"}</Button>
               <Button variant="ghost" onClick={() => setDmvicVehicle(null)}>Close</Button>
             </div>
-            <p className="text-xs text-muted-foreground">Connection readiness is checked securely through the Zest server. Preview/status controls become available when UAT is configured; issuance remains locked until its DMVIC contract and identifiers are verified.</p>
+            {vehicleSearchResult && <div className="rounded-md border p-3 space-y-2"><div className="font-medium">{vehicleSearchResult.ok?"DMVIC vehicle record":"DMVIC check needs attention"}</div>{vehicleSearchResult.error&&<div className="text-destructive">{vehicleSearchResult.error}</div>}<pre className="max-h-64 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(vehicleSearchResult.data??{},null,2)}</pre></div>}
+            <p className="text-xs text-muted-foreground">This check uses DMVIC Vehicle Search only. Vehicle information and policy history returned by DMVIC are shown without a separate NTSA integration.</p>
           </CardContent>
         </Card>
       )}
