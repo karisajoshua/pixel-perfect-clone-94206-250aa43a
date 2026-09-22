@@ -255,7 +255,7 @@ async function handleInboundMessage(admin: Admin, channel: any, contactsByWaId: 
       const {verifyWhatsAppOtp}=await import("./verification.server");
       const verified=await verifyWhatsAppOtp(admin,{tenantId,conversationId:conversation.id,otp:text});
       if (!verified.ok) {
-        await sendWhatsAppText(admin,{tenantId,to:from,body:verified.reason,clientId:match.client_id,idempotencyKey:`wa:otp-failed:${providerId}`});
+        await sendWhatsAppText(admin,{tenantId,to:from,body:verified.reason ?? "Verification failed. Please request a new code.",clientId:match.client_id,idempotencyKey:`wa:otp-failed:${providerId}`});
       } else {
         await admin.from("conversations").update({bot_state:"verified",identification:"identified"}).eq("id",conversation.id);
         await sendWhatsAppText(admin,{tenantId,to:from,body:"Verification successful. We can now continue securely with your insurance request.",clientId:match.client_id,idempotencyKey:`wa:verified:${verified.challenge.id}`});
