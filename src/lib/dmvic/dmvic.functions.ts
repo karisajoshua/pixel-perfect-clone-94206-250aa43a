@@ -9,7 +9,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { dmvicCertificateRequestSchema } from "./schemas";
+import { dmvicCertificateRequestSchema, dmvicValidationRequestSchema, dmvicIssuanceRequestSchema } from "./schemas";
 import { requireAuth as requireSupabaseAuth } from "@/lib/auth-mfa.middleware";
 import { DMVIC_PATHS, type DmvicCertificateType } from "./types";
 import type { DmvicNormalizedResult, JsonValue } from "./errors";
@@ -105,7 +105,7 @@ export const dmvicPreviewCertificate = createServerFn({ method: "POST" })
 /** Validate a Type A/B/C/D certificate request before issuance. */
 export const dmvicValidateCertificate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(certRequestSchema)
+  .inputValidator(dmvicValidationRequestSchema)
   .handler(async ({ data }) =>
     call(DMVIC_PATHS.validate[data.certificateType as DmvicCertificateType], data.payload),
   );
@@ -120,7 +120,7 @@ export const dmvicValidateCertificate = createServerFn({ method: "POST" })
  */
 export const dmvicIssueCertificate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(certRequestSchema)
+  .inputValidator(dmvicIssuanceRequestSchema)
   .handler(async ({ data }) => {
     const result = await call(
       DMVIC_PATHS.issue[data.certificateType as DmvicCertificateType],
