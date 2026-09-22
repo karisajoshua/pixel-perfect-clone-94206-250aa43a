@@ -83,6 +83,16 @@ export const dmvicPreviewTypeAFromZest = createServerFn({ method: "POST" })
     return call(DMVIC_PATHS.preview.A, payload);
   });
 
+
+/**
+ * DMVIC v7 Member Company vehicle search (documentation 4.2.1).
+ * Read-only: searches NTSA vehicle details and DMVIC policy history by registration.
+ */
+export const dmvicVehicleSearch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ VehicleRegistrationNumber: z.string().trim().min(1).max(15) }))
+  .handler(async ({ data }) => call(DMVIC_PATHS.vehicleSearch, data));
+
 /** Preview a Type A/B/C/D certificate (no stock is consumed). */
 export const dmvicPreviewCertificate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
