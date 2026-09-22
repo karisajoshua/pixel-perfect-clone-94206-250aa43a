@@ -48,7 +48,7 @@ async function call(path: string, body: unknown): Promise<DmvicResult> {
 
 const typeAPreviewFromZestSchema = z.object({
   memberCompanyId: z.union([z.string().min(1), z.number().int().positive()]),
-  certificateTypeCode: z.union([z.literal(1), z.literal(8)]),
+  certificateTypeCode: z.union([z.literal(1), z.literal(6), z.literal(7), z.literal(8)]),
   coverCode: z.union([z.literal(100), z.literal(200), z.literal(300)]),
   policyholder: z.string().min(1),
   policyNumber: z.string().min(1),
@@ -65,6 +65,7 @@ const typeAPreviewFromZestSchema = z.object({
   email: z.string().email(),
   sumInsured: z.number().nonnegative().optional(),
   insuredPin: z.string().min(1).max(11),
+  yearOfRegistration: z.number().int().min(1900).max(2200),
   yearOfManufacture: z.number().int().min(1900).max(2200).optional(),
   hudumaNumber: z.string().optional(),
 });
