@@ -13,6 +13,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { extractLogbookFields, getClientLogbookDoc } from "@/lib/vehicles.functions";
 import { ProductClassFields } from "@/components/product-class-fields";
 import { dmvicVehicleSearch } from "@/lib/dmvic/dmvic.functions";
+import { compareMotorRates } from "@/lib/motor-comparison";
 
 type Props = {
   open: boolean;
@@ -46,6 +47,8 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
   const dmvicSearchFn = useServerFn(dmvicVehicleSearch);
   const [dmvicChecking, setDmvicChecking] = useState(false);
   const [dmvicCheck, setDmvicCheck] = useState<any>(null);
+  const [comparisons, setComparisons] = useState<any[]>([]);
+  const [comparing, setComparing] = useState(false);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   useEffect(() => {
@@ -419,6 +422,11 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
           <F label="Estimated value (KES)" type="number" value={form.estimated_value} onChange={(v) => set("estimated_value", v ? Number(v) : null)} />
           <F label="Inspection due" type="date" value={form.inspection_due} onChange={(v) => set("inspection_due", v || null)} />
           <div className="sm:col-span-2 space-y-1.5"><Label>Notes</Label><Textarea rows={2} value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value)} /></div>
+        </div>
+
+        <div className="rounded-md border p-3 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="text-sm font-medium">Compare motor insurance</div><p className="text-xs text-muted-foreground">Compare configured insurer premiums for this vehicle before selecting cover.</p></div><Button type="button" variant="outline" disabled={comparing||!form.estimated_value} onClick={async()=>{setComparing(true);try{const category=String(form.usage_type||"private");const coverType=String(cover.cover_type||"comprehensive");const {data,error}=await (supabase as any).from("motor_insurer_rates").select("*, insurers(name)").eq("active",true).eq("vehicle_category",category).eq("cover_type",coverType);if(error)throw error;const rows=compareMotorRates(data??[],Number(form.estimated_value||0));setComparisons(rows);if(!rows.length)toast.message("No insurer rates configured for this category yet.");}catch(e:any){toast.error(e?.message||"Could not compare insurers");}finally{setComparing(false);}}}>{comparing?"Comparing…":"Compare insurers"}</Button></div>
+          {comparisons.length>0&&<div className="space-y-2">{comparisons.map((r:any)=><button type="button" key={r.id} className="w-full rounded-md border p-3 text-left hover:bg-muted/40" onClick={()=>{setCover((x:any)=>({...x,insurer_id:r.insurer_id,premium_gross:r.estimated_premium}));toast.success(`${r.insurers?.name||"Insurer"} selected`);}}><div className="flex justify-between gap-3"><span className="font-medium">{r.insurers?.name||"Insurer"}</span><span className="font-semibold">KES {Number(r.estimated_premium).toLocaleString()}</span></div>{(r.excess_summary||r.benefits_summary)&&<div className="mt-1 text-xs text-muted-foreground">{[r.excess_summary,r.benefits_summary].filter(Boolean).join(" · ")}</div>}</button>)}</div>}
         </div>
 
         <div className="rounded-md border p-3 space-y-3">
