@@ -5,6 +5,7 @@
  * authorization, passwords, ClientID, PFX bytes/passphrases or full PII payloads.
  */
 import https from "node:https";
+import { dmvicCertificateSchemas } from "./dmvic.schemas";
 
 export type DmvicCertificateType = "A" | "B" | "C" | "D";
 
@@ -218,21 +219,24 @@ export async function previewCertificate(
   type: DmvicCertificateType,
   payload: unknown,
 ): Promise<DmvicResult> {
-  return normalize(await authenticatedPost(previewPath[type], payload));
+  const validated = dmvicCertificateSchemas[type].parse(payload);
+  return normalize(await authenticatedPost(previewPath[type], validated));
 }
 
 export async function validateCertificate(
   type: DmvicCertificateType,
   payload: unknown,
 ): Promise<DmvicResult> {
-  return normalize(await authenticatedPost(validatePath[type], payload));
+  const validated = dmvicCertificateSchemas[type].parse(payload);
+  return normalize(await authenticatedPost(validatePath[type], validated));
 }
 
 export async function issueCertificate(
   type: DmvicCertificateType,
   payload: unknown,
 ): Promise<DmvicResult> {
-  return normalize(await authenticatedPost(issuePath[type], payload));
+  const validated = dmvicCertificateSchemas[type].parse(payload);
+  return normalize(await authenticatedPost(issuePath[type], validated));
 }
 
 export async function getMemberCompanyStock(
