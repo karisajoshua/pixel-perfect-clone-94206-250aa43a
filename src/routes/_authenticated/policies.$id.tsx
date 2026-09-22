@@ -529,12 +529,12 @@ function PolicyDetail() {
       )}
 
       <Dialog open={dmvicOpen} onOpenChange={setDmvicOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" /> DMVIC Motor Certificate</DialogTitle>
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[92dvh] overflow-y-auto p-4 sm:p-6">
+          <DialogHeader className="pr-6">
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg"><ShieldCheck className="h-5 w-5 shrink-0" /> <span className="break-words">DMVIC Motor Certificate</span></DialogTitle>
             <DialogDescription>DMVIC operations for this policy and vehicle.</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <Item label="Client" value={clientName} />
             <Item label="Vehicle" value={p.vehicles?.registration_no} />
             <Item label="Policy no." value={p.policy_no} />
@@ -542,7 +542,7 @@ function PolicyDetail() {
             <Item label="Certificate no." value={p.certificate_no} />
             <Item label="Status" value={p.certificate_no ? "Certificate recorded" : "Not issued"} />
           </div>
-          <div className="rounded-md border p-4 space-y-3">
+          <div className="rounded-md border p-3 sm:p-4 space-y-3 min-w-0">
             <div className="font-medium">Certificate workflow</div>
             <p className="text-sm text-muted-foreground">Validate and preview the policy with DMVIC before certificate issuance. Issuance remains protected until the UAT contract is fully verified.</p>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -555,8 +555,8 @@ function PolicyDetail() {
               <div className="space-y-1.5"><Label>Licensed to carry</Label><Input type="number" min="1" value={dmvicForm.licensedToCarry} onChange={(e)=>setDmvicForm(x=>({...x,licensedToCarry:e.target.value}))} /></div>
             </div>
             {dmvicResult && <div className="rounded-md border p-3 text-sm"><div className="font-medium">{dmvicResult.ok ? "DMVIC UAT preview successful" : "DMVIC needs attention"}</div><div className="mt-1 text-muted-foreground">{dmvicResult.error || dmvicResult.issuanceMessage || (dmvicResult.ok ? "The certificate data passed the DMVIC preview request." : "Review the response and policy data.")}</div></div>}
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" disabled={dmvicBusy || !dmvicForm.memberCompanyId} onClick={async()=>{
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button className="w-full sm:w-auto" variant="outline" disabled={dmvicBusy || !dmvicForm.memberCompanyId} onClick={async()=>{
                 setDmvicBusy(true); setDmvicResult(null);
                 try {
                   const status=await dmvicStatusFn();
@@ -568,10 +568,10 @@ function PolicyDetail() {
                 } catch(e:any){ toast.error(e?.message || "DMVIC validation failed"); }
                 finally{setDmvicBusy(false);}
               }}>{dmvicBusy ? "Validating…" : "Validate & Preview"}</Button>
-              <Button disabled>Issue DMVIC Certificate</Button>
+              <Button className="w-full sm:w-auto" disabled>Issue DMVIC Certificate</Button>
             </div>
           </div>
-          <DialogFooter><Button variant="ghost" onClick={() => setDmvicOpen(false)}>Close</Button></DialogFooter>
+          <DialogFooter className="sm:justify-end"><Button className="w-full sm:w-auto" variant="ghost" onClick={() => setDmvicOpen(false)}>Close</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
