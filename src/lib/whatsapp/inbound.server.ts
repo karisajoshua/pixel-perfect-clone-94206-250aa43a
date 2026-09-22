@@ -8,6 +8,8 @@
  * no AI, no chatbot (that is Phase 4).
  */
 import { normalizePhone } from "@/lib/phone";
+import { customerMenu, intentFromMenu, isGreeting } from "./digital-agent";
+import { sendWhatsAppText } from "./gateway.server";
 import {
   auditWhatsApp,
   ensureConversation,
@@ -191,6 +193,42 @@ async function handleInboundMessage(admin: Admin, channel: any, contactsByWaId: 
       await setConsent(admin, { tenantId, phone: from, status: "opted_out", source: "whatsapp_keyword", clientId: match.client_id });
     } else if (text && OPT_IN_WORDS.includes(text)) {
       await setConsent(admin, { tenantId, phone: from, status: "opted_in", source: "whatsapp_keyword", clientId: match.client_id });
+    }
+
+    // Customer-facing digital insurance agent. Keep provider/integration details invisible.
+    // Sensitive policy/vehicle information is never exposed here; protected journeys continue
+    // through the verification state machine before any private data is returned.
+    if (text && !OPT_OUT_WORDS.includes(text) && !OPT_IN_WORDS.includes(text) && !conversation.bot_paused) {
+      const currentState = conversation.bot_state ?? "idle";
+      const intent = intentFromMenu(text);
+      if (isGreeting(text) || currentState === "idle") {
+        const { data: tenant } = await admin.from("tenants").select("name").eq("id", tenantId).maybeSingle();
+        const agencyName = tenant?.name ?? channel.display_name ?? "our insurance team";
+        await sendWhatsAppText(admin, {
+          tenantId, to: from, body: customerMenu(agencyName),
+          clientId: match.client_id, idempotencyKey: `wa:welcome:${providerId}`,
+        });
+        await admin.from("conversations").update({ status: "bot", bot_state: "menu", ai_intent: null }).eq("id", conversation.id);
+      } else if (currentState === "menu" && intent !== "unknown") {
+        if (intent === "human") {
+          await admin.from("conversations").update({ status: "escalated", bot_state: "human", bot_paused: true, ai_intent: "human" }).eq("id", conversation.id);
+          await sendWhatsAppText(admin, { tenantId, to: from, body: "Thank you. A member of our team will assist you shortly.", clientId: match.client_id, idempotencyKey: `wa:human:${providerId}` });
+        } else {
+          const needsVehicle = ["renew_cover","new_policy","quotation","policy_status","claims"].includes(intent);
+          await admin.from("conversations").update({
+            status: "bot", ai_intent: intent,
+            bot_state: needsVehicle ? "awaiting_registration" : "menu",
+            bot_context: { ...(conversation.bot_context ?? {}), intent },
+          }).eq("id", conversation.id);
+          if (needsVehicle) {
+            await sendWhatsAppText(admin, {
+              tenantId, to: from,
+              body: "Please enter the vehicle registration number (for example KAA 123A). We will verify your access before showing any private vehicle or policy information.",
+              clientId: match.client_id, idempotencyKey: `wa:registration:${providerId}`,
+            });
+          }
+        }
+      }
     }
 
     // Automation event — Phase 4 will consume this for conversational flows.
