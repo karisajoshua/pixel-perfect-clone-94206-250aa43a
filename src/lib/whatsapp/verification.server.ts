@@ -1,4 +1,4 @@
-import { createHash, randomInt, timingSafeEqual } from "node:crypto";
+import { createHash, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 
 type Admin = any;
 const TTL_MINUTES = 10;
@@ -16,7 +16,7 @@ export async function createWhatsAppOtp(admin: Admin, args: {
   await admin.from("whatsapp_verification_challenges").update({ consumed_at:new Date().toISOString() })
     .eq("conversation_id",args.conversationId).is("verified_at",null).is("consumed_at",null);
 
-  const id=crypto.randomUUID();
+  const id=randomUUID();
   const otp=String(randomInt(100000,1000000));
   const expiresAt=new Date(Date.now()+TTL_MINUTES*60_000).toISOString();
   const {error}=await admin.from("whatsapp_verification_challenges").insert({
