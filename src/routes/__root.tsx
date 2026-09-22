@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -149,6 +149,19 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+  const [navigating, setNavigating] = useState(false);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const unsub = router.subscribe("onBeforeNavigate", () => {
+      timer = setTimeout(() => setNavigating(true), 120);
+    });
+    const unsubDone = router.subscribe("onResolved", () => {
+      if (timer) clearTimeout(timer);
+      setNavigating(false);
+    });
+    return () => { if (timer) clearTimeout(timer); unsub(); unsubDone(); };
+  }, [router]);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
@@ -163,9 +176,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      {navigating && <div className="fixed inset-x-0 top-0 z-[100] h-0.5 overflow-hidden bg-primary/15" aria-label="Loading page"><div className="h-full w-1/3 animate-pulse bg-primary" /></div>}
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
-      <Toaster richColors position="top-right" />
+      <div className="zest-page-enter"><Outlet /></div>
+      <Toaster richColors position="top-right" closeButton />
     </QueryClientProvider>
   );
 }
