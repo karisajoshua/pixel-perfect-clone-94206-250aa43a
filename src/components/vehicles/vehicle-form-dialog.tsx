@@ -525,7 +525,7 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit} disabled={saving || !form.client_id || !form.registration_no}>{saving ? "Saving…" : "Save"}</Button>
+          <Button onClick={submit} disabled={saving || !form.client_id || !form.registration_no} aria-busy={saving}>{saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving vehicle…</> : initial?.id ? "Save changes" : "Add vehicle"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
