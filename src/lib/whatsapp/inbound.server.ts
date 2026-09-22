@@ -239,8 +239,8 @@ async function handleInboundMessage(admin: Admin, channel: any, contactsByWaId: 
     if (text && stateAtInbound === "awaiting_registration") {
       const registration=text.toUpperCase().replace(/[^A-Z0-9]/g,"");
       if (/^[A-Z0-9]{5,10}$/.test(registration)) {
-        const {data:vehicle}=await admin.from("vehicles").select("id,client_id,registration_no")
-          .eq("tenant_id",tenantId).eq("registration_no",registration).maybeSingle();
+        const {data:vehicle}=await admin.from("vehicles").select("id,client_id,registration_no,clients!inner(tenant_id)")
+          .eq("clients.tenant_id",tenantId).ilike("registration_no",registration).maybeSingle();
         // Never reveal whether an unrelated registration exists in this agency.
         if (!vehicle || !match.client_id || vehicle.client_id !== match.client_id) {
           await sendWhatsAppText(admin,{tenantId,to:from,body:"We could not verify that vehicle against this WhatsApp number. Check the registration and try again, or reply AGENT for assistance.",clientId:match.client_id,idempotencyKey:`wa:vehicle-unverified:${providerId}`});
@@ -260,8 +260,20 @@ async function handleInboundMessage(admin: Admin, channel: any, contactsByWaId: 
       if (!verified.ok) {
         await sendWhatsAppText(admin,{tenantId,to:from,body:verified.reason ?? "Verification failed. Please request a new code.",clientId:match.client_id,idempotencyKey:`wa:otp-failed:${providerId}`});
       } else {
-        await admin.from("conversations").update({bot_state:"verified",identification:"identified"}).eq("id",conversation.id);
-        await sendWhatsAppText(admin,{tenantId,to:from,body:"Verification successful. We can now continue securely with your insurance request.",clientId:match.client_id,idempotencyKey:`wa:verified:${verified.challenge.id}`});
+        const intent=latestState.bot_context?.intent;
+        const {data:policy}=await admin.from("policies")
+          .select("id,policy_no,cover_type,premium_gross,start_date,end_date,status,payment_status,insurers(name)")
+          .eq("client_id",match.client_id).eq("vehicle_id",verified.challenge.vehicle_id)
+          .order("end_date",{ascending:false}).limit(1).maybeSingle();
+        const nextContext={...(latestState.bot_context??{}),verified_at:new Date().toISOString(),policy_id:policy?.id??null};
+        await admin.from("conversations").update({bot_state:"verified",identification:"identified",bot_context:nextContext}).eq("id",conversation.id);
+        const coverLabel=String(policy?.cover_type??"").replace(/_/g," ");
+        const policySummary = policy
+          ? `We found your ${coverLabel || "motor"} cover ending ${policy.end_date}. Reply CONTINUE to view the available cover and price options, or AGENT for assistance.`
+          : intent === "renew_cover" || intent === "policy_status"
+            ? "Verification successful, but we could not find an eligible policy for this vehicle. Reply AGENT and our team will assist you."
+            : "Verification successful. Reply CONTINUE to view the available cover and price options, or AGENT for assistance.";
+        await sendWhatsAppText(admin,{tenantId,to:from,body:policySummary,clientId:match.client_id,idempotencyKey:`wa:verified:${verified.challenge.id}`});
         await admin.from("automation_events").insert({tenant_id:tenantId,event_type:"whatsapp.customer_verified",entity_type:"conversation",entity_id:conversation.id,client_id:match.client_id,dedupe_key:`whatsapp:verified:${verified.challenge.id}`,payload:{conversation_id:conversation.id,vehicle_id:verified.challenge.vehicle_id,intent:latestState.bot_context?.intent}});
       }
     }
