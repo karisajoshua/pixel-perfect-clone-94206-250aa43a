@@ -200,6 +200,8 @@ async function handleInboundMessage(admin: Admin, channel: any, contactsByWaId: 
     // through the verification state machine before any private data is returned.
     if (text && !OPT_OUT_WORDS.includes(text) && !OPT_IN_WORDS.includes(text) && !conversation.bot_paused) {
       const currentState = conversation.bot_state ?? "idle";
+      // Process this inbound message against the state it arrived in. A state
+      // transition caused by this message must not consume the same message again.
       const intent = intentFromMenu(text);
       if (isGreeting(text) || currentState === "idle") {
         const { data: tenant } = await admin.from("tenants").select("name").eq("id", tenantId).maybeSingle();
@@ -209,11 +211,11 @@ async function handleInboundMessage(admin: Admin, channel: any, contactsByWaId: 
           clientId: match.client_id, idempotencyKey: `wa:welcome:${providerId}`,
         });
         await admin.from("conversations").update({ status: "bot", bot_state: "menu", ai_intent: null }).eq("id", conversation.id);
+      } else if (intent === "human") {
+        await admin.from("conversations").update({ status: "escalated", bot_state: "human", bot_paused: true, ai_intent: "human" }).eq("id", conversation.id);
+        await sendWhatsAppText(admin, { tenantId, to: from, body: "Thank you. A member of our team will assist you shortly.", clientId: match.client_id, idempotencyKey: `wa:human:${providerId}` });
       } else if (currentState === "menu" && intent !== "unknown") {
-        if (intent === "human") {
-          await admin.from("conversations").update({ status: "escalated", bot_state: "human", bot_paused: true, ai_intent: "human" }).eq("id", conversation.id);
-          await sendWhatsAppText(admin, { tenantId, to: from, body: "Thank you. A member of our team will assist you shortly.", clientId: match.client_id, idempotencyKey: `wa:human:${providerId}` });
-        } else {
+        {
           const needsVehicle = ["renew_cover","new_policy","quotation","policy_status","claims"].includes(intent);
           await admin.from("conversations").update({
             status: "bot", ai_intent: intent,
@@ -233,7 +235,8 @@ async function handleInboundMessage(admin: Admin, channel: any, contactsByWaId: 
 
     // Continue protected vehicle journey after the menu.
     const latestState = (await admin.from("conversations").select("bot_state,bot_context,client_id").eq("id",conversation.id).maybeSingle()).data;
-    if (text && latestState?.bot_state === "awaiting_registration") {
+    const stateAtInbound = conversation.bot_state ?? "idle";
+    if (text && stateAtInbound === "awaiting_registration") {
       const registration=text.toUpperCase().replace(/[^A-Z0-9]/g,"");
       if (/^[A-Z0-9]{5,10}$/.test(registration)) {
         const {data:vehicle}=await admin.from("vehicles").select("id,client_id,registration_no")
@@ -251,7 +254,7 @@ async function handleInboundMessage(admin: Admin, channel: any, contactsByWaId: 
       } else {
         await sendWhatsAppText(admin,{tenantId,to:from,body:"Please enter a valid vehicle registration number, for example KAA 123A.",clientId:match.client_id,idempotencyKey:`wa:bad-registration:${providerId}`});
       }
-    } else if (text && latestState?.bot_state === "awaiting_otp" && /^\d{6}$/.test(text)) {
+    } else if (text && stateAtInbound === "awaiting_otp" && /^\d{6}$/.test(text)) {
       const {verifyWhatsAppOtp}=await import("./verification.server");
       const verified=await verifyWhatsAppOtp(admin,{tenantId,conversationId:conversation.id,otp:text});
       if (!verified.ok) {
