@@ -35,8 +35,14 @@ function requireSumInsured<T extends z.ZodRawShape>(schema: z.ZodObject<T>) {
   });
 }
 
-const typeA = requireSumInsured(common.extend({
+const typeAValidation = requireSumInsured(common.extend({
   TypeOfCertificate: z.union([z.literal(1), z.literal(6), z.literal(7), z.literal(8)]),
+  Licensedtocarry: z.number().int().positive(),
+}));
+// Issuance documentation formally lists only 1 and 8. Bus/Matatu (6/7) remain
+// validation-only until DMVIC confirms their issuance contract in UAT.
+const typeAIssuance = requireSumInsured(common.extend({
+  TypeOfCertificate: z.union([z.literal(1), z.literal(8)]),
   Licensedtocarry: z.number().int().positive(),
 }));
 
@@ -62,8 +68,8 @@ const typeDIssuance = requireSumInsured(common.extend({
   }
 });
 
-export const dmvicValidationSchemas = { A: typeA, B: typeB, C: typeC, D: typeDValidation } as const;
-export const dmvicIssuanceSchemas = { A: typeA, B: typeB, C: typeC, D: typeDIssuance } as const;
+export const dmvicValidationSchemas = { A: typeAValidation, B: typeB, C: typeC, D: typeDValidation } as const;
+export const dmvicIssuanceSchemas = { A: typeAIssuance, B: typeB, C: typeC, D: typeDIssuance } as const;
 
 // Kept for preview compatibility until the exact intermediary preview specifications are verified.
 export const dmvicCertificateSchemas = dmvicIssuanceSchemas;
