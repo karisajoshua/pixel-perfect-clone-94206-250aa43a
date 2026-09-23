@@ -94,9 +94,6 @@ export function KenyaInsuranceMap({ values, level = "county", county, subcounty,
       for (const feature of data.features ?? []) walk(feature.geometry?.coordinates);
       if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 45, duration: 700, maxZoom: level === "county" ? 6.5 : level === "subcounty" ? 9 : 12 });
 
-      map.on("mouseenter","geo-fill",()=>{map.getCanvas().style.cursor="pointer";});
-      map.on("mouseleave","geo-fill",()=>{map.getCanvas().style.cursor="";});
-      map.on("click","geo-fill",(event)=>clickRef.current?.(String(event.features?.[0]?.properties?.[property] ?? "")));
     };
     void render();
   }, [level, county, subcounty]);
