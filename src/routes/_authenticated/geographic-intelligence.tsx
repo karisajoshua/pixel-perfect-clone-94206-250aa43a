@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronRight, MapPinned } from "lucide-react";
+import { ChevronRight, MapPinned, Users, TrendingUp, RefreshCw, ShieldAlert } from "lucide-react";
 import { KenyaInsuranceMap } from "@/components/maps/kenya-insurance-map";
 import { getGeographicAnalytics } from "@/lib/geographic/geographic-analytics.functions";
 import { PageHeader } from "@/components/page-header";
@@ -51,6 +51,15 @@ function GeographicIntelligencePage() {
 
       <div className="flex flex-wrap items-center gap-1 text-sm"><button className="font-medium hover:underline" onClick={()=>{setSelectedCounty(null);setSelectedSubcounty(null);setSelectedWard(null)}}>Kenya</button>{selectedCounty && <><ChevronRight className="h-4 w-4"/><button className="font-medium hover:underline" onClick={()=>{setSelectedSubcounty(null);setSelectedWard(null)}}>{selectedCounty}</button></>}{selectedSubcounty && <><ChevronRight className="h-4 w-4"/><button className="font-medium hover:underline" onClick={()=>setSelectedWard(null)}>{selectedSubcounty}</button></>}{selectedWard && <><ChevronRight className="h-4 w-4"/><span>{selectedWard}</span></>}</div>
 
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Summary icon={<Users className="h-4 w-4"/>} label="Mapped customers" value={counties.reduce((s:any,r:any)=>s+Number(r.customers||0),0).toLocaleString("en-KE")} />
+        <Summary icon={<Users className="h-4 w-4"/>} label="Active agents" value={counties.reduce((s:any,r:any)=>s+Number(r.activeAgents||0),0).toLocaleString("en-KE")} />
+        <Summary icon={<RefreshCw className="h-4 w-4"/>} label="Renewals next 30d" value={counties.reduce((s:any,r:any)=>s+Number(r.renewals||0),0).toLocaleString("en-KE")} />
+        <Summary icon={<TrendingUp className="h-4 w-4"/>} label="Selected metric total" value={metric.includes("Premium") ? `KES ${values.reduce((s,r)=>s+r.value,0).toLocaleString("en-KE")}` : values.reduce((s,r)=>s+r.value,0).toLocaleString("en-KE",{maximumFractionDigits:1})} />
+      </div>
+
+      {metric==="Opportunity" && <Card><CardContent className="flex gap-2 py-3 text-sm text-muted-foreground"><ShieldAlert className="mt-0.5 h-4 w-4 shrink-0"/><span><b className="text-foreground">Opportunity score</b> is an internal prioritisation signal using upcoming renewals, expired policies, customer concentration and active-agent coverage. It is not an estimate of total insurance penetration or market size.</span></CardContent></Card>}
+
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <Card><CardContent className="p-0"><KenyaInsuranceMap values={values} level={level} county={selectedCounty} subcounty={selectedSubcounty} onRegionClick={(name)=>{ if(level==="county"){setSelectedCounty(name);setSelectedSubcounty(null);setSelectedWard(null)} else if(level==="subcounty"){setSelectedSubcounty(name);setSelectedWard(null)} else setSelectedWard(name) }} /></CardContent></Card>
         <Card>
@@ -68,6 +77,8 @@ function GeographicIntelligencePage() {
     </div>
   );
 }
+
+function Summary({icon,label,value}:{icon:any;label:string;value:any}) { return <Card><CardContent className="flex items-center gap-3 p-4"><div className="rounded-md bg-muted p-2">{icon}</div><div><div className="text-xs text-muted-foreground">{label}</div><div className="font-semibold">{value}</div></div></CardContent></Card>; }
 
 function Stat({label,value}:{label:string;value:any}) { return <div className="rounded-md border p-3"><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1 font-semibold">{value ?? 0}</div></div>; }
 
