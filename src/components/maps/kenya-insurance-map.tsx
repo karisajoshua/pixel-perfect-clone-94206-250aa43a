@@ -2,7 +2,15 @@ import { useEffect, useRef } from "react";
 import maplibregl, { type Map } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-export type CountyMetric = { countyName: string; value: number };\n\nconst colorExpression = (values: CountyMetric[]): any => {\n  const match: any[] = ["match", ["downcase", ["get", "county"]]];\n  for (const item of values) match.push(item.countyName.toLowerCase(), Number(item.value || 0));\n  match.push(0);\n  return ["interpolate", ["linear"], match, 0, "#f8fafc", 1, "#dbeafe", 100, "#93c5fd", 1000, "#3b82f6", 10000, "#1e3a8a"];\n};
+export type CountyMetric = { countyName: string; value: number };
+
+const colorExpression = (values: CountyMetric[]): any => {
+  if (!values.length) return "#f8fafc";
+  const match: any[] = ["match", ["downcase", ["get", "county"]]];
+  for (const item of values) match.push(item.countyName.toLowerCase(), Number(item.value || 0));
+  match.push(0);
+  return ["interpolate", ["linear"], match, 0, "#f8fafc", 1, "#dbeafe", 100, "#93c5fd", 1000, "#3b82f6", 10000, "#1e3a8a"];
+};
 
 type Props = {
   values: CountyMetric[];
@@ -10,8 +18,9 @@ type Props = {
 };
 
 const STYLE = "https://tiles.openfreemap.org/styles/liberty";
-const COUNTY_SOURCE =
-  "https://wwfke-giscoe.wwfkenya.org/arcgis/rest/services/Basedata_Kenya/KenyaCountyBoundary/MapServer/0/query?where=1%3D1&outFields=county&returnGeometry=true&outSR=4326&f=geojson";
+// Complete 47-county boundary set served locally (built from geoBoundaries KEN ADM1, open license).
+// The previous WWF Kenya ArcGIS service only returned 3 of the 47 county polygons.
+const COUNTY_SOURCE = "/kenya-counties.geojson";
 
 export function KenyaInsuranceMap({ values, onCountyClick }: Props) {
   const el = useRef<HTMLDivElement>(null);

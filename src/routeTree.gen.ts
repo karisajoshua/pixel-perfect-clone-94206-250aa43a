@@ -23,6 +23,7 @@ import { Route as AuthenticatedRenewalsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedQuotationsRouteImport } from './routes/_authenticated/quotations'
 import { Route as AuthenticatedPoliciesRouteImport } from './routes/_authenticated/policies'
 import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
+import { Route as AuthenticatedGeographicIntelligenceRouteImport } from './routes/_authenticated/geographic-intelligence'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
 import { Route as AuthenticatedClaimsRouteImport } from './routes/_authenticated/claims'
@@ -143,6 +144,12 @@ const AuthenticatedInvoicesRoute = AuthenticatedInvoicesRouteImport.update({
   path: '/invoices',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedGeographicIntelligenceRoute =
+  AuthenticatedGeographicIntelligenceRouteImport.update({
+    id: '/geographic-intelligence',
+    path: '/geographic-intelligence',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -435,6 +442,7 @@ export interface FileRoutesByFullPath {
   '/claims': typeof AuthenticatedClaimsRoute
   '/clients': typeof AuthenticatedClientsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/geographic-intelligence': typeof AuthenticatedGeographicIntelligenceRoute
   '/invoices': typeof AuthenticatedInvoicesRouteWithChildren
   '/policies': typeof AuthenticatedPoliciesRouteWithChildren
   '/quotations': typeof AuthenticatedQuotationsRoute
@@ -500,6 +508,7 @@ export interface FileRoutesByTo {
   '/claims': typeof AuthenticatedClaimsRoute
   '/clients': typeof AuthenticatedClientsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/geographic-intelligence': typeof AuthenticatedGeographicIntelligenceRoute
   '/invoices': typeof AuthenticatedInvoicesRouteWithChildren
   '/policies': typeof AuthenticatedPoliciesRouteWithChildren
   '/quotations': typeof AuthenticatedQuotationsRoute
@@ -569,6 +578,7 @@ export interface FileRoutesById {
   '/_authenticated/claims': typeof AuthenticatedClaimsRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/geographic-intelligence': typeof AuthenticatedGeographicIntelligenceRoute
   '/_authenticated/invoices': typeof AuthenticatedInvoicesRouteWithChildren
   '/_authenticated/policies': typeof AuthenticatedPoliciesRouteWithChildren
   '/_authenticated/quotations': typeof AuthenticatedQuotationsRoute
@@ -636,6 +646,7 @@ export interface FileRouteTypes {
     | '/claims'
     | '/clients'
     | '/dashboard'
+    | '/geographic-intelligence'
     | '/invoices'
     | '/policies'
     | '/quotations'
@@ -701,6 +712,7 @@ export interface FileRouteTypes {
     | '/claims'
     | '/clients'
     | '/dashboard'
+    | '/geographic-intelligence'
     | '/invoices'
     | '/policies'
     | '/quotations'
@@ -769,6 +781,7 @@ export interface FileRouteTypes {
     | '/_authenticated/claims'
     | '/_authenticated/clients'
     | '/_authenticated/dashboard'
+    | '/_authenticated/geographic-intelligence'
     | '/_authenticated/invoices'
     | '/_authenticated/policies'
     | '/_authenticated/quotations'
@@ -949,6 +962,13 @@ declare module '@tanstack/react-router' {
       path: '/invoices'
       fullPath: '/invoices'
       preLoaderRoute: typeof AuthenticatedInvoicesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/geographic-intelligence': {
+      id: '/_authenticated/geographic-intelligence'
+      path: '/geographic-intelligence'
+      fullPath: '/geographic-intelligence'
+      preLoaderRoute: typeof AuthenticatedGeographicIntelligenceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -1362,6 +1382,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClaimsRoute: typeof AuthenticatedClaimsRoute
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedGeographicIntelligenceRoute: typeof AuthenticatedGeographicIntelligenceRoute
   AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRouteWithChildren
   AuthenticatedPoliciesRoute: typeof AuthenticatedPoliciesRouteWithChildren
   AuthenticatedQuotationsRoute: typeof AuthenticatedQuotationsRoute
@@ -1390,6 +1411,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClaimsRoute: AuthenticatedClaimsRoute,
   AuthenticatedClientsRoute: AuthenticatedClientsRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedGeographicIntelligenceRoute:
+    AuthenticatedGeographicIntelligenceRoute,
   AuthenticatedInvoicesRoute: AuthenticatedInvoicesRouteWithChildren,
   AuthenticatedPoliciesRoute: AuthenticatedPoliciesRouteWithChildren,
   AuthenticatedQuotationsRoute: AuthenticatedQuotationsRoute,
