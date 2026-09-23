@@ -14,8 +14,8 @@ export const Route = createFileRoute("/_authenticated/geographic-intelligence")(
   component: GeographicIntelligencePage,
 });
 
-const metrics = ["Policies", "Premium", "Claims", "Claim value", "Loss ratio", "Customers", "Renewals", "Expired"];
-const metricKey: Record<string, any> = { Policies:"policies", Premium:"premium", Claims:"claims", "Claim value":"claim_value", "Loss ratio":"loss_ratio", Customers:"customers", Renewals:"renewals", Expired:"expired" };
+const metrics = ["Policies", "Premium", "Customers", "Agents", "Active agents", "Policies per agent", "Premium per agent", "Claims", "Claim value", "Loss ratio", "Renewals", "Expired", "Opportunity"];
+const metricKey: Record<string, any> = { Policies:"policies", Premium:"premium", Claims:"claims", "Claim value":"claim_value", "Loss ratio":"loss_ratio", Customers:"customers", Renewals:"renewals", Expired:"expired", Agents:"agents", "Active agents":"active_agents", "Policies per agent":"policies_per_agent", "Premium per agent":"premium_per_agent", Opportunity:"opportunity" };
 
 function GeographicIntelligencePage() {
   const [metric, setMetric] = useState("Policies");
@@ -39,7 +39,7 @@ function GeographicIntelligencePage() {
       <PageHeader title="Geographic intelligence" subtitle="Explore portfolio distribution, claims risk, sales performance and renewal opportunity across Kenya." />
 
       <Card>
-        <CardContent className="grid gap-3 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+        <CardContent className="grid gap-3 pt-5 sm:grid-cols-2 lg:grid-cols-5">
           <Filter label="Metric" value={metric} onChange={setMetric} options={metrics} />
           <Filter label="Product" value={product} onChange={setProduct} options={["All products","Motor","Medical","Property","Other"]} />
           <Filter label="Period" value={period} onChange={setPeriod} options={[String(new Date().getFullYear()),String(new Date().getFullYear()-1)]} />
@@ -58,7 +58,7 @@ function GeographicIntelligencePage() {
             <div className="flex items-center gap-2"><MapPinned className="h-5 w-5 text-primary" /><h2 className="font-semibold">{selectedName ?? "County details"}</h2></div>
             {selectedName ? (
               <div className="mt-4 space-y-3 text-sm">
-                <div className="grid grid-cols-2 gap-3"><Stat label="Policies" value={selected?.policies} /><Stat label="Customers" value={selected?.customers} /><Stat label="Premium" value={selected ? `KES ${Number(selected.premium).toLocaleString("en-KE")}` : "—"} /><Stat label="Claims" value={selected?.claims} /><Stat label="Claim value" value={selected ? `KES ${Number(selected.claimValue).toLocaleString("en-KE")}` : "—"} /><Stat label="Loss ratio" value={selected ? `${Number(selected.lossRatio).toFixed(1)}%` : "—"} /><Stat label="Renewals 30d" value={selected?.renewals} /><Stat label="Expired" value={selected?.expired} /></div>
+                <div className="grid grid-cols-2 gap-3"><Stat label="Policies" value={selected?.policies} /><Stat label="Customers" value={selected?.customers} /><Stat label="Premium" value={selected ? `KES ${Number(selected.premium).toLocaleString("en-KE")}` : "—"} /><Stat label="Claims" value={selected?.claims} /><Stat label="Claim value" value={selected ? `KES ${Number(selected.claimValue).toLocaleString("en-KE")}` : "—"} /><Stat label="Loss ratio" value={selected ? `${Number(selected.lossRatio).toFixed(1)}%` : "—"} /><Stat label="Renewals 30d" value={selected?.renewals} /><Stat label="Expired" value={selected?.expired} /><Stat label="Agents" value={selected?.agents} /><Stat label="Active agents" value={selected?.activeAgents} /><Stat label="Policies / agent" value={selected ? Number(selected.policiesPerAgent ?? 0).toFixed(1) : "—"} /><Stat label="Premium / agent" value={selected ? `KES ${Number(selected.premiumPerAgent ?? 0).toLocaleString("en-KE")}` : "—"} /><Stat label="Opportunity score" value={selected ? Number(selected.opportunity ?? 0).toFixed(1) : "—"} /></div>
                 <div className="rounded-md border p-3 text-xs text-muted-foreground">View: {metric} · {product} · {period} · {status}</div>
               </div>
             ) : <p className="mt-3 text-sm text-muted-foreground">Select a county to zoom into its sub-counties, then select a sub-county to inspect its wards.</p>}
