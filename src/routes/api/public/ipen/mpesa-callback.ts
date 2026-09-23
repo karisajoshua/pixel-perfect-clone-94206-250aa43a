@@ -65,12 +65,73 @@ export const Route = createFileRoute("/api/public/ipen/mpesa-callback")({
             patch.reference = String(mpesaReceipt);
           }
           if (Object.keys(patch).length > 0) {
-            const { data: payment } = await supabaseAdmin
+            const { data: payment, error: paymentError } = await supabaseAdmin
               .from("payments")
               .update(patch)
               .eq("ipen_checkout_request_id", String(checkoutId))
               .select("id,tenant_id,client_id,policy_id,invoice_id,amount,reference")
               .maybeSingle();
+
+            if (paymentError) {
+              console.error("[ipen.mpesa_callback] payment update failed", paymentError.message);
+            }
+
+            // The verified provider callback is the only authority that advances
+            // certificate payment state. Chat/admin UI cannot call this RPC.
+            if (payment && Number(resultCode) === 0 && mpesaReceipt && payment.policy_id) {
+              const { data: order } = await supabaseAdmin
+                .from("dmvic_certificate_orders")
+                .select("id,selling_price,payment_status,status")
+                .eq("policy_id", payment.policy_id)
+                .eq("status", "awaiting_payment")
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+              if (order && order.payment_status !== "confirmed") {
+                const paidAmount = Number(payment.amount ?? 0);
+                const dueAmount = Number(order.selling_price ?? 0);
+                if (paidAmount !== dueAmount) {
+                  console.error("[ipen.mpesa_callback] certificate payment amount mismatch", {
+                    paymentId: payment.id,
+                    orderId: order.id,
+                    paidAmount,
+                    dueAmount,
+                  });
+                } else {
+                  const { error: confirmError } = await supabaseAdmin.rpc("dmvic_confirm_payment", {
+                    p_order_id: order.id,
+                    p_reference: String(mpesaReceipt),
+                    p_provider: "ipen_mpesa",
+                    p_amount: paidAmount,
+                    p_idempotency_key: `ipen:${checkoutId}`,
+                  });
+                  if (confirmError) {
+                    console.error("[ipen.mpesa_callback] certificate payment confirmation failed", confirmError.message);
+                  } else {
+                    const { error: eventError } = await supabaseAdmin.from("automation_events").insert({
+                      tenant_id: payment.tenant_id,
+                      event_type: "certificate.payment_confirmed",
+                      entity_type: "dmvic_certificate_order",
+                      entity_id: order.id,
+                      client_id: payment.client_id,
+                      dedupe_key: `ipen:certificate-payment-confirmed:${checkoutId}`,
+                      payload: {
+                        order_id: order.id,
+                        payment_id: payment.id,
+                        policy_id: payment.policy_id,
+                        amount: paidAmount,
+                        reference: String(mpesaReceipt),
+                        provider: "ipen_mpesa",
+                      },
+                    });
+                    if (eventError && eventError.code !== "23505") {
+                      console.error("[ipen.mpesa_callback] certificate event insert failed", eventError.message);
+                    }
+                  }
+                }
+              }
+            }
           }
         }
 
