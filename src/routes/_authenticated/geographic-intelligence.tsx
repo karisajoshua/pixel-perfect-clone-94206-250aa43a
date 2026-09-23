@@ -48,7 +48,8 @@ function GeographicIntelligencePage() {
             <div className="flex items-center gap-2"><MapPinned className="h-5 w-5 text-primary" /><h2 className="font-semibold">{selectedCounty ?? "County details"}</h2></div>
             {selectedCounty ? (
               <div className="mt-4 space-y-3 text-sm">
-                <div className="grid grid-cols-2 gap-3"><Stat label="Policies" value={selected?.policies} /><Stat label="Customers" value={selected?.customers} /><Stat label="Premium" value={selected ? `KES ${Number(selected.premium).toLocaleString("en-KE")}` : "—"} /><Stat label="Claims" value={selected?.claims} /><Stat label="Claim value" value={selected ? `KES ${Number(selected.claimValue).toLocaleString("en-KE")}` : "—"} /><Stat label="Loss ratio" value={selected ? `${Number(selected.lossRatio).toFixed(1)}%` : "—"} /><Stat label="Renewals 30d" value={selected?.renewals} /><Stat label="Expired" value={selected?.expired} /></div>\n                <div className="rounded-md border p-3 text-xs text-muted-foreground">View: {metric} · {product} · {period} · {status}</div>
+                <div className="grid grid-cols-2 gap-3"><Stat label="Policies" value={selected?.policies} /><Stat label="Customers" value={selected?.customers} /><Stat label="Premium" value={selected ? `KES ${Number(selected.premium).toLocaleString("en-KE")}` : "—"} /><Stat label="Claims" value={selected?.claims} /><Stat label="Claim value" value={selected ? `KES ${Number(selected.claimValue).toLocaleString("en-KE")}` : "—"} /><Stat label="Loss ratio" value={selected ? `${Number(selected.lossRatio).toFixed(1)}%` : "—"} /><Stat label="Renewals 30d" value={selected?.renewals} /><Stat label="Expired" value={selected?.expired} /></div>
+                <div className="rounded-md border p-3 text-xs text-muted-foreground">View: {metric} · {product} · {period} · {status}</div>
               </div>
             ) : <p className="mt-3 text-sm text-muted-foreground">Select any county on the map to inspect it.</p>}
           </CardContent>
@@ -58,6 +59,8 @@ function GeographicIntelligencePage() {
   );
 }
 
-function Stat({label,value}:{label:string;value:any}) { return <div className="rounded-md border p-3"><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1 font-semibold">{value ?? 0}</div></div>; }\n\nfunction Filter({ label, value, onChange, options }: { label:string; value:string; onChange:(v:string)=>void; options:string[] }) {
+function Stat({label,value}:{label:string;value:any}) { return <div className="rounded-md border p-3"><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1 font-semibold">{value ?? 0}</div></div>; }
+
+function Filter({ label, value, onChange, options }: { label:string; value:string; onChange:(v:string)=>void; options:string[] }) {
   return <div className="space-y-1.5"><Label>{label}</Label><Select value={value} onValueChange={onChange}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{options.map((o)=><SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select></div>;
 }
