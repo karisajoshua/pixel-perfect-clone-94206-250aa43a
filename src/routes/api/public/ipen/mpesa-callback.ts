@@ -128,6 +128,32 @@ export const Route = createFileRoute("/api/public/ipen/mpesa-callback")({
                     if (eventError && eventError.code !== "23505") {
                       console.error("[ipen.mpesa_callback] certificate event insert failed", eventError.message);
                     }
+
+                    const { data: paidOrder } = await supabaseAdmin
+                      .from("dmvic_certificate_orders")
+                      .select("id,validation_payload")
+                      .eq("id", order.id)
+                      .eq("status", "paid")
+                      .maybeSingle();
+                    if (paidOrder?.validation_payload) {
+                      const { issuePaidCertificateOrder } = await import("@/lib/dmvic/certificate-orders.functions");
+                      try {
+                        const issuance = await issuePaidCertificateOrder({
+                          db: supabaseAdmin,
+                          orderId: paidOrder.id,
+                          input: paidOrder.validation_payload,
+                        });
+                        console.log("[ipen.mpesa_callback] certificate issuance transition", {
+                          orderId: paidOrder.id,
+                          status: issuance.status,
+                        });
+                      } catch (issuanceError) {
+                        console.error(
+                          "[ipen.mpesa_callback] certificate issuance orchestration failed",
+                          issuanceError instanceof Error ? issuanceError.message : "Unknown error",
+                        );
+                      }
+                    }
                   }
                 }
               }
