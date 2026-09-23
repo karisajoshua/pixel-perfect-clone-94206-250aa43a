@@ -14,8 +14,8 @@ export const Route = createFileRoute("/_authenticated/geographic-intelligence")(
   component: GeographicIntelligencePage,
 });
 
-const metrics = ["Policies", "Premium", "Customers", "Agents", "Active agents", "Policies per agent", "Premium per agent", "Claims", "Claim value", "Loss ratio", "Renewals", "Expired", "Opportunity"];
-const metricKey: Record<string, any> = { Policies:"policies", Premium:"premium", Claims:"claims", "Claim value":"claim_value", "Loss ratio":"loss_ratio", Customers:"customers", Renewals:"renewals", Expired:"expired", Agents:"agents", "Active agents":"active_agents", "Policies per agent":"policies_per_agent", "Premium per agent":"premium_per_agent", Opportunity:"opportunity" };
+const metrics = ["Policies", "Premium", "Customers", "Agents", "Active agents", "Policies per agent", "Premium per agent", "Claims", "Claim value", "Loss ratio", "Renewals", "Expired", "Growth", "Opportunity"];
+const metricKey: Record<string, any> = { Policies:"policies", Premium:"premium", Claims:"claims", "Claim value":"claim_value", "Loss ratio":"loss_ratio", Customers:"customers", Renewals:"renewals", Expired:"expired", Agents:"agents", "Active agents":"active_agents", "Policies per agent":"policies_per_agent", "Premium per agent":"premium_per_agent", Growth:"growth", Opportunity:"opportunity" };
 
 function GeographicIntelligencePage() {
   const [metric, setMetric] = useState("Policies");
@@ -58,10 +58,10 @@ function GeographicIntelligencePage() {
             <div className="flex items-center gap-2"><MapPinned className="h-5 w-5 text-primary" /><h2 className="font-semibold">{selectedName ?? "County details"}</h2></div>
             {selectedName ? (
               <div className="mt-4 space-y-3 text-sm">
-                <div className="grid grid-cols-2 gap-3"><Stat label="Policies" value={selected?.policies} /><Stat label="Customers" value={selected?.customers} /><Stat label="Premium" value={selected ? `KES ${Number(selected.premium).toLocaleString("en-KE")}` : "—"} /><Stat label="Claims" value={selected?.claims} /><Stat label="Claim value" value={selected ? `KES ${Number(selected.claimValue).toLocaleString("en-KE")}` : "—"} /><Stat label="Loss ratio" value={selected ? `${Number(selected.lossRatio).toFixed(1)}%` : "—"} /><Stat label="Renewals 30d" value={selected?.renewals} /><Stat label="Expired" value={selected?.expired} /><Stat label="Agents" value={selected?.agents} /><Stat label="Active agents" value={selected?.activeAgents} /><Stat label="Policies / agent" value={selected ? Number(selected.policiesPerAgent ?? 0).toFixed(1) : "—"} /><Stat label="Premium / agent" value={selected ? `KES ${Number(selected.premiumPerAgent ?? 0).toLocaleString("en-KE")}` : "—"} /><Stat label="Opportunity score" value={selected ? Number(selected.opportunity ?? 0).toFixed(1) : "—"} /></div>
+                <div className="grid grid-cols-2 gap-3"><Stat label="Policies" value={selected?.policies} /><Stat label="Customers" value={selected?.customers} /><Stat label="Premium" value={selected ? `KES ${Number(selected.premium).toLocaleString("en-KE")}` : "—"} /><Stat label="Claims" value={selected?.claims} /><Stat label="Claim value" value={selected ? `KES ${Number(selected.claimValue).toLocaleString("en-KE")}` : "—"} /><Stat label="Loss ratio" value={selected ? `${Number(selected.lossRatio).toFixed(1)}%` : "—"} /><Stat label="Renewals 30d" value={selected?.renewals} /><Stat label="Expired" value={selected?.expired} /><Stat label="Agents" value={selected?.agents} /><Stat label="Active agents" value={selected?.activeAgents} /><Stat label="Policies / agent" value={selected ? Number(selected.policiesPerAgent ?? 0).toFixed(1) : "—"} /><Stat label="Premium / agent" value={selected ? `KES ${Number(selected.premiumPerAgent ?? 0).toLocaleString("en-KE")}` : "—"} /><Stat label="Growth YoY" value={selected ? `${Number(selected.growth ?? 0).toFixed(1)}%` : "—"} /><Stat label="Opportunity score" value={selected ? Number(selected.opportunity ?? 0).toFixed(1) : "—"} /></div>
                 <div className="rounded-md border p-3 text-xs text-muted-foreground">View: {metric} · {product} · {period} · {status}</div>
               </div>
-            ) : <p className="mt-3 text-sm text-muted-foreground">Select a county to zoom into its sub-counties, then select a sub-county to inspect its wards.</p>}
+            ) : <p className="mt-3 text-sm text-muted-foreground">Select a county to zoom into its sub-counties, then select a sub-county to inspect its wards. Agent metrics represent staff who created policies in that geography; Opportunity is an internal planning indicator, not an external market-penetration estimate.</p>}
           </CardContent>
         </Card>
       </div>
