@@ -465,8 +465,10 @@ export type Database = {
           notes: string | null
           occupation: string | null
           phone: string | null
+          subcounty: string | null
           tenant_id: string
           updated_at: string
+          ward: string | null
         }
         Insert: {
           address?: string | null
@@ -494,8 +496,10 @@ export type Database = {
           notes?: string | null
           occupation?: string | null
           phone?: string | null
+          subcounty?: string | null
           tenant_id: string
           updated_at?: string
+          ward?: string | null
         }
         Update: {
           address?: string | null
@@ -523,8 +527,10 @@ export type Database = {
           notes?: string | null
           occupation?: string | null
           phone?: string | null
+          subcounty?: string | null
           tenant_id?: string
           updated_at?: string
+          ward?: string | null
         }
         Relationships: [
           {
