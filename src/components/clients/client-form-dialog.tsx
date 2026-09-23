@@ -15,6 +15,7 @@ import { normalizePhone } from "@/lib/phone";
 import { useMyRoles } from "@/hooks/use-auth";
 import { checkPinByIdNumber, type KraIdType } from "@/lib/kra.functions";
 import { CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { KENYA_COUNTIES } from "@/lib/geographic/kenya-counties";
 
 export type PortalCreds = {
   email: string | null;
@@ -104,6 +105,7 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
       phone: normalizePhone(form.phone) ?? form.phone ?? null,
       alt_phone: normalizePhone(form.alt_phone) ?? form.alt_phone ?? null,
       city: form.city ?? null,
+      county: form.county ?? null,
       address: form.address ?? null,
       notes: form.notes ?? null,
     };
@@ -223,6 +225,7 @@ export function ClientFormDialog({ open, onOpenChange, onSaved, initial }: Props
           <Field label="Phone" value={form.phone} onChange={(v) => set("phone", v)} />
           <Field label="Alt. phone" value={form.alt_phone} onChange={(v) => set("alt_phone", v)} />
           <Field label="City" value={form.city} onChange={(v) => set("city", v)} />
+          <div className="space-y-1.5 min-w-0"><Label>County</Label><Select value={form.county ?? ""} onValueChange={(v) => set("county", v)}><SelectTrigger><SelectValue placeholder="Select county" /></SelectTrigger><SelectContent>{KENYA_COUNTIES.map((county) => <SelectItem key={county} value={county}>{county}</SelectItem>)}</SelectContent></Select></div>
           <div className="sm:col-span-2 space-y-1.5">
             <Label>Address</Label>
             <Textarea rows={2} value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} />
