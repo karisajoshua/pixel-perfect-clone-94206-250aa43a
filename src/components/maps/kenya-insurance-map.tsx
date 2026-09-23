@@ -5,11 +5,14 @@ import "maplibre-gl/dist/maplibre-gl.css";
 export type CountyMetric = { countyName: string; value: number };
 
 const colorExpression = (values: CountyMetric[]): any => {
-  if (!values.length) return "#f8fafc";
+  const positive = values.map((v) => Number(v.value || 0)).filter((v) => v > 0);
+  if (!positive.length) return "#f8fafc";
+  const max = Math.max(...positive);
   const match: any[] = ["match", ["downcase", ["get", "county"]]];
   for (const item of values) match.push(item.countyName.toLowerCase(), Number(item.value || 0));
   match.push(0);
-  return ["interpolate", ["linear"], match, 0, "#f8fafc", 1, "#dbeafe", 100, "#93c5fd", 1000, "#3b82f6", 10000, "#1e3a8a"];
+  // Scale against the current filtered dataset so even small real portfolios visibly shade the map.
+  return ["interpolate", ["linear"], match, 0, "#f8fafc", max * 0.01, "#dbeafe", max * 0.25, "#93c5fd", max * 0.6, "#3b82f6", max, "#1e3a8a"];
 };
 
 type Props = {
