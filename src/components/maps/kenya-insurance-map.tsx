@@ -32,6 +32,7 @@ export function KenyaInsuranceMap({ values, level = "county", county, subcounty,
   const mapRef = useRef<Map | null>(null);
   const valuesRef = useRef(values);
   const clickRef = useRef(onRegionClick ?? onCountyClick);
+  const handlersRef = useRef<{enter?:()=>void;leave?:()=>void;click?:(event:any)=>void}>({});
   const propertyRef = useRef(boundaryNameProperty(level));
   propertyRef.current = boundaryNameProperty(level);
   valuesRef.current = values;
@@ -65,6 +66,12 @@ export function KenyaInsuranceMap({ values, level = "county", county, subcounty,
     if (!map) return;
     const render = async () => {
       if (!map.isStyleLoaded()) { map.once("load", render); return; }
+      if (map.getLayer("geo-fill")) {
+        const h=handlersRef.current;
+        if(h.enter) map.off("mouseenter","geo-fill",h.enter);
+        if(h.leave) map.off("mouseleave","geo-fill",h.leave);
+        if(h.click) map.off("click","geo-fill",h.click);
+      }
       for (const id of ["geo-label","geo-border","geo-fill"]) if (map.getLayer(id)) map.removeLayer(id);
       if (map.getSource("geo-boundaries")) map.removeSource("geo-boundaries");
 
