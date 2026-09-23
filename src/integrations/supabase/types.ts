@@ -448,6 +448,7 @@ export type Database = {
           city: string | null
           client_type: Database["public"]["Enums"]["client_type"]
           company_name: string | null
+          county: string | null
           created_at: string
           created_by: string | null
           date_of_birth: string | null
@@ -476,6 +477,7 @@ export type Database = {
           city?: string | null
           client_type?: Database["public"]["Enums"]["client_type"]
           company_name?: string | null
+          county?: string | null
           created_at?: string
           created_by?: string | null
           date_of_birth?: string | null
@@ -504,6 +506,7 @@ export type Database = {
           city?: string | null
           client_type?: Database["public"]["Enums"]["client_type"]
           company_name?: string | null
+          county?: string | null
           created_at?: string
           created_by?: string | null
           date_of_birth?: string | null
