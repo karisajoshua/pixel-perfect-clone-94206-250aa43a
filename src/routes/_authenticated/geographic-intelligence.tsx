@@ -25,8 +25,10 @@ function GeographicIntelligencePage() {
   const [selectedCounty, setSelectedCounty] = useState<string | null>(null);
   const fetchAnalytics = useServerFn(getGeographicAnalytics);
   const analytics = useQuery({ queryKey:["geographic-analytics",metric,product,period,status], queryFn:()=>fetchAnalytics({data:{metric:metricKey[metric],product:product === "All products" ? "all" : product.toLowerCase(),year:Number(period),status:status === "All" ? "all" : status.toLowerCase()}}), staleTime:60_000 });
-  const selected = (analytics.data ?? []).find((x:any)=>x.county.toLowerCase()===selectedCounty?.toLowerCase());
-  const values = (analytics.data ?? []).map((x:any)=>({countyName:x.county,value:x.value}));
+  const counties = analytics.data?.counties ?? [];
+  const unmapped = analytics.data?.unmapped;
+  const selected = counties.find((x:any)=>x.county.toLowerCase()===selectedCounty?.toLowerCase());
+  const values = counties.map((x:any)=>({countyName:x.county,value:x.value}));
 
   return (
     <div className="space-y-5 p-4 sm:p-6 lg:p-8">
@@ -40,6 +42,8 @@ function GeographicIntelligencePage() {
           <Filter label="Status" value={status} onChange={setStatus} options={["Active","All","Expired"]} />
         </CardContent>
       </Card>
+
+      {unmapped && (unmapped.customers > 0 || unmapped.policies > 0 || unmapped.claims > 0) && <Card><CardContent className="py-3 text-sm text-muted-foreground"><span className="font-medium text-foreground">Unmapped historical records:</span> {unmapped.customers} customers · {unmapped.policies} policies · {unmapped.claims} claims · {unmapped.renewals} upcoming renewals. These remain outside county totals until their existing city/address can be resolved or a county is assigned.</CardContent></Card>}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <Card><CardContent className="p-0"><KenyaInsuranceMap values={values} onCountyClick={setSelectedCounty} /></CardContent></Card>
