@@ -32,6 +32,8 @@ export function KenyaInsuranceMap({ values, level = "county", county, subcounty,
   const mapRef = useRef<Map | null>(null);
   const valuesRef = useRef(values);
   const clickRef = useRef(onRegionClick ?? onCountyClick);
+  const propertyRef = useRef(boundaryNameProperty(level));
+  propertyRef.current = boundaryNameProperty(level);
   valuesRef.current = values;
   clickRef.current = onRegionClick ?? onCountyClick;
 
@@ -40,7 +42,22 @@ export function KenyaInsuranceMap({ values, level = "county", county, subcounty,
     const map = new maplibregl.Map({ container: el.current, style: STYLE, center: [37.9, 0.2], zoom: 5.1, minZoom: 4.5, maxZoom: 14 });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl(), "top-right");
-    return () => { map.remove(); mapRef.current = null; };
+    // Registered once for the life of the map so repeated drill-down renders
+    // cannot stack stale handlers pointing at the previous boundary level.
+    const onEnter = () => { map.getCanvas().style.cursor = "pointer"; };
+    const onLeave = () => { map.getCanvas().style.cursor = ""; };
+    const onClick = (event: any) =>
+      clickRef.current?.(String(event.features?.[0]?.properties?.[propertyRef.current] ?? ""));
+    map.on("mouseenter", "geo-fill", onEnter);
+    map.on("mouseleave", "geo-fill", onLeave);
+    map.on("click", "geo-fill", onClick);
+    return () => {
+      map.off("mouseenter", "geo-fill", onEnter);
+      map.off("mouseleave", "geo-fill", onLeave);
+      map.off("click", "geo-fill", onClick);
+      map.remove();
+      mapRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -77,9 +94,6 @@ export function KenyaInsuranceMap({ values, level = "county", county, subcounty,
       for (const feature of data.features ?? []) walk(feature.geometry?.coordinates);
       if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 45, duration: 700, maxZoom: level === "county" ? 6.5 : level === "subcounty" ? 9 : 12 });
 
-      map.on("mouseenter","geo-fill",()=>{map.getCanvas().style.cursor="pointer";});
-      map.on("mouseleave","geo-fill",()=>{map.getCanvas().style.cursor="";});
-      map.on("click","geo-fill",(event)=>clickRef.current?.(String(event.features?.[0]?.properties?.[property] ?? "")));
     };
     void render();
   }, [level, county, subcounty]);

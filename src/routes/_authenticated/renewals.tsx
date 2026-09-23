@@ -40,7 +40,7 @@ function matchesRange(days: number, range: FilterRange): boolean {
     case "30":
       return days > 0 && days <= 30;
     case "31-60":
-      return days > 31 && days <= 60;
+      return days >= 31 && days <= 60;
   }
 }
 

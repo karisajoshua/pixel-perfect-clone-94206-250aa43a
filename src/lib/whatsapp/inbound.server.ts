@@ -303,12 +303,12 @@ async function handleInboundMessage(admin: Admin, channel: any, contactsByWaId: 
             const price=Number(q.quoted_premium ?? q.premium_gross ?? 0);
             const cover=String(q.cover_type??"motor cover").replace(/_/g," ");
             return `${i+1}. ${cover} — KES ${price.toLocaleString("en-KE")}`;
-          }).join("\\n");
+          }).join("\n");
           await admin.from("conversations").update({bot_state:"selecting_cover",bot_context:{...ctx,quote_options:eligible.map((q:any)=>q.id)}}).eq("id",conversation.id);
-          await sendWhatsAppText(admin,{tenantId,to:from,body:`Here are the available cover options for your vehicle:\\n\\n${options}\\n\\nReply with the option number to continue.`,clientId:match.client_id,idempotencyKey:`wa:cover-options:${providerId}`});
+          await sendWhatsAppText(admin,{tenantId,to:from,body:`Here are the available cover options for your vehicle:\n\n${options}\n\nReply with the option number to continue.`,clientId:match.client_id,idempotencyKey:`wa:cover-options:${providerId}`});
         }
       }
-    } else if (text && stateAtInbound === "selecting_cover" && /^\\d+$/.test(text)) {
+    } else if (text && stateAtInbound === "selecting_cover" && /^\d+$/.test(text)) {
       const ctx=latestState?.bot_context ?? {};
       const ids=Array.isArray(ctx.quote_options)?ctx.quote_options:[];
       const quoteId=ids[Number(text)-1];

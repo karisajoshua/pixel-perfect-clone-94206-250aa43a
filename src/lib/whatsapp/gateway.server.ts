@@ -210,6 +210,33 @@ export async function resolveTemplate(admin: Admin, tenantId: string, name: stri
   return rows.find((t: any) => t.tenant_id === tenantId) ?? rows.find((t: any) => t.tenant_id === null) ?? null;
 }
 
+/**
+ * Older automations were built against the previous placeholder names of the
+ * shared library templates. Accept those names so existing automations keep
+ * sending after a template's wording is refreshed.
+ */
+const LEGACY_VARIABLE_ALIASES: Record<string, string[]> = {
+  customer_first_name: ["client_name", "customer_name", "first_name", "name"],
+  policy_number: ["policy_no", "policy"],
+  payment_amount: ["amount", "paid_amount"],
+  outstanding_amount: ["balance", "balance_due", "amount"],
+  payment_reference: ["reference", "receipt_no", "payment_ref"],
+  policy_type: ["cover_type", "product"],
+  policy_expiry_date: ["expiry_date", "end_date"],
+  policy_start_date: ["start_date"],
+  agency_name: ["tenant_name", "company_name"],
+  agency_phone: ["tenant_phone", "phone"],
+  document_link: ["link", "url"],
+};
+
+function resolveVariable(obj: Record<string, unknown>, key: string): unknown {
+  if (obj[key] != null) return obj[key];
+  for (const alias of LEGACY_VARIABLE_ALIASES[key] ?? []) {
+    if (obj[alias] != null) return obj[alias];
+  }
+  return null;
+}
+
 /** Orders variables to the template's declared list and renders a preview body. */
 export function buildTemplateValues(template: any, variables: Record<string, unknown> | unknown[] | undefined) {
   const declared: string[] = Array.isArray(template?.variables) ? template.variables.map(String) : [];
@@ -218,7 +245,10 @@ export function buildTemplateValues(template: any, variables: Record<string, unk
     values = variables.map((v) => (v == null ? "" : String(v)));
   } else {
     const obj = (variables ?? {}) as Record<string, unknown>;
-    values = declared.map((k) => (obj[k] == null ? "" : String(obj[k])));
+    values = declared.map((k) => {
+      const v = resolveVariable(obj, k);
+      return v == null ? "" : String(v);
+    });
   }
   const missing = declared.filter((k, i) => !values[i]);
   let preview = String(template?.body ?? "");
