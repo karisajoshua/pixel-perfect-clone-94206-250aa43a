@@ -32,6 +32,8 @@ export function KenyaInsuranceMap({ values, level = "county", county, subcounty,
   const mapRef = useRef<Map | null>(null);
   const valuesRef = useRef(values);
   const clickRef = useRef(onRegionClick ?? onCountyClick);
+  const propertyRef = useRef(boundaryNameProperty(level));
+  propertyRef.current = boundaryNameProperty(level);
   valuesRef.current = values;
   clickRef.current = onRegionClick ?? onCountyClick;
 
