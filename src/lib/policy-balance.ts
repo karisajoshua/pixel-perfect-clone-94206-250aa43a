@@ -92,6 +92,10 @@ export function coverLabel(
   if (ACTIVE_STATUSES.includes(status)) {
     if (policy.end_date && policy.end_date < today) return { label: "expired", tone: "expired" };
     if (policy.start_date && policy.start_date > today) return { label: "not started", tone: "pending" };
+    // A cover that has not been confirmed yet keeps its own wording — it must
+    // never read "active" just because today falls inside its dates.
+    if (status === "pending") return { label: "pending", tone: "pending" };
+    if (status === "renewed") return { label: "renewed", tone: "neutral" };
     return { label: "active", tone: "active" };
   }
   if (status === "expired") return { label: "expired", tone: "expired" };
