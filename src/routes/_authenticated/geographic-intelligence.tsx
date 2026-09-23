@@ -32,7 +32,7 @@ function GeographicIntelligencePage() {
   const unmapped = analytics.data?.unmapped;
   const selectedName = selectedWard ?? selectedSubcounty ?? selectedCounty;
   const selected = counties.find((x:any)=>x.county.toLowerCase()===selectedName?.toLowerCase());
-  const values = counties.map((x:any)=>({countyName:x.county,value:x.value}));
+  const values = counties.map((x:any)=>({name:x.county,value:Number(x.value ?? 0)}));
 
   return (
     <div className="space-y-5 p-4 sm:p-6 lg:p-8">
