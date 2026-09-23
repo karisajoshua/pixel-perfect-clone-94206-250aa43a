@@ -46,3 +46,69 @@ export const dmvicPrepareCertificateOrder=createServerFn({method:"POST"})
    if(markError) throw markError;
    return {ok:true,orderId,price:Number(price.selling_price),available,validation};
  });
+
+
+/**
+ * Service-side issuance orchestrator.
+ *
+ * This intentionally has no createServerFn export: it must only be called by
+ * trusted server code after a verified payment callback. The caller supplies
+ * the service-role Supabase client and the already-paid order.
+ */
+export async function issuePaidCertificateOrder({
+ db, orderId, input,
+}: { db:any; orderId:string; input:any }) {
+ const key=`dmvic-issue:${orderId}`;
+ const {data:claimed,error:claimError}=await db.rpc("dmvic_claim_issuance",{p_order_id:orderId,p_idempotency_key:key});
+ if(claimError) throw claimError;
+ if(!claimed) return {ok:true,duplicate:true,status:"already_claimed"};
+
+ const result=await dmvicProcessZestCertificate({data:{operation:"issue",input}} as any);
+ if(result.requiresManualReview){
+   await db.from("dmvic_certificate_orders").update({
+     status:"manual_review",
+     issuance_response:result.data??{},
+     updated_at:new Date().toISOString(),
+   }).eq("id",orderId).eq("status","issuing");
+   await db.from("dmvic_order_events").insert({
+     order_id:orderId,event_type:"manual_review_required",from_status:"issuing",to_status:"manual_review",
+     detail:{issuance_request_id:result.issuanceRequestId,error:result.error},
+   });
+   return {ok:false,status:"manual_review",requestId:result.issuanceRequestId,error:result.error};
+ }
+ if(!result.ok){
+   await db.from("dmvic_certificate_orders").update({
+     status:"issuance_failed",issuance_response:result.data??{},updated_at:new Date().toISOString(),
+   }).eq("id",orderId).eq("status","issuing");
+   await db.from("dmvic_order_events").insert({
+     order_id:orderId,event_type:"issuance_failed",from_status:"issuing",to_status:"issuance_failed",
+     detail:{error:result.error,transport_error:result.transportError??null},
+   });
+   return {ok:false,status:"issuance_failed",error:result.error};
+ }
+
+ const raw:any=result.data??{};
+ const certificateNo=String(
+   raw.CertificateNumber??raw.certificateNumber??raw.CertificateNo??raw.certificateNo??
+   raw.Data?.CertificateNumber??raw.data?.certificateNumber??""
+ ).trim();
+ const transactionNo=String(raw.TransactionNumber??raw.transactionNumber??raw.Data?.TransactionNumber??"").trim()||null;
+ const apiRequestNo=String(raw.APIRequestNumber??raw.apiRequestNumber??raw.RequestNumber??"").trim()||null;
+ if(!certificateNo){
+   await db.from("dmvic_certificate_orders").update({
+     status:"manual_review",issuance_response:raw,updated_at:new Date().toISOString(),
+   }).eq("id",orderId).eq("status","issuing");
+   return {ok:false,status:"manual_review",error:"DMVIC returned success without a certificate number."};
+ }
+ const {error:completeError}=await db.rpc("dmvic_complete_issuance",{
+   p_order_id:orderId,p_certificate_no:certificateNo,p_transaction_no:transactionNo,
+   p_api_request_no:apiRequestNo,p_response:raw,
+ });
+ if(completeError) throw completeError;
+
+ const {data:order}=await db.from("dmvic_certificate_orders").select("policy_id").eq("id",orderId).single();
+ if(order?.policy_id){
+   await db.from("policies").update({certificate_no:certificateNo}).eq("id",order.policy_id);
+ }
+ return {ok:true,status:"issued",certificateNo};
+}
