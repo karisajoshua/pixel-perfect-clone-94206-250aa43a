@@ -81,6 +81,10 @@ export function KenyaInsuranceMap({ values, level = "county", county, subcounty,
       const geojson: any = await response.json();
 
       if (level !== "county") {
+        // Focus mode: once a county is selected, render only boundaries that
+        // belong to that county. At ward level, render only the selected
+        // sub-county/constituency. This makes the rest of Kenya disappear
+        // while preserving breadcrumb navigation back to the parent level.
         geojson.features = (geojson.features ?? []).filter((feature: any) => {
           const p = feature.properties ?? {};
           const countyMatches = !county || normalizeBoundaryName(p.county_name) === normalizeBoundaryName(county);
