@@ -5,6 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 export type CountyMetric = { countyName: string; value: number };
 
 const colorExpression = (values: CountyMetric[]): any => {
+  if (!values.length) return "#f8fafc";
   const match: any[] = ["match", ["downcase", ["get", "county"]]];
   for (const item of values) match.push(item.countyName.toLowerCase(), Number(item.value || 0));
   match.push(0);
