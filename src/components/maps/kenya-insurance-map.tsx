@@ -18,8 +18,9 @@ type Props = {
 };
 
 const STYLE = "https://tiles.openfreemap.org/styles/liberty";
-const COUNTY_SOURCE =
-  "https://wwfke-giscoe.wwfkenya.org/arcgis/rest/services/Basedata_Kenya/KenyaCountyBoundary/MapServer/0/query?where=1%3D1&outFields=county&returnGeometry=true&outSR=4326&f=geojson";
+// Complete 47-county boundary set served locally (built from geoBoundaries KEN ADM1, open license).
+// The previous WWF Kenya ArcGIS service only returned 3 of the 47 county polygons.
+const COUNTY_SOURCE = "/kenya-counties.geojson";
 
 export function KenyaInsuranceMap({ values, onCountyClick }: Props) {
   const el = useRef<HTMLDivElement>(null);
