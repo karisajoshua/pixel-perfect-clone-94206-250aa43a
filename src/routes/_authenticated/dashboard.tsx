@@ -64,13 +64,13 @@ function Dashboard() {
   } satisfies ChartConfig;
 
   return (
-    <div className="space-y-5 p-4 sm:p-6 lg:p-8">
+    <div className="mx-auto max-w-[1600px] space-y-6 p-4 sm:p-6 lg:space-y-8 lg:p-8">
       <PageHeader title="Dashboard" subtitle="Overview of agency activity across all branches." helpDocId="getting-started" />
 
       <OnboardingChecklist />
 
       {isAdmin && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+        <section aria-label="Revenue overview" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total collected (all time)</CardTitle>
@@ -93,10 +93,10 @@ function Dashboard() {
               <p className="text-xs text-muted-foreground mt-1">Gross premium on covers live today.</p>
             </CardContent>
           </Card>
-        </div>
+        </section>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+      <section aria-label="Outstanding balances" className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Outstanding balances</CardTitle>
@@ -109,18 +109,18 @@ function Dashboard() {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
+      <section aria-label="Agency statistics" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
         {tiles.map((t) => (
           <Link to={t.href} key={t.label}>
-            <Card className="hover:border-primary transition-colors">
+            <Card className="group h-full hover:border-primary/40 focus-within:border-primary/40">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">{t.label}</CardTitle>
-                <t.icon className="h-4 w-4 text-muted-foreground" />
+                <t.icon className="h-4 w-4 text-primary/70 transition-transform duration-200 group-hover:scale-110" />
               </CardHeader>
               <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
-                <div className="text-2xl font-bold tabular-nums sm:text-3xl">{t.value}</div>
+                <div className="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">{t.value}</div>
                 {t.label === "Cancelled policies" && data?.totals && (
                   <p className="text-xs text-muted-foreground mt-1">{data.totals.cancelledThisMonth} this month</p>
                 )}
@@ -128,9 +128,9 @@ function Dashboard() {
             </Card>
           </Link>
         ))}
-      </div>
+      </section>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
           <div className="min-w-0">
             <CardTitle>New business</CardTitle>
@@ -144,11 +144,11 @@ function Dashboard() {
           ) : (
             <ChartContainer config={newBusinessChart} className="h-56 w-full sm:h-72" aria-label="New policies by month">
               <AreaChart data={data.newBusinessByMonth} margin={{ left: -18, right: 8, top: 8, bottom: 0 }}>
-                <CartesianGrid vertical={false} />
+                <CartesianGrid vertical={false} strokeDasharray="3 5" opacity={0.4} />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} tickFormatter={formatMonth} minTickGap={18} />
                 <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={36} />
                 <ChartTooltip content={<ChartTooltipContent labelFormatter={(value) => formatMonth(String(value))} />} />
-                <Area type="monotone" dataKey="policies" stroke="var(--color-policies)" fill="var(--color-policies)" fillOpacity={0.16} strokeWidth={2.5} />
+                <Area type="monotone" dataKey="policies" stroke="var(--color-policies)" fill="var(--color-policies)" fillOpacity={0.12} strokeWidth={2.5} isAnimationActive animationDuration={650} animationEasing="ease-out" />
               </AreaChart>
             </ChartContainer>
           )}
