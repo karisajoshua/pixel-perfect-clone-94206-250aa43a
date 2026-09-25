@@ -225,3 +225,97 @@
 @keyframes zest-launch-shimmer { from { left: -65%; } to { left: 140%; } }
 @keyframes zest-launch-background { from { background-color: #0b1740; } to { background-color: #172f70; } }
 @media (prefers-reduced-motion: reduce) { .zest-launch-splash { display: none; } }
+
+
+/* Zest premium interaction system: composited motion, consistent surfaces and
+   accessibility-first feedback shared across existing screens. */
+:root {
+  --zest-motion-fast: 140ms;
+  --zest-motion-normal: 240ms;
+  --zest-motion-slow: 340ms;
+  --zest-motion-ease: cubic-bezier(.22, 1, .36, 1);
+  --zest-surface-shadow: 0 2px 6px oklch(0.16 0.035 260 / .025), 0 14px 36px oklch(0.16 0.035 260 / .045);
+}
+@layer base {
+  body { -webkit-font-smoothing: antialiased; }
+  button, [role="button"], a {
+    transition: background-color var(--zest-motion-fast) ease,
+                border-color var(--zest-motion-fast) ease,
+                color var(--zest-motion-fast) ease,
+                box-shadow var(--zest-motion-normal) var(--zest-motion-ease),
+                opacity var(--zest-motion-fast) ease;
+  }
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]) {
+    touch-action: manipulation;
+  }
+  button:focus-visible, a:focus-visible, input:focus-visible,
+  select:focus-visible, textarea:focus-visible, [role="button"]:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 3px;
+  }
+  input, select, textarea {
+    transition: border-color var(--zest-motion-fast) ease,
+                box-shadow var(--zest-motion-normal) var(--zest-motion-ease),
+                background-color var(--zest-motion-fast) ease;
+  }
+  dialog, [role="dialog"], [data-radix-popper-content-wrapper] {
+    animation: zest-premium-pop var(--zest-motion-normal) var(--zest-motion-ease) both;
+  }
+}
+@layer utilities {
+  .zest-premium-surface {
+    border: 1px solid var(--color-border);
+    border-radius: 1rem;
+    background: var(--color-card);
+    box-shadow: var(--zest-surface-shadow);
+  }
+  .zest-premium-card {
+    transition: transform var(--zest-motion-normal) var(--zest-motion-ease),
+                box-shadow var(--zest-motion-normal) var(--zest-motion-ease),
+                border-color var(--zest-motion-normal) ease;
+    will-change: auto;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .zest-premium-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px oklch(0.16 0.035 260 / .09);
+    }
+    .zest-premium-press:hover { filter: brightness(1.025); }
+  }
+  .zest-premium-press {
+    transition: transform var(--zest-motion-fast) var(--zest-motion-ease),
+                filter var(--zest-motion-fast) ease;
+  }
+  .zest-premium-press:active:not(:disabled) { transform: scale(.985); }
+  .zest-premium-reveal { animation: zest-premium-reveal var(--zest-motion-slow) var(--zest-motion-ease) both; }
+  .zest-premium-glass {
+    background: color-mix(in oklch, var(--color-card) 88%, transparent);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+  }
+  .zest-premium-scroll {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+@keyframes zest-premium-reveal {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes zest-premium-pop {
+  from { opacity: 0; transform: translate3d(0, 5px, 0) scale(.99); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@media (max-width: 767px) {
+  .zest-premium-mobile-nav {
+    padding-bottom: max(.5rem, env(safe-area-inset-bottom));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zest-premium-reveal, dialog, [role="dialog"], [data-radix-popper-content-wrapper] {
+    animation: none !important;
+  }
+  .zest-premium-card:hover, .zest-premium-press:active:not(:disabled) {
+    transform: none !important;
+  }
+}
