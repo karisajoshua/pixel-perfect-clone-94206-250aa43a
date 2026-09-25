@@ -144,7 +144,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
 
   const shell = (
     <div className="min-h-screen flex bg-background text-foreground">
-      <aside className="hidden lg:flex w-64 shrink-0 bg-sidebar text-sidebar-foreground flex-col sticky top-0 h-screen max-h-screen overflow-hidden">
+      <aside className="hidden lg:flex w-64 shrink-0 bg-sidebar text-sidebar-foreground flex-col sticky top-0 h-screen max-h-screen overflow-hidden border-r border-sidebar-border">
         {sidebarContent}
       </aside>
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -154,7 +154,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
       </Sheet>
       <main className="flex-1 min-w-0 overflow-auto flex flex-col">
         <div
-          className="lg:hidden flex items-center gap-2 px-3 sticky top-0 bg-sidebar text-sidebar-foreground z-30 shadow-sm"
+          className="lg:hidden zest-premium-glass flex items-center gap-2 px-3 sticky top-0 bg-sidebar/95 text-sidebar-foreground z-30 border-b border-sidebar-border shadow-sm"
           style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.5rem)", paddingBottom: "0.5rem" }}
         >
           <Button
@@ -176,14 +176,14 @@ function AppShellInner({ children }: { children: ReactNode }) {
           </div>
         </div>
         <PlatformNoticeBanner />
-        <div className="flex-1 min-w-0 pb-24 lg:pb-0">{children}</div>
+        <div className="flex-1 min-w-0 pb-24 lg:pb-0 zest-premium-scroll">{children}</div>
         <footer className="border-t px-4 py-3 text-xs text-muted-foreground text-center hidden lg:block">
           Powered by Texcortech Systems
         </footer>
       </main>
       {/* Mobile/tablet bottom tab bar */}
       <nav
-        className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-sidebar text-sidebar-foreground border-t border-sidebar-border"
+        className="lg:hidden zest-premium-mobile-nav fixed bottom-0 inset-x-0 z-40 bg-sidebar/95 text-sidebar-foreground border-t border-sidebar-border backdrop-blur-xl shadow-[0_-8px_30px_rgba(0,0,0,0.08)]"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className={cn("grid", `grid-cols-${visibleTabs.length + 1}`)} style={{ gridTemplateColumns: `repeat(${visibleTabs.length + 1}, minmax(0, 1fr))` }}>
@@ -195,19 +195,20 @@ function AppShellInner({ children }: { children: ReactNode }) {
                 key={t.to}
                 to={t.to}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
-                  active ? "text-primary" : "text-sidebar-foreground/70 hover:text-sidebar-foreground",
+                  "zest-premium-press relative flex min-h-12 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
+                  active ? "text-white" : "text-sidebar-foreground/70 hover:text-sidebar-foreground",
                 )}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className={cn("h-5 w-5 transition-transform duration-200", active && "scale-110")} />
                 <span>{t.label}</span>
+                {active && <span aria-hidden="true" className="absolute bottom-0 h-0.5 w-6 rounded-full bg-white" />}
               </Link>
             );
           })}
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground"
+            className="zest-premium-press flex min-h-12 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground"
           >
             <MoreHorizontal className="h-5 w-5" />
             <span>More</span>
@@ -236,8 +237,8 @@ function SideLink({ to, label, Icon, active }: { to: string; label: string; Icon
       to={to}
       data-tour={`nav-${to}`}
       className={cn(
-        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-        active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60",
+        "zest-premium-press flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-white/70",
+        active ? "bg-white/15 text-white font-semibold shadow-sm" : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60",
       )}
     >
       <Icon className="h-4 w-4" />
