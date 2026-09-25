@@ -69,7 +69,7 @@ export const Route = createFileRoute("/api/public/ipen/mpesa-callback")({
               .from("payments")
               .update(patch)
               .eq("ipen_checkout_request_id", String(checkoutId))
-              .select("id,tenant_id,client_id,policy_id,invoice_id,amount,reference")
+              .select("id,tenant_id,invoice_id,amount,reference,invoices(client_id,policy_id)")
               .maybeSingle();
 
             if (paymentError) {
@@ -78,11 +78,12 @@ export const Route = createFileRoute("/api/public/ipen/mpesa-callback")({
 
             // The verified provider callback is the only authority that advances
             // certificate payment state. Chat/admin UI cannot call this RPC.
-            if (payment && Number(resultCode) === 0 && mpesaReceipt && payment.policy_id) {
+            const invoice = Array.isArray(payment?.invoices) ? payment.invoices[0] : payment?.invoices;
+            if (payment && Number(resultCode) === 0 && mpesaReceipt && invoice?.policy_id) {
               const { data: order } = await supabaseAdmin
                 .from("dmvic_certificate_orders")
                 .select("id,selling_price,payment_status,status")
-                .eq("policy_id", payment.policy_id)
+                .eq("policy_id", invoice.policy_id)
                 .eq("status", "awaiting_payment")
                 .order("created_at", { ascending: false })
                 .limit(1)
@@ -114,12 +115,12 @@ export const Route = createFileRoute("/api/public/ipen/mpesa-callback")({
                       event_type: "certificate.payment_confirmed",
                       entity_type: "dmvic_certificate_order",
                       entity_id: order.id,
-                      client_id: payment.client_id,
+                      client_id: invoice.client_id,
                       dedupe_key: `ipen:certificate-payment-confirmed:${checkoutId}`,
                       payload: {
                         order_id: order.id,
                         payment_id: payment.id,
-                        policy_id: payment.policy_id,
+                        policy_id: invoice.policy_id,
                         amount: paidAmount,
                         reference: String(mpesaReceipt),
                         provider: "ipen_mpesa",
