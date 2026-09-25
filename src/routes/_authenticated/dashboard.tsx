@@ -109,7 +109,7 @@ function Dashboard() {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </section>
 
       <section aria-label="Agency statistics" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
         {tiles.map((t) => (
