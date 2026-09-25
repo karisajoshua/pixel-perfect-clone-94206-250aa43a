@@ -13,12 +13,12 @@ export function PageHeader({
   helpDocId?: string;
 }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="zest-premium-reveal flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">{title}</h1>
-        {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+        <h1 className="text-2xl sm:text-[1.8rem] font-semibold leading-tight tracking-[-0.025em] text-foreground">{title}</h1>
+        {subtitle && <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted-foreground">{subtitle}</p>}
       </div>
-      <div className="flex flex-wrap gap-2 sm:shrink-0">
+      <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
         {actions}
         {helpDocId && <HelpPanel docId={helpDocId} />}
       </div>
