@@ -10,6 +10,7 @@ import {
 import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { MobileLaunchSplash } from "@/components/MobileLaunchSplash";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -179,6 +180,7 @@ function RootComponent() {
       {navigating && <div className="fixed inset-x-0 top-0 z-[100] h-0.5 overflow-hidden bg-primary/15" aria-label="Loading page"><div className="h-full w-1/3 animate-pulse bg-primary" /></div>}
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <div className="zest-page-enter"><Outlet /></div>
+      <MobileLaunchSplash />
       <Toaster richColors position="top-right" closeButton />
     </QueryClientProvider>
   );
