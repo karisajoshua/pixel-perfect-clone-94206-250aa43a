@@ -119,10 +119,23 @@ export const extractLogbookFields = createServerFn({ method: "POST" })
       content.push({ type: "image", image: fileDataUrl });
     }
 
-    const { text } = await generateText({
-      model: gateway("google/gemini-2.5-flash"),
-      messages: [{ role: "user", content }],
-    });
+    let text: string;
+    try {
+      ({ text } = await generateText({
+        model: gateway("google/gemini-2.5-flash"),
+        messages: [{ role: "user", content }],
+        maxRetries: 0,
+      }));
+    } catch (e: any) {
+      const status = e?.statusCode ?? e?.status ?? e?.lastError?.statusCode;
+      const msg = String(e?.message ?? "");
+      if (status === 402 || status === 403 || /payment|credit/i.test(msg)) {
+        throw new Error(
+          "Log book reading is paused because the agency's AI allowance has been reached. Ask an administrator to raise it, or fill the fields in manually.",
+        );
+      }
+      throw e;
+    }
 
     // Strip code fences if the model returned them
     const cleaned = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
