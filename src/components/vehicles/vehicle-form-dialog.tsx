@@ -339,6 +339,7 @@ export function VehicleFormDialog({ open, onOpenChange, onSaved, initial, defaul
                   ? "No log book on file for this client. Upload one under Clients → KYC to reuse it, or scan a file now."
                   : "Auto-fill vehicle details from a photo or PDF of the log book."}
             </div>
+            <div className="text-xs text-muted-foreground mt-0.5">Scan failed or no log book? Type the details below.</div>
           </div>
           <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onScanFile(f); }} />
           <div className="flex flex-col items-end gap-1">
