@@ -51,7 +51,7 @@ export const Route = createFileRoute("/_authenticated/admin/ipen")({
   errorComponent: IpenRouteError,
 });
 
-function IpenRouteError({ error, reset }: { error: Error; reset: () => void }) {
+function IpenRouteError({ error, reset }: { error: unknown; reset: () => void }) {
   const isDev =
     typeof window !== "undefined" &&
     /localhost|lovableproject\.com|-dev\.lovable\.app/.test(window.location.hostname);
