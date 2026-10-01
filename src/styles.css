@@ -258,8 +258,9 @@
                 box-shadow var(--zest-motion-normal) var(--zest-motion-ease),
                 background-color var(--zest-motion-fast) ease;
   }
+  /* Fade only: never animate transform here, it overrides dialog centering and dropdown positioning. */
   dialog, [role="dialog"], [data-radix-popper-content-wrapper] {
-    animation: zest-premium-pop var(--zest-motion-normal) var(--zest-motion-ease) both;
+    animation: zest-premium-fade var(--zest-motion-normal) var(--zest-motion-ease);
   }
 }
 @layer utilities {
@@ -301,6 +302,10 @@
 @keyframes zest-premium-reveal {
   from { opacity: 0; transform: translate3d(0, 8px, 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes zest-premium-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 @keyframes zest-premium-pop {
   from { opacity: 0; transform: translate3d(0, 5px, 0) scale(.99); }
