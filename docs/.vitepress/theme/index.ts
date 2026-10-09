@@ -1,8 +1,5 @@
 import DefaultTheme from 'vitepress/theme'
-import mermaid from 'mermaid'
 import './custom.css'
-
-mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'neutral' })
 
 async function renderDiagrams() {
   if (typeof document === 'undefined') return
@@ -16,6 +13,8 @@ async function renderDiagrams() {
     block.textContent = source
   })
   try {
+    const { default: mermaid } = await import('mermaid')
+    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'neutral' })
     await mermaid.run({ querySelector: '.language-mermaid.mermaid:not([data-processed])' })
   } catch (error) {
     console.warn('Could not render a documentation diagram', error)
