@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: '22'
       - name: Install documentation builder
-        run: npm install --no-save --package-lock=false --ignore-scripts vitepress@1.6.4
+        run: npm install --no-save --package-lock=false --ignore-scripts vitepress@1.6.4 mermaid@11
       - name: Build documentation
         run: npx vitepress build docs
       - name: Configure GitHub Pages
