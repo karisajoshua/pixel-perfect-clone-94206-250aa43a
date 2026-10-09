@@ -37,3 +37,15 @@ These guides document inspected code; live integration, access-control and workf
 - [Verification matrix](VERIFICATION_MATRIX.md)
 
 These are source-based references; production testing is still required.
+
+## Phase 3 — Manuals, release readiness and branding
+
+- [Agency staff manual](USER_GUIDE.md) — expanded workflows and troubleshooting.
+- [Administrator operations manual](ADMIN_GUIDE.md) — roles, integrations and daily controls.
+- [Deployment and release runbook](DEPLOYMENT.md) — scripts, environment checklist and release gates.
+- [Brand assets and screenshot plan](BRAND_ASSETS.md) — approved imagery requirements.
+- [Documentation change log](CHANGELOG.md) — documentation milestones.
+- [Release notes template](RELEASE_TEMPLATE.md) — standard release reporting.
+- [Phase 3 acceptance checklist](PHASE3_ACCEPTANCE.md) — completed work and pending verification.
+
+Screenshots and live deployment verification are still pending; no production changes were made.
