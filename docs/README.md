@@ -1,5 +1,8 @@
 # Zest documentation
 
+> **Documentation website:** This repository includes a VitePress GitHub Pages site with sidebar navigation, local search, responsive styling and Mermaid diagrams. The Pages URL will work after GitHub Pages is configured to deploy from **GitHub Actions** and the deployment succeeds.
+
+
 Documentation reflects inspected source files on `main` as of 2026-10-10. **Verified** means observed in source; **unverified** means not established by a running test or backend audit.
 
 | Guide | Purpose |
