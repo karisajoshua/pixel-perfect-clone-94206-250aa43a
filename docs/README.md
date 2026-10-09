@@ -16,3 +16,15 @@ Documentation reflects inspected source files on `main` as of 2026-10-10. **Veri
 | [Payment flow](diagrams/payment-flow.md) | Illustrative callback flow |
 
 The generated route registry is `src/routeTree.gen.ts`. Do not edit it manually.
+
+## Phase 2 — Insurance operations and integrations
+
+- [Insurance workflows](INSURANCE_WORKFLOWS.md) — quotations, claims and renewals, with validation checkpoints.
+- [DMVIC and IPEN](DMVIC_IPEN.md) — source-backed integration and payment callback review.
+- [WhatsApp and email](WHATSAPP_EMAIL.md) — messaging configuration and verification.
+- [Automation](AUTOMATION.md) — scheduler, renewal reminders and reliability checks.
+- [AI assistant](AI_ASSISTANT.md) — both assistant paths and privacy requirements.
+- [Agency staff guide](USER_GUIDE.md) — initial role-based navigation reference.
+- [Administrator guide](ADMIN_GUIDE.md) — initial administration reference.
+
+These guides document inspected code; live integration, access-control and workflow tests remain outstanding.
