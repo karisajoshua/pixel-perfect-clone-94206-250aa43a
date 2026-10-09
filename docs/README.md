@@ -28,3 +28,12 @@ The generated route registry is `src/routeTree.gen.ts`. Do not edit it manually.
 - [Administrator guide](ADMIN_GUIDE.md) — initial administration reference.
 
 These guides document inspected code; live integration, access-control and workflow tests remain outstanding.
+
+## Additional Phase 2 operational references
+
+- [Client, policy and billing operations](CLIENT_POLICY_BILLING.md)
+- [Role and navigation guide](ACCESS_ROLES.md)
+- [Renewal email and automation runbook](RENEWAL_EMAIL_RUNBOOK.md)
+- [Verification matrix](VERIFICATION_MATRIX.md)
+
+These are source-based references; production testing is still required.
