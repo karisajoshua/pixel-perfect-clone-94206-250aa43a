@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, FileText, FileSignature, Receipt, ScrollText,
   BarChart3, ShieldCheck, LogOut, Building2, BellRing, Settings, Mail, Upload,
   BookOpen, Menu, Inbox, KeyRound, Clock, MoreHorizontal, Sparkles,
-  MessageCircle, MapPinned,
+  MessageCircle, MapPinned, ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyProfile, useMyRoles } from "@/hooks/use-auth";
@@ -27,6 +27,7 @@ const nav: { to: string; label: string; icon: typeof Users; roles: Role[] }[] = 
   { to: "/clients/kra-checker", label: "KRA PIN checker", icon: ShieldCheck, roles: ["admin", "manager", "agent"] },
   { to: "/quotations", label: "Quotations", icon: FileSignature, roles: ["admin", "manager", "agent"] },
   { to: "/policies", label: "Policies", icon: FileText, roles: ["admin", "manager", "agent"] },
+  { to: "/insurer-portals", label: "Insurer portals", icon: ExternalLink, roles: ["admin", "manager", "agent"] },
   { to: "/invoices", label: "Invoices", icon: Receipt, roles: ["admin", "manager", "agent"] },
   { to: "/claims", label: "Claims", icon: ScrollText, roles: ["admin", "manager", "agent"] },
   { to: "/renewals", label: "Renewals", icon: BellRing, roles: ["admin", "manager", "agent", "viewer"] },
